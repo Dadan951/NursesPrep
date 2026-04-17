@@ -406,7 +406,7 @@ export default function Dashboard() {
               >
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-sm font-semibold text-slate-700">Activité de la semaine</h2>
-                  <span className="text-xs text-blue-500 font-medium">7 derniers jours</span>
+                  <span className="text-xs text-blue-500 font-medium">7 derniers jours ✓</span>
                 </div>
                 <div className="flex items-end gap-2 h-20">
                   {Array.from({ length: 7 }, (_, i) => {

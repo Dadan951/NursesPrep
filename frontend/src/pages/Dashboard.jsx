@@ -409,10 +409,13 @@ export default function Dashboard() {
                   <span className="text-xs text-blue-500 font-medium">7 derniers jours</span>
                 </div>
                 <div className="flex items-end gap-2 h-20">
-                  {['L','M','M','J','V','S','D'].map((day, i) => {
+                  {Array.from({ length: 7 }, (_, i) => {
+                    const dayLetters = ['D','L','M','M','J','V','S'];
+                    const d = new Date(Date.now() - (6 - i) * 86400000);
+                    const day = dayLetters[d.getDay()];
                     const maxVal = Math.max(...weeklyData, 1);
                     const heightPct = Math.round((weeklyData[i] / maxVal) * 100) || 0;
-                    const isToday = i === (new Date().getDay() + 6) % 7;
+                    const isToday = i === 6;
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                         <motion.div

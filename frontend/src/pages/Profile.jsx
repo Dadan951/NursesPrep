@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -73,6 +73,242 @@ function Field({ label, children }) {
 
 const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:bg-white transition';
 
+/* ─── Avatar Crop Modal ──────────────────────────────────────────────────────── */
+function AvatarCropModal({ src, onConfirm, onCancel, loading }) {
+  const WRAP   = 300;   // taille du conteneur visible
+  const RADIUS = 110;   // rayon du cercle de recadrage
+  const CX = WRAP / 2;
+  const CY = WRAP / 2;
+
+  const imgRef       = useRef(null);
+  const containerRef = useRef(null);
+  const scaleRef     = useRef(1);
+  const offsetRef    = useRef({ x: 0, y: 0 });
+  const dragging     = useRef(false);
+  const lastXY       = useRef({ x: 0, y: 0 });
+  const pinchRef     = useRef(null);
+
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  const [scale,   setScale]   = useState(1);
+  const [offset,  setOffset]  = useState({ x: 0, y: 0 });
+  const [grabbed, setGrabbed] = useState(false);
+
+  /* Applique un zoom centré sur le cercle */
+  const applyZoom = useCallback((newScale) => {
+    const clamped = Math.max(0.1, Math.min(10, newScale));
+    const ratio   = clamped / scaleRef.current;
+    const newOff  = { x: offsetRef.current.x * ratio, y: offsetRef.current.y * ratio };
+    scaleRef.current  = clamped;
+    offsetRef.current = newOff;
+    setScale(clamped);
+    setOffset({ ...newOff });
+  }, []);
+
+  const onImgLoad = () => {
+    const { naturalWidth: w, naturalHeight: h } = imgRef.current;
+    setImgSize({ w, h });
+    const s = Math.max((RADIUS * 2) / w, (RADIUS * 2) / h);
+    scaleRef.current  = s;
+    offsetRef.current = { x: 0, y: 0 };
+    setScale(s);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  /* ── Drag global (mouse) — window listeners pour ne jamais perdre le drag ── */
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const dx = e.clientX - lastXY.current.x;
+      const dy = e.clientY - lastXY.current.y;
+      lastXY.current = { x: e.clientX, y: e.clientY };
+      offsetRef.current = { x: offsetRef.current.x + dx, y: offsetRef.current.y + dy };
+      setOffset({ ...offsetRef.current });
+    };
+    const onUp = () => {
+      if (dragging.current) { dragging.current = false; setGrabbed(false); }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+    };
+  }, []);
+
+  const onMouseDown = (e) => {
+    e.preventDefault();
+    dragging.current = true;
+    setGrabbed(true);
+    lastXY.current = { x: e.clientX, y: e.clientY };
+  };
+
+  /* ── Wheel + touch — attachés via useEffect { passive: false } ── */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      applyZoom(scaleRef.current * (e.deltaY < 0 ? 1.08 : 0.93));
+    };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        dragging.current = false;
+        pinchRef.current = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      } else {
+        dragging.current = true;
+        lastXY.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      if (e.touches.length === 2 && pinchRef.current) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        applyZoom(scaleRef.current * (dist / pinchRef.current));
+        pinchRef.current = dist;
+      } else if (dragging.current && e.touches.length === 1) {
+        const dx = e.touches[0].clientX - lastXY.current.x;
+        const dy = e.touches[0].clientY - lastXY.current.y;
+        lastXY.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        offsetRef.current = { x: offsetRef.current.x + dx, y: offsetRef.current.y + dy };
+        setOffset({ ...offsetRef.current });
+      }
+    };
+
+    const handleTouchEnd = () => { dragging.current = false; pinchRef.current = null; };
+
+    el.addEventListener('wheel',      handleWheel,      { passive: false });
+    el.addEventListener('touchstart', handleTouchStart, { passive: false });
+    el.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+    el.addEventListener('touchend',   handleTouchEnd);
+
+    return () => {
+      el.removeEventListener('wheel',      handleWheel);
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove',  handleTouchMove);
+      el.removeEventListener('touchend',   handleTouchEnd);
+    };
+  }, [applyZoom]);
+
+  /* Export : on recadre exactement ce qui est dans le cercle */
+  const handleConfirm = () => {
+    const OUT = 400;
+    const f   = OUT / (RADIUS * 2);
+    const dw  = imgSize.w * scaleRef.current;
+    const dh  = imgSize.h * scaleRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = OUT; canvas.height = OUT;
+    canvas.getContext('2d').drawImage(
+      imgRef.current,
+      (RADIUS - dw/2 + offsetRef.current.x) * f,
+      (RADIUS - dh/2 + offsetRef.current.y) * f,
+      dw * f, dh * f
+    );
+    onConfirm(canvas.toDataURL('image/jpeg', 0.92));
+  };
+
+  const dw = imgSize.w * scale;
+  const dh = imgSize.h * scale;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={() => !loading && onCancel()}
+    >
+      <motion.div
+        initial={{ scale: 0.88, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.88, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-xs"
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="text-sm font-bold text-slate-800 text-center mb-1">Positionner ta photo</h3>
+        <p className="text-xs text-slate-400 text-center mb-4">👆 Glisse · 🤏 Pincer · 🖱 Scroll</p>
+
+        {/* Zone interactive — image entière visible */}
+        <div className="flex justify-center mb-4">
+          <div
+            ref={containerRef}
+            style={{
+              width: WRAP, height: WRAP,
+              position: 'relative', overflow: 'hidden',
+              cursor: grabbed ? 'grabbing' : 'grab',
+              background: '#1e293b',
+              borderRadius: 16,
+              userSelect: 'none',
+            }}
+            onMouseDown={onMouseDown}
+          >
+            {/* Image complète, librement déplaçable */}
+            <img
+              ref={imgRef} src={src} onLoad={onImgLoad} draggable={false} alt="crop"
+              style={{
+                position: 'absolute',
+                width: dw, height: dh,
+                left: CX - dw/2 + offset.x,
+                top:  CY - dh/2 + offset.y,
+                pointerEvents: 'none',
+              }}
+            />
+
+            {/* Overlay sombre en dehors du cercle */}
+            <div style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              background: `radial-gradient(circle ${RADIUS}px at ${CX}px ${CY}px,
+                transparent ${RADIUS}px,
+                rgba(0,0,0,0.62) ${RADIUS}px)`,
+            }} />
+
+            {/* Contour blanc du cercle */}
+            <div style={{
+              position: 'absolute',
+              width: RADIUS * 2, height: RADIUS * 2,
+              left: CX - RADIUS, top: CY - RADIUS,
+              borderRadius: '50%',
+              border: '2px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.2)',
+              pointerEvents: 'none',
+            }} />
+          </div>
+        </div>
+
+        {/* Slider zoom */}
+        <div className="flex items-center gap-3 px-1 mb-5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="range" min="0.1" max="6" step="0.02"
+            value={scale}
+            onChange={e => applyZoom(parseFloat(e.target.value))}
+            className="flex-1 accent-blue-500 h-1.5" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onCancel} disabled={loading}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
+            Annuler
+          </button>
+          <button onClick={handleConfirm} disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-70"
+            style={{ background: 'linear-gradient(135deg,#0891b2,#164e8a)' }}>
+            {loading
+              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Envoi...</>
+              : '✓ Confirmer'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Profile() {
   const { user, refreshUser } = useAuth();
@@ -81,42 +317,33 @@ export default function Profile() {
 
   const [infoForm, setInfoForm] = useState({ name: user?.name || '', email: user?.email || '' });
   const [pwForm,   setPwForm]   = useState({ currentPassword: '', newPassword: '', confirm: '' });
-  const [infoLoading, setInfoLoading] = useState(false);
-  const [pwLoading,   setPwLoading]   = useState(false);
+  const [infoLoading,   setInfoLoading]   = useState(false);
+  const [pwLoading,     setPwLoading]     = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
-  const [toast, setToast] = useState({ msg: '', type: 'success' });
+  const [toast,  setToast]  = useState({ msg: '', type: 'success' });
+  const [preview, setPreview] = useState(null); // base64 de l'image à confirmer
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
+    e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) return showToast('Fichier invalide, choisissez une image', 'error');
-
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const img = new Image();
-      img.onload = async () => {
-        // Compresser à max 300x300px
-        const MAX = 300;
-        const canvas = document.createElement('canvas');
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width  = Math.round(img.width  * ratio);
-        canvas.height = Math.round(img.height * ratio);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const base64 = canvas.toDataURL('image/jpeg', 0.82);
-
-        setAvatarLoading(true);
-        try {
-          await axios.put(`${API_URL}/auth/avatar`, { avatar: base64 });
-          await refreshUser();
-          showToast('Photo de profil mise à jour ✓');
-        } catch (err) {
-          showToast(err.response?.data?.message || 'Erreur upload', 'error');
-        } finally { setAvatarLoading(false); }
-      };
-      img.src = ev.target.result;
-    };
+    reader.onload = (ev) => setPreview(ev.target.result); // ouvre le recadreur
     reader.readAsDataURL(file);
+  };
+
+  const confirmAvatar = async (croppedBase64) => {
+    setAvatarLoading(true);
+    try {
+      await axios.put(`${API_URL}/auth/avatar`, { avatar: croppedBase64 });
+      await refreshUser();
+      setPreview(null);
+      showToast('Photo de profil mise à jour ✓');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erreur upload', 'error');
+    } finally { setAvatarLoading(false); }
   };
 
   const showToast = (msg, type = 'success') => {
@@ -162,6 +389,18 @@ export default function Profile() {
     <DashboardLayout isAdmin={isAdmin}>
       <AnimatePresence>{toast.msg && <Toast key="toast" msg={toast.msg} type={toast.type}/>}</AnimatePresence>
 
+      {/* ── Modal recadrage circulaire ── */}
+      <AnimatePresence>
+        {preview && (
+          <AvatarCropModal
+            src={preview}
+            loading={avatarLoading}
+            onConfirm={confirmAvatar}
+            onCancel={() => setPreview(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="flex-1 overflow-auto">
 
         {/* ── Hero ── */}
@@ -171,9 +410,7 @@ export default function Profile() {
             {/* Avatar + identity */}
             <div className="flex items-center gap-5 mb-7">
               <div className="relative flex-shrink-0">
-                <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-white/20">
-                  <UserAvatar name={user?.name} avatar={user?.avatar} size="xl" />
-                </div>
+                <UserAvatar name={user?.name} avatar={user?.avatar} size="xl" shape="circle" fit="cover" />
 
                 {/* Bouton changer la photo */}
                 <label className="absolute -bottom-2 -right-2 cursor-pointer group" title="Changer la photo">

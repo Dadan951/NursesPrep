@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import PublicRoute from './components/PublicRoute';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -39,10 +40,10 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Public — redirige vers dashboard si déjà connecté */}
+          <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
           {/* Student */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

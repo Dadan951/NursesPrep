@@ -67,55 +67,68 @@ exports.updateAvatar = async (req, res) => {
 
 exports.ping = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const userId = req.user._id;
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const lastDate = user.progress.lastActivity
-      ? user.progress.lastActivity.toISOString().split('T')[0]
+
+    // Charger l'utilisateur
+    const user = await User.findById(userId);
+    const lastDate = user.progress?.lastActivity
+      ? new Date(user.progress.lastActivity).toISOString().split('T')[0]
       : null;
 
-    // Mise à jour de la série (streak)
+    // Calculer le nouveau streak
+    let newStreak = user.progress?.streak || 0;
     if (lastDate === today) {
-      // Déjà visité aujourd'hui → pas de changement
+      // Déjà visité → rien
     } else if (lastDate === yesterday) {
-      // Jour consécutif → +1
-      user.progress.streak = (user.progress.streak || 0) + 1;
-      user.progress.lastActivity = new Date();
+      newStreak = newStreak + 1;
     } else {
-      // Premier jour ou série cassée → reset à 1
-      user.progress.streak = 1;
-      user.progress.lastActivity = new Date();
+      newStreak = 1; // premier jour ou série cassée
     }
 
-    // Enregistrer l'activité du jour
-    const existing = user.dailyActivity.find(e => e.date === today);
-    if (existing) {
-      existing.count += 1;
+    // Mettre à jour streak + lastActivity avec $set (fiable, pas de markModified)
+    if (lastDate !== today) {
+      await User.updateOne(
+        { _id: userId },
+        { $set: { 'progress.streak': newStreak, 'progress.lastActivity': new Date() } }
+      );
+    }
+
+    // Incrémenter ou créer l'entrée du jour dans dailyActivity
+    const hasToday = user.dailyActivity.some(e => e.date === today);
+    if (hasToday) {
+      await User.updateOne(
+        { _id: userId, 'dailyActivity.date': today },
+        { $inc: { 'dailyActivity.$.count': 1 } }
+      );
     } else {
-      user.dailyActivity.push({ date: today, count: 1 });
+      await User.updateOne(
+        { _id: userId },
+        { $push: { dailyActivity: { date: today, count: 1 } } }
+      );
     }
 
-    // Garder seulement les 30 derniers jours
-    if (user.dailyActivity.length > 30) {
-      user.dailyActivity = user.dailyActivity.slice(-30);
+    // Recharger l'utilisateur final
+    const updated = await User.findById(userId);
+
+    // Garder max 30 jours (si dépassé)
+    if (updated.dailyActivity.length > 30) {
+      await User.updateOne({ _id: userId }, { $pop: { dailyActivity: -1 } });
     }
 
-    user.markModified('progress');
-    user.markModified('dailyActivity');
-    await user.save();
-
-    // Retourner les 7 derniers jours d'activité
+    // Retourner les 7 derniers jours
     const weeklyActivity = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-      const entry = user.dailyActivity.find(e => e.date === d);
+      const entry = updated.dailyActivity.find(e => e.date === d);
       weeklyActivity.push(entry ? entry.count : 0);
     }
 
     res.json({
-      streak: user.progress.streak,
+      streak: updated.progress.streak,
       weeklyActivity,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar || '' }
+      user: { id: updated._id, name: updated.name, email: updated.email, role: updated.role, subscription: updated.subscription, progress: updated.progress, avatar: updated.avatar || '' }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

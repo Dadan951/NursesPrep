@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import {
   motion, useMotionValue, useTransform, useSpring, AnimatePresence,
 } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
 /* ─── Animated counter (triggers on mount) ───────────────────────────────── */
@@ -114,17 +115,31 @@ const TIPS = [
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const p = user?.progress || {};
 
-  const [tipIdx,    setTipIdx]    = useState(0);
-  const [greeting,  setGreeting]  = useState('');
+  const [tipIdx,       setTipIdx]       = useState(0);
+  const [greeting,     setGreeting]     = useState('');
+  const [streak,       setStreak]       = useState(p.streak || 0);
+  const [weeklyData,   setWeeklyData]   = useState([0,0,0,0,0,0,0]);
 
   /* Time-based greeting */
   useEffect(() => {
     const h = new Date().getHours();
     setGreeting(h < 6 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir');
   }, []);
+
+  /* Ping backend — met à jour streak + activité hebdo */
+  useEffect(() => {
+    if (!token) return;
+    axios.post(`${API_URL}/auth/ping`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      setStreak(res.data.streak);
+      setWeeklyData(res.data.weeklyActivity);
+      refreshUser();
+    }).catch(() => {});
+  }, []); // eslint-disable-line
 
   /* Rotate tips */
   useEffect(() => {
@@ -356,7 +371,7 @@ export default function Dashboard() {
                         <Link to={a.to} className="block rounded-2xl overflow-hidden focus:outline-none h-full">
                           <motion.div
                             className={`bg-gradient-to-br ${a.grad} p-5 shadow-xl ${a.shadow} flex flex-col`}
-                            style={{ minHeight: '160px', height: '100%' }}
+                            style={{ height: '190px' }}
                             whileHover={{ scale: 1.04, boxShadow: '0 20px 40px -8px rgba(0,0,0,0.25)' }}
                             whileTap={{ scale: 0.97 }}
                             transition={{ type: 'spring', stiffness: 350, damping: 22 }}
@@ -391,13 +406,14 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-end gap-2 h-20">
                   {['L','M','M','J','V','S','D'].map((day, i) => {
-                    const heights = [45, 70, 30, 90, 55, 80, 20];
-                    const isToday = i === new Date().getDay() - 1;
+                    const maxVal = Math.max(...weeklyData, 1);
+                    const heightPct = Math.round((weeklyData[i] / maxVal) * 100) || 0;
+                    const isToday = i === (new Date().getDay() + 6) % 7;
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                         <motion.div
                           className="w-full rounded-lg relative overflow-hidden"
-                          style={{ height: `${heights[i]}%` }}
+                          style={{ height: heightPct > 0 ? `${Math.max(heightPct, 8)}%` : '4%' }}
                           initial={{ scaleY: 0, originY: 1 }}
                           animate={{ scaleY: 1 }}
                           transition={{ delay: 0.7 + i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -444,10 +460,10 @@ export default function Dashboard() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.65, type: 'spring', stiffness: 260, damping: 18 }}
                   >
-                    {p.streak || 0}
+                    {streak}
                   </motion.p>
                   <p className="text-xs text-blue-300 mt-1">
-                    jour{(p.streak || 0) !== 1 ? 's' : ''} consécutif{(p.streak || 0) !== 1 ? 's' : ''}
+                    jour{streak !== 1 ? 's' : ''} consécutif{streak !== 1 ? 's' : ''}
                   </p>
 
                   {/* Day dots */}
@@ -459,7 +475,7 @@ export default function Dashboard() {
                         animate={{ scaleY: 1 }}
                         transition={{ delay: 0.75 + i * 0.06, type: 'spring' }}
                         className={`flex-1 h-1.5 rounded-full origin-bottom ${
-                          i < (p.streak || 0) % 7 ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/15'
+                          i < streak % 7 ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/15'
                         }`}
                       />
                     ))}

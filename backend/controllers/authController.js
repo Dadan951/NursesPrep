@@ -46,6 +46,61 @@ exports.getMe = async (req, res) => {
   res.json({ user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress } });
 };
 
+exports.ping = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const lastDate = user.progress.lastActivity
+      ? user.progress.lastActivity.toISOString().split('T')[0]
+      : null;
+
+    // Mise à jour de la série (streak)
+    if (lastDate === today) {
+      // Déjà visité aujourd'hui → pas de changement
+    } else if (lastDate === yesterday) {
+      // Jour consécutif → +1
+      user.progress.streak = (user.progress.streak || 0) + 1;
+      user.progress.lastActivity = new Date();
+    } else {
+      // Premier jour ou série cassée → reset à 1
+      user.progress.streak = 1;
+      user.progress.lastActivity = new Date();
+    }
+
+    // Enregistrer l'activité du jour
+    const existing = user.dailyActivity.find(e => e.date === today);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      user.dailyActivity.push({ date: today, count: 1 });
+    }
+
+    // Garder seulement les 30 derniers jours
+    if (user.dailyActivity.length > 30) {
+      user.dailyActivity = user.dailyActivity.slice(-30);
+    }
+
+    await user.save();
+
+    // Retourner les 7 derniers jours d'activité
+    const weeklyActivity = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+      const entry = user.dailyActivity.find(e => e.date === d);
+      weeklyActivity.push(entry ? entry.count : 0);
+    }
+
+    res.json({
+      streak: user.progress.streak,
+      weeklyActivity,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.updateProfile = async (req, res) => {
   try {
     const { name, email, currentPassword, newPassword } = req.body;

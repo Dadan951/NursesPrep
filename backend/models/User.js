@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema({
     lastActivity: { type: Date }
   },
   weeklyScores: [{ week: String, score: Number }],
+  dailyActivity: [{ date: String, count: { type: Number, default: 0 } }],
   quizGen: {
     count: { type: Number, default: 0 },
     date: { type: String, default: '' }

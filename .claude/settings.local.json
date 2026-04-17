@@ -13,7 +13,10 @@
       "Bash(grep -v \"^$\")",
       "Read(//mnt/**)",
       "Bash(cmd.exe /c \"dir C:\\\\ifsi-app\\\\frontend\")",
-      "Bash(powershell.exe -Command \"Get-ChildItem C:\\\\ifsi-app\\\\frontend\")"
+      "Bash(powershell.exe -Command \"Get-ChildItem C:\\\\ifsi-app\\\\frontend\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

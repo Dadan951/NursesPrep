@@ -79,16 +79,21 @@ exports.ping = async (req, res) => {
 
     // Calculer le nouveau streak
     let newStreak = user.progress?.streak || 0;
+    let shouldUpdate = false;
+
     if (lastDate === today) {
-      // Déjà visité → rien
+      // Déjà visité aujourd'hui — corriger si streak est 0 (données corrompues)
+      if (newStreak === 0) { newStreak = 1; shouldUpdate = true; }
     } else if (lastDate === yesterday) {
       newStreak = newStreak + 1;
+      shouldUpdate = true;
     } else {
-      newStreak = 1; // premier jour ou série cassée
+      newStreak = 1;
+      shouldUpdate = true;
     }
 
     // Mettre à jour streak + lastActivity avec $set (fiable, pas de markModified)
-    if (lastDate !== today) {
+    if (shouldUpdate) {
       await User.updateOne(
         { _id: userId },
         { $set: { 'progress.streak': newStreak, 'progress.lastActivity': new Date() } }

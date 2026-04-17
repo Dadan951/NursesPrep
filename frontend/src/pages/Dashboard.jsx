@@ -131,15 +131,17 @@ export default function Dashboard() {
 
   /* Ping backend — met à jour streak + activité hebdo */
   useEffect(() => {
+    console.log('[Ping] token=', token ? 'OK' : 'MISSING', '| API_URL=', API_URL);
     if (!token) return;
     axios.post(`${API_URL}/auth/ping`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
+      console.log('[Ping] success:', res.data);
       if (typeof res.data.streak === 'number') setStreak(res.data.streak);
       if (Array.isArray(res.data.weeklyActivity)) setWeeklyData(res.data.weeklyActivity);
       refreshUser();
     }).catch(err => {
-      console.error('Ping failed:', err?.response?.data || err.message);
+      console.error('[Ping] FAILED:', err?.response?.status, err?.response?.data || err.message);
     });
   }, []); // eslint-disable-line
 

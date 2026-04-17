@@ -473,7 +473,7 @@ export default function Dashboard() {
                     {streak === 0 ? 'connecte-toi demain pour commencer !' : `jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''}`}
                   </p>
 
-                  {/* Day dots */}
+                  {/* Barre de progression streak */}
                   <div className="mt-4 flex gap-1.5">
                     {[...Array(7)].map((_, i) => (
                       <motion.div
@@ -482,15 +482,12 @@ export default function Dashboard() {
                         animate={{ scaleY: 1 }}
                         transition={{ delay: 0.75 + i * 0.06, type: 'spring' }}
                         className={`flex-1 h-1.5 rounded-full origin-bottom ${
-                          i < streak % 7 ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/15'
+                          i < streak ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/15'
                         }`}
                       />
                     ))}
                   </div>
-
-                  <p className="text-[10px] text-blue-400 mt-3">
-                    {['L','M','M','J','V','S','D'].join('   ')}
-                  </p>
+                  <p className="text-[10px] text-blue-400/60 mt-2">objectif 7 jours</p>
                 </div>
               </div>
 

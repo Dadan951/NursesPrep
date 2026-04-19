@@ -533,7 +533,7 @@ function PushPanel() {
   const [notifStats, setNotifStats] = useState(null);
   const [title, setTitle]           = useState('');
   const [body,  setBody]            = useState('');
-  const [url,   setUrl]             = useState('/');
+  const [url,   setUrl]             = useState('/dashboard');
   const [sending,   setSending]     = useState(false);
   const [reminding, setReminding]   = useState(false);
   const [result,    setResult]      = useState(null);
@@ -550,7 +550,7 @@ function PushPanel() {
     try {
       const r = await axios.post(`${API_URL}/notifications/send-all`, { title, body, url });
       setResult({ ok: true, msg: `✅ Envoyé à ${r.data.sent} utilisateur(s)` });
-      setTitle(''); setBody(''); setUrl('/');
+      setTitle(''); setBody(''); setUrl('/dashboard');
     } catch (err) {
       setResult({ ok: false, msg: err.response?.data?.message || 'Erreur' });
     } finally { setSending(false); }
@@ -619,11 +619,22 @@ function PushPanel() {
           rows={2}
           className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 transition resize-none"
         />
-        <input
+        <select
           value={url} onChange={e => setUrl(e.target.value)}
-          placeholder="URL de destination (ex: /dashboard/quiz)"
-          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 transition"
-        />
+          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 transition bg-white text-slate-700"
+        >
+          <option value="/dashboard">🏠 Tableau de bord</option>
+          <option value="/dashboard/quiz">🧠 Quiz</option>
+          <option value="/dashboard/flashcards">🃏 Flashcards</option>
+          <option value="/dashboard/cours">📖 Cours & Fiches</option>
+          <option value="/dashboard/exercises">💪 Exercices</option>
+          <option value="/dashboard/annales">📄 Annales</option>
+          <option value="/dashboard/medicaments">💊 Médicaments</option>
+          <option value="/dashboard/groups">👥 Groupes</option>
+          <option value="/dashboard/profile">👤 Profil</option>
+          <option value="/dashboard/subscription">⭐ Abonnement</option>
+          <option value="/dashboard/support">🎧 Support</option>
+        </select>
         <button
           onClick={handleSendAll}
           disabled={sending || !title.trim() || !body.trim()}

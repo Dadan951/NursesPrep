@@ -79,7 +79,7 @@ exports.sendVerificationEmail = async (to, name, code) => {
     </p>`;
 
   await getResend().emails.send({
-    from: 'NursePrep <onboarding@resend.dev>',
+    from: 'NursePrep <nurses.prep10@gmail.com>',
     to,
     subject: `${code} — Ton code de vérification NursePrep`,
     html: baseTemplate('Vérification de compte', content),
@@ -102,7 +102,7 @@ exports.sendResetEmail = async (to, name, code) => {
     </p>`;
 
   await getResend().emails.send({
-    from: 'NursePrep <onboarding@resend.dev>',
+    from: 'NursePrep <nurses.prep10@gmail.com>',
     to,
     subject: `${code} — Réinitialisation de mot de passe NursePrep`,
     html: baseTemplate('Réinitialisation de mot de passe', content),

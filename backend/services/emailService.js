@@ -18,10 +18,8 @@ function baseTemplate(title, content) {
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0c4a6e 100%);padding:32px 40px;text-align:center;">
-            <div style="display:inline-flex;align-items:center;gap:10px;">
-              <div style="width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;">
-                <span style="font-size:18px;">🩺</span>
-              </div>
+            <div style="display:inline-flex;align-items:center;gap:12px;">
+              <img src="https://ifsi-app-production.up.railway.app/logo512.png" alt="NursePrep" width="40" height="40" style="border-radius:10px;display:block;" />
               <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">NursePrep</span>
             </div>
             <p style="color:#93c5fd;font-size:12px;margin:8px 0 0;">${title}</p>

@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   pushSubscription: { type: mongoose.Schema.Types.Mixed, default: null },
   pushEnabled: { type: Boolean, default: false },
+  emailVerified:      { type: Boolean, default: false },
+  verificationCode:   { type: String },
+  verificationExpires:{ type: Date },
+  resetCode:          { type: String },
+  resetExpires:       { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 

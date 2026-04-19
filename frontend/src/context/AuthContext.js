@@ -33,6 +33,18 @@ export function AuthProvider({ children }) {
 
   const register = async (name, email, password) => {
     const res = await axios.post(`${API_URL}/auth/register`, { name, email, password });
+    // Si needsVerification → retourner tel quel, la page gère l'étape 2
+    if (res.data.needsVerification) return res.data;
+    const { token: t, user: u } = res.data;
+    localStorage.setItem('token', t);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+    setToken(t);
+    setUser(u);
+    return u;
+  };
+
+  const verifyEmail = async (email, code) => {
+    const res = await axios.post(`${API_URL}/auth/verify-email`, { email, code });
     const { token: t, user: u } = res.data;
     localStorage.setItem('token', t);
     axios.defaults.headers.common['Authorization'] = `Bearer ${t}`;
@@ -56,7 +68,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

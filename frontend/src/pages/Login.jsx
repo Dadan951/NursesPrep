@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../context/AuthContext';
 import {
   motion, AnimatePresence,
   useMotionValue, useTransform, useSpring,
@@ -84,6 +86,56 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [toast,   setToast]   = useState('');
 
+  /* ── Mode mot de passe oublié ── */
+  const [mode,          setMode]          = useState('login'); // 'login' | 'forgot-email' | 'forgot-code'
+  const [forgotEmail,   setForgotEmail]   = useState('');
+  const [forgotCode,    setForgotCode]    = useState('');
+  const [newPwd,        setNewPwd]        = useState('');
+  const [showNewPwd,    setShowNewPwd]    = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError,   setForgotError]   = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [countdown,     setCountdown]     = useState(0);
+
+  const startCountdown = () => {
+    setCountdown(60);
+    const t = setInterval(() => setCountdown(c => { if (c <= 1) { clearInterval(t); return 0; } return c - 1; }), 1000);
+  };
+
+  const handleForgotEmail = async (e) => {
+    e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) return setForgotError('Email invalide');
+    setForgotLoading(true); setForgotError('');
+    try {
+      await axios.post(`${API_URL}/auth/forgot-password`, { email: forgotEmail });
+      setMode('forgot-code');
+      startCountdown();
+    } catch { setForgotError('Erreur, réessaie'); }
+    finally { setForgotLoading(false); }
+  };
+
+  const handleForgotCode = async (e) => {
+    e.preventDefault();
+    if (forgotCode.length !== 6) return setForgotError('Entre les 6 chiffres du code');
+    if (newPwd.length < 6)       return setForgotError('Le mot de passe doit faire au moins 6 caractères');
+    setForgotLoading(true); setForgotError('');
+    try {
+      await axios.post(`${API_URL}/auth/reset-password`, { email: forgotEmail, code: forgotCode, newPassword: newPwd });
+      setForgotSuccess(true);
+      setTimeout(() => { setMode('login'); setForgotSuccess(false); setForgotEmail(''); setForgotCode(''); setNewPwd(''); }, 2500);
+    } catch (err) { setForgotError(err.response?.data?.message || 'Code incorrect'); }
+    finally { setForgotLoading(false); }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    try {
+      await axios.post(`${API_URL}/auth/resend-code`, { email: forgotEmail, type: 'reset' });
+      showToast('Code renvoyé !');
+      startCountdown();
+    } catch { showToast('Erreur lors du renvoi'); }
+  };
+
   /* ── Validation ── */
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
   const pwdValid   = form.password.length >= 6;
@@ -147,6 +199,162 @@ export default function Login() {
          : 'border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-2 focus:ring-red-100/70'
        : 'border-slate-200 bg-slate-50/60 focus:border-blue-400 focus:ring-2 focus:ring-blue-100/70'
      }`;
+
+  /* ── Écrans mot de passe oublié ────────────────────────────────────────── */
+  if (mode === 'forgot-email' || mode === 'forgot-code') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-6">
+        <Toast msg={toast} />
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8"
+        >
+          {/* Icône */}
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {/* ─ Étape 1 : email ─ */}
+            {mode === 'forgot-email' && (
+              <motion.div key="email-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <h2 className="text-xl font-bold text-slate-800 text-center mb-1">Mot de passe oublié ?</h2>
+                <p className="text-xs text-slate-400 text-center mb-6">Entre ton email pour recevoir un code de réinitialisation</p>
+
+                <form onSubmit={handleForgotEmail} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
+                      placeholder="vous@exemple.fr"
+                      className="w-full py-3 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-slate-50"
+                    />
+                  </div>
+
+                  <AnimatePresence>
+                    {forgotError && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="text-xs text-red-500 bg-red-50 border border-red-200 px-3 py-2.5 rounded-xl">
+                        {forgotError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
+                  <motion.button
+                    type="submit" disabled={forgotLoading}
+                    whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
+                    className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
+                  >
+                    {forgotLoading
+                      ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Envoi...</span>
+                      : 'Envoyer le code →'
+                    }
+                  </motion.button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ─ Étape 2 : code + nouveau mot de passe ─ */}
+            {mode === 'forgot-code' && (
+              <motion.div key="code-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <h2 className="text-xl font-bold text-slate-800 text-center mb-1">
+                  {forgotSuccess ? '✅ Mot de passe modifié !' : 'Nouveau mot de passe'}
+                </h2>
+                <p className="text-xs text-slate-400 text-center mb-6">
+                  {forgotSuccess
+                    ? 'Redirection vers la connexion...'
+                    : <>Code envoyé à <strong className="text-blue-600">{forgotEmail}</strong></>
+                  }
+                </p>
+
+                {!forgotSuccess && (
+                  <form onSubmit={handleForgotCode} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Code reçu par email</label>
+                      <input
+                        type="text" inputMode="numeric" maxLength={6}
+                        value={forgotCode}
+                        onChange={e => { setForgotCode(e.target.value.replace(/\D/g, '')); setForgotError(''); }}
+                        placeholder="_ _ _ _ _ _"
+                        className="w-full text-center text-2xl font-bold tracking-[0.5em] py-4 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-slate-50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nouveau mot de passe</label>
+                      <div className="relative">
+                        <input
+                          type={showNewPwd ? 'text' : 'password'}
+                          value={newPwd}
+                          onChange={e => { setNewPwd(e.target.value); setForgotError(''); }}
+                          placeholder="••••••••"
+                          className="w-full py-3 pl-4 pr-10 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-slate-50"
+                        />
+                        <button type="button" onClick={() => setShowNewPwd(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                          {showNewPwd
+                            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          }
+                        </button>
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {forgotError && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                          className="text-xs text-red-500 bg-red-50 border border-red-200 px-3 py-2.5 rounded-xl">
+                          {forgotError}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.button
+                      type="submit" disabled={forgotLoading}
+                      whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }}
+                      className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                      style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
+                    >
+                      {forgotLoading
+                        ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Modification...</span>
+                        : 'Modifier le mot de passe →'
+                      }
+                    </motion.button>
+
+                    <p className="text-center text-xs text-slate-400">
+                      Pas reçu ?{' '}
+                      {countdown > 0
+                        ? <span>Renvoyer dans {countdown}s</span>
+                        : <button type="button" onClick={handleResend} className="text-blue-500 font-semibold hover:text-blue-600 transition-colors">Renvoyer</button>
+                      }
+                    </p>
+                  </form>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            onClick={() => { setMode('login'); setForgotError(''); setForgotEmail(''); setForgotCode(''); setNewPwd(''); }}
+            className="w-full mt-4 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            ← Retour à la connexion
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex overflow-hidden bg-slate-900">
@@ -372,7 +580,7 @@ export default function Login() {
                 <label className="text-xs font-semibold text-slate-600">Mot de passe</label>
                 <button
                   type="button"
-                  onClick={() => showToast('Réinitialisation — bientôt disponible ✨')}
+                  onClick={() => { setMode('forgot-email'); setForgotError(''); }}
                   className="text-xs text-blue-500 hover:text-blue-600 transition-colors"
                 >
                   Mot de passe oublié ?

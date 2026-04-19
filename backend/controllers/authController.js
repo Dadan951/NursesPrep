@@ -1,122 +1,266 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt    = require('jsonwebtoken');
+const User   = require('../models/User');
+const email  = require('../services/emailService');
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+const formatUser = (u) => ({
+  id: u._id, name: u.name, email: u.email,
+  role: u.role, subscription: u.subscription,
+  progress: u.progress, avatar: u.avatar || '',
+});
+
+/* Génère un code à 6 chiffres */
+const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+/* ── POST /auth/register ─────────────────────────────────────────────────── */
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
+    const { name, email: emailAddr, password } = req.body;
+    if (!name || !emailAddr || !password)
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     if (password.length < 6)
       return res.status(400).json({ message: 'Le mot de passe doit faire au moins 6 caractères' });
 
-    const existing = await User.findOne({ email });
-    if (existing)
+    const existing = await User.findOne({ email: emailAddr });
+    if (existing && existing.emailVerified)
       return res.status(400).json({ message: 'Cet email est déjà utilisé' });
 
-    const user = await User.create({ name, email, password });
-    const token = signToken(user._id);
-    res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar || '' } });
+    const code    = genCode();
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    if (existing && !existing.emailVerified) {
+      // Compte en attente → on met à jour le code
+      existing.name     = name.trim();
+      existing.password = password;
+      existing.verificationCode    = code;
+      existing.verificationExpires = expires;
+      await existing.save();
+    } else {
+      await User.create({
+        name: name.trim(), email: emailAddr, password,
+        emailVerified: false,
+        verificationCode: code,
+        verificationExpires: expires,
+      });
+    }
+
+    // Envoi de l'email (si configuré)
+    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+      await email.sendVerificationEmail(emailAddr, name.trim(), code);
+    }
+
+    res.status(201).json({ needsVerification: true, email: emailAddr });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+/* ── POST /auth/verify-email ─────────────────────────────────────────────── */
+exports.verifyEmail = async (req, res) => {
+  try {
+    const { email: emailAddr, code } = req.body;
+    if (!emailAddr || !code)
+      return res.status(400).json({ message: 'Email et code requis' });
+
+    const user = await User.findOne({ email: emailAddr });
+    if (!user)
+      return res.status(404).json({ message: 'Compte introuvable' });
+    if (user.emailVerified)
+      return res.status(400).json({ message: 'Email déjà vérifié' });
+    if (user.verificationCode !== code)
+      return res.status(400).json({ message: 'Code incorrect' });
+    if (user.verificationExpires < new Date())
+      return res.status(400).json({ message: 'Code expiré, demande-en un nouveau' });
+
+    user.emailVerified      = true;
+    user.verificationCode   = undefined;
+    user.verificationExpires= undefined;
+    await user.save();
+
+    const token = signToken(user._id);
+    res.json({ token, user: formatUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── POST /auth/resend-code ──────────────────────────────────────────────── */
+exports.resendCode = async (req, res) => {
+  try {
+    const { email: emailAddr, type = 'verification' } = req.body;
+    if (!emailAddr)
+      return res.status(400).json({ message: 'Email requis' });
+
+    const user = await User.findOne({ email: emailAddr });
+    if (!user)
+      return res.status(404).json({ message: 'Compte introuvable' });
+
+    const code    = genCode();
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+
+    if (type === 'reset') {
+      user.resetCode    = code;
+      user.resetExpires = expires;
+    } else {
+      user.verificationCode    = code;
+      user.verificationExpires = expires;
+    }
+    await user.save();
+
+    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+      if (type === 'reset') await email.sendResetEmail(emailAddr, user.name, code);
+      else await email.sendVerificationEmail(emailAddr, user.name, code);
+    }
+
+    res.json({ message: 'Code renvoyé' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── POST /auth/forgot-password ──────────────────────────────────────────── */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email: emailAddr } = req.body;
+    if (!emailAddr)
+      return res.status(400).json({ message: 'Email requis' });
+
+    const user = await User.findOne({ email: emailAddr });
+    // On répond toujours OK pour ne pas révéler si l'email existe
+    if (!user)
+      return res.json({ message: 'Si cet email existe, un code a été envoyé' });
+
+    const code    = genCode();
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.resetCode    = code;
+    user.resetExpires = expires;
+    await user.save();
+
+    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+      await email.sendResetEmail(emailAddr, user.name, code);
+    }
+
+    res.json({ message: 'Si cet email existe, un code a été envoyé' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── POST /auth/reset-password ───────────────────────────────────────────── */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email: emailAddr, code, newPassword } = req.body;
+    if (!emailAddr || !code || !newPassword)
+      return res.status(400).json({ message: 'Tous les champs sont requis' });
+    if (newPassword.length < 6)
+      return res.status(400).json({ message: 'Le mot de passe doit faire au moins 6 caractères' });
+
+    const user = await User.findOne({ email: emailAddr });
+    if (!user)
+      return res.status(404).json({ message: 'Compte introuvable' });
+    if (user.resetCode !== code)
+      return res.status(400).json({ message: 'Code incorrect' });
+    if (user.resetExpires < new Date())
+      return res.status(400).json({ message: 'Code expiré, demande-en un nouveau' });
+
+    user.password    = newPassword;
+    user.resetCode   = undefined;
+    user.resetExpires= undefined;
+    await user.save();
+
+    res.json({ message: 'Mot de passe modifié avec succès' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── POST /auth/login ────────────────────────────────────────────────────── */
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
+    const { email: emailAddr, password } = req.body;
+    if (!emailAddr || !password)
       return res.status(400).json({ message: 'Email et mot de passe requis' });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: emailAddr });
     if (!user || !(await user.comparePassword(password)))
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
 
+    // Bloquer uniquement si le compte a un code de vérification en attente
+    // (les anciens comptes sans verificationCode passent normalement)
+    if (!user.emailVerified && user.verificationCode)
+      return res.status(403).json({
+        message: 'Vérifie ton email avant de te connecter',
+        needsVerification: true,
+        email: emailAddr,
+      });
+
+    // Anciens comptes non vérifiés → on les marque comme vérifiés
+    if (!user.emailVerified) {
+      await User.updateOne({ _id: user._id }, { $set: { emailVerified: true } });
+    }
+
     const token = signToken(user._id);
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar || '' } });
+    res.json({ token, user: formatUser(user) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+/* ── GET /auth/me ────────────────────────────────────────────────────────── */
 exports.getMe = async (req, res) => {
-  const user = req.user;
-  res.json({ user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar || '' } });
+  res.json({ user: formatUser(req.user) });
 };
 
+/* ── PUT /auth/avatar ────────────────────────────────────────────────────── */
 exports.updateAvatar = async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar) return res.status(400).json({ message: 'Image manquante' });
-    // Vérifier que c'est bien une image base64 (max ~500KB)
     if (avatar.length > 700000) return res.status(400).json({ message: 'Image trop grande (max 500 KB)' });
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { avatar },
-      { new: true }
-    );
-    res.json({ message: 'Photo mise à jour', avatar: user.avatar,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar }
-    });
+    const user = await User.findByIdAndUpdate(req.user._id, { avatar }, { new: true });
+    res.json({ message: 'Photo mise à jour', avatar: user.avatar, user: formatUser(user) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+/* ── POST /auth/ping ─────────────────────────────────────────────────────── */
 exports.ping = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const userId   = req.user._id;
+    const today    = new Date().toISOString().split('T')[0];
+    const yesterday= new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
     const user = await User.findById(userId);
     const lastDate = user.progress?.lastActivity
-      ? new Date(user.progress.lastActivity).toISOString().split('T')[0]
-      : null;
+      ? new Date(user.progress.lastActivity).toISOString().split('T')[0] : null;
 
     let newStreak = user.progress?.streak || 0;
 
     if (lastDate === today) {
-      // Même jour → rien ne change
+      // Même jour → rien
     } else if (lastDate === yesterday) {
-      // Jour d'après → +1
-      newStreak = newStreak + 1;
-      await User.updateOne({ _id: userId }, {
-        $set: { 'progress.streak': newStreak, 'progress.lastActivity': new Date() }
-      });
+      newStreak++;
+      await User.updateOne({ _id: userId }, { $set: { 'progress.streak': newStreak, 'progress.lastActivity': new Date() } });
     } else {
-      // Premier login ou trou > 1 jour → reset à 0
       newStreak = 0;
-      await User.updateOne({ _id: userId }, {
-        $set: { 'progress.streak': 0, 'progress.lastActivity': new Date() }
-      });
+      await User.updateOne({ _id: userId }, { $set: { 'progress.streak': 0, 'progress.lastActivity': new Date() } });
     }
 
-    // Enregistrer l'activité du jour
     const hasToday = user.dailyActivity.some(e => e.date === today);
     if (hasToday) {
-      await User.updateOne(
-        { _id: userId, 'dailyActivity.date': today },
-        { $inc: { 'dailyActivity.$.count': 1 } }
-      );
+      await User.updateOne({ _id: userId, 'dailyActivity.date': today }, { $inc: { 'dailyActivity.$.count': 1 } });
     } else {
-      await User.updateOne(
-        { _id: userId },
-        { $push: { dailyActivity: { date: today, count: 1 } } }
-      );
+      await User.updateOne({ _id: userId }, { $push: { dailyActivity: { date: today, count: 1 } } });
     }
 
-    // Recharger
     const updated = await User.findById(userId);
-
-    // Garder max 30 jours
-    if (updated.dailyActivity.length > 30) {
+    if (updated.dailyActivity.length > 30)
       await User.updateOne({ _id: userId }, { $pop: { dailyActivity: -1 } });
-    }
 
-    // 7 derniers jours
     const weeklyActivity = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
@@ -124,27 +268,24 @@ exports.ping = async (req, res) => {
       weeklyActivity.push(entry ? entry.count : 0);
     }
 
-    res.json({
-      streak: updated.progress.streak,
-      weeklyActivity,
-      user: { id: updated._id, name: updated.name, email: updated.email, role: updated.role, subscription: updated.subscription, progress: updated.progress, avatar: updated.avatar || '' }
-    });
+    res.json({ streak: updated.progress.streak, weeklyActivity, user: formatUser(updated) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+/* ── PUT /auth/profile ───────────────────────────────────────────────────── */
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email, currentPassword, newPassword } = req.body;
+    const { name, email: emailAddr, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name && name.trim()) user.name = name.trim();
 
-    if (email && email !== user.email) {
-      const exists = await User.findOne({ email, _id: { $ne: user._id } });
+    if (emailAddr && emailAddr !== user.email) {
+      const exists = await User.findOne({ email: emailAddr, _id: { $ne: user._id } });
       if (exists) return res.status(400).json({ message: 'Cet email est déjà utilisé' });
-      user.email = email.toLowerCase().trim();
+      user.email = emailAddr.toLowerCase().trim();
     }
 
     if (newPassword) {
@@ -156,10 +297,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     await user.save();
-    res.json({
-      message: 'Profil mis à jour avec succès',
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, subscription: user.subscription, progress: user.progress, avatar: user.avatar || '' }
-    });
+    res.json({ message: 'Profil mis à jour avec succès', user: formatUser(user) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

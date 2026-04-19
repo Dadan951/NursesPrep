@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../context/AuthContext';
 import {
   motion, AnimatePresence,
   useMotionValue, useTransform, useSpring,
@@ -94,7 +96,7 @@ function StrengthBar({ password }) {
    REGISTER PAGE
 ══════════════════════════════════════════════════════════════════════════════ */
 export default function Register() {
-  const { register } = useAuth();
+  const { register, verifyEmail } = useAuth();
   const navigate      = useNavigate();
 
   const [form,    setForm]    = useState({ name: '', email: '', password: '', confirm: '' });
@@ -104,6 +106,20 @@ export default function Register() {
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
   const [toast,   setToast]   = useState('');
+
+  /* ── Étape 2 : vérification email ── */
+  const [step,           setStep]           = useState('form'); // 'form' | 'verify'
+  const [pendingEmail,   setPendingEmail]   = useState('');
+  const [verifyCode,     setVerifyCode]     = useState('');
+  const [verifyLoading,  setVerifyLoading]  = useState(false);
+  const [verifyError,    setVerifyError]    = useState('');
+  const [resendLoading,  setResendLoading]  = useState(false);
+  const [countdown,      setCountdown]      = useState(0);
+
+  const startCountdown = () => {
+    setCountdown(60);
+    const t = setInterval(() => setCountdown(c => { if (c <= 1) { clearInterval(t); return 0; } return c - 1; }), 1000);
+  };
 
   /* ── Validation ── */
   const nameValid    = form.name.trim().length >= 2;
@@ -144,13 +160,44 @@ export default function Register() {
     if (!confirmValid) return setError('Les mots de passe ne correspondent pas');
     setLoading(true);
     try {
-      await register(form.name, form.email, form.password);
-      navigate('/dashboard');
+      const res = await register(form.name, form.email, form.password);
+      if (res?.needsVerification) {
+        setPendingEmail(res.email);
+        setStep('verify');
+        startCountdown();
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (verifyCode.length !== 6) return setVerifyError('Entre les 6 chiffres du code');
+    setVerifyLoading(true); setVerifyError('');
+    try {
+      await verifyEmail(pendingEmail, verifyCode);
+      navigate('/dashboard');
+    } catch (err) {
+      setVerifyError(err.response?.data?.message || 'Code incorrect');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    setResendLoading(true);
+    try {
+      await axios.post(`${API_URL}/auth/resend-code`, { email: pendingEmail });
+      showToast('Code renvoyé !');
+      startCountdown();
+    } catch { showToast('Erreur lors du renvoi'); }
+    finally { setResendLoading(false); }
   };
 
   /* ── Variants ── */
@@ -178,6 +225,104 @@ export default function Register() {
       ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   );
+
+  /* ── Écran de vérification ─────────────────────────────────────────────── */
+  if (step === 'verify') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-6">
+        <Toast msg={toast} />
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8"
+        >
+          {/* Icône */}
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#0891b2,#0d9488)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-800 text-center mb-1">Vérifie ton email 📧</h2>
+          <p className="text-xs text-slate-400 text-center mb-1">Un code à 6 chiffres a été envoyé à</p>
+          <p className="text-sm font-semibold text-blue-600 text-center mb-6">{pendingEmail}</p>
+
+          <form onSubmit={handleVerify} className="space-y-4">
+            {/* Code input */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Code de vérification</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={e => { setVerifyCode(e.target.value.replace(/\D/g, '')); setVerifyError(''); }}
+                placeholder="_ _ _ _ _ _"
+                className="w-full text-center text-2xl font-bold tracking-[0.5em] py-4 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-slate-50"
+              />
+            </div>
+
+            <AnimatePresence>
+              {verifyError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-xs px-3 py-2.5 rounded-xl"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {verifyError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.button
+              type="submit"
+              disabled={verifyLoading || verifyCode.length !== 6}
+              whileHover={{ scale: verifyLoading ? 1 : 1.015 }}
+              whileTap={{ scale: 0.985 }}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#0891b2,#0d9488)' }}
+            >
+              {verifyLoading
+                ? <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                    Vérification...
+                  </span>
+                : 'Confirmer mon compte →'
+              }
+            </motion.button>
+          </form>
+
+          {/* Renvoi */}
+          <p className="text-center text-xs text-slate-400 mt-4">
+            Tu n'as pas reçu le code ?{' '}
+            {countdown > 0
+              ? <span className="text-slate-400">Renvoyer dans {countdown}s</span>
+              : <button
+                  onClick={handleResend}
+                  disabled={resendLoading}
+                  className="text-blue-500 font-semibold hover:text-blue-600 transition-colors"
+                >
+                  {resendLoading ? 'Envoi...' : 'Renvoyer'}
+                </button>
+            }
+          </p>
+
+          {/* Retour */}
+          <button
+            onClick={() => { setStep('form'); setVerifyCode(''); setVerifyError(''); }}
+            className="w-full mt-3 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            ← Changer d'adresse email
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex overflow-hidden bg-slate-900">

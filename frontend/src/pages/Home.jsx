@@ -305,8 +305,9 @@ export default function Home() {
       {/* ── HEADER ──────────────────────────────────────────────────── */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'py-2.5 shadow-lg shadow-blue-100/60 bg-white/96 backdrop-blur-md border-b border-blue-100' : 'py-4 bg-white/90 backdrop-blur-sm'}`}>
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center gap-6">
-          <Link to="/" className="flex-shrink-0">
+          <Link to="/" className="flex-shrink-0 flex items-center gap-2.5">
             <img src="/logo512.png" alt="NursePrep" className="h-9 w-9 rounded-xl object-cover" />
+            <NursesLogo size="sm" />
           </Link>
 
           {/* Desktop nav */}

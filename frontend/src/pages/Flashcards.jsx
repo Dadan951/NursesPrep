@@ -58,10 +58,7 @@ function Breadcrumb({ items }) {
 function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger }) {
   const [flipped, setFlipped] = useState(false);
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-180, 180], [-22, 22]);
-  const rightOpacity = useTransform(x, [0, 80], [0, 1]);
-  const leftOpacity  = useTransform(x, [-80, 0], [1, 0]);
-  const cardOpacity  = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
+  const cardOpacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
   const swipingRef = useRef(false);
 
   /* Reset flip when card changes */
@@ -75,19 +72,6 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
     const target = swipeTrigger === 'right' ? 380 : -380;
     animate(x, target, { duration: 0.35, ease: 'easeIn' }).then(() => onSwipe(swipeTrigger));
   }, [swipeTrigger]); // eslint-disable-line
-
-  const handleDragEnd = (_, info) => {
-    if (!flipped || swipingRef.current) return;
-    if (info.offset.x > 100) {
-      swipingRef.current = true;
-      animate(x, 380, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('right'));
-    } else if (info.offset.x < -100) {
-      swipingRef.current = true;
-      animate(x, -380, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('left'));
-    } else {
-      animate(x, 0, { type: 'spring', stiffness: 300, damping: 25 });
-    }
-  };
 
   /* Background cards */
   if (!isTop) {
@@ -106,11 +90,7 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
   return (
     <motion.div
       className="absolute inset-0 rounded-3xl select-none"
-      style={{ x, rotate, opacity: cardOpacity, zIndex: 20 }}
-      drag={flipped ? 'x' : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.7}
-      onDragEnd={handleDragEnd}
+      style={{ x, opacity: cardOpacity, zIndex: 20 }}
       onClick={() => { if (!swipingRef.current) setFlipped(f => !f); }}
     >
       {/* 3D flip inner */}
@@ -164,22 +144,10 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
             <p className="text-xs text-white/70 text-center px-5 pb-2 italic relative">💡 {card.hint}</p>
           )}
           <div className="flex items-center justify-center gap-2 pb-5 flex-shrink-0 relative">
-            <p className="text-xs text-white/60 font-medium">Toucher pour revoir la question · Swipe pour continuer</p>
+            <p className="text-xs text-white/60 font-medium">Toucher pour revoir la question</p>
           </div>
         </div>
       </div>
-
-      {/* ── Indicateurs swipe ── */}
-      <motion.div
-        className="absolute inset-0 rounded-3xl flex items-center justify-start pl-8 pointer-events-none"
-        style={{ opacity: rightOpacity, background: 'rgba(34,197,94,0.15)', border: '3px solid #22c55e' }}>
-        <span className="text-5xl font-black text-green-500" style={{ transform: 'rotate(12deg)' }}>✓</span>
-      </motion.div>
-      <motion.div
-        className="absolute inset-0 rounded-3xl flex items-center justify-end pr-8 pointer-events-none"
-        style={{ opacity: leftOpacity, background: 'rgba(239,68,68,0.15)', border: '3px solid #ef4444' }}>
-        <span className="text-5xl font-black text-red-500" style={{ transform: 'rotate(-12deg)' }}>✗</span>
-      </motion.div>
     </motion.div>
   );
 }

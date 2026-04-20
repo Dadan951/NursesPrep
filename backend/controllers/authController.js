@@ -9,6 +9,7 @@ const formatUser = (u) => ({
   id: u._id, name: u.name, email: u.email,
   role: u.role, subscription: u.subscription,
   progress: u.progress, avatar: u.avatar || '',
+  createdAt: u.createdAt,
 });
 
 /* Génère un code à 6 chiffres */

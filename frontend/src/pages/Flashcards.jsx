@@ -16,6 +16,20 @@ const PALETTE = [
   { from: '#be185d', to: '#9333ea', emoji: '📋' },
 ];
 
+/* ─── LocalStorage helpers ──────────────────────────────────────────────────── */
+const storageKey = (sem, ue, chap) =>
+  `nprep_fc_${sem}_${ue}_${chap}`.replace(/\s+/g, '_');
+
+const saveProgress = (sem, ue, chap, index) => {
+  try { localStorage.setItem(storageKey(sem, ue, chap), String(index)); } catch {}
+};
+const loadProgress = (sem, ue, chap) => {
+  try { return parseInt(localStorage.getItem(storageKey(sem, ue, chap)) || '0', 10) || 0; } catch { return 0; }
+};
+const clearProgress = (sem, ue, chap) => {
+  try { localStorage.removeItem(storageKey(sem, ue, chap)); } catch {}
+};
+
 function ChevronRight({ className = '' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={className}>
@@ -50,31 +64,32 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
   const cardOpacity  = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
   const swipingRef = useRef(false);
 
+  /* Reset flip when card changes */
+  useEffect(() => { setFlipped(false); swipingRef.current = false; }, [card._id]);
+
   /* Trigger swipe from buttons */
   useEffect(() => {
     if (!swipeTrigger || !isTop || swipingRef.current) return;
     if (!flipped) return;
     swipingRef.current = true;
-    const target = swipeTrigger === 'right' ? 350 : -350;
-    animate(x, target, { duration: 0.35, ease: 'easeIn' }).then(() => {
-      onSwipe(swipeTrigger);
-    });
+    const target = swipeTrigger === 'right' ? 380 : -380;
+    animate(x, target, { duration: 0.35, ease: 'easeIn' }).then(() => onSwipe(swipeTrigger));
   }, [swipeTrigger]); // eslint-disable-line
 
   const handleDragEnd = (_, info) => {
     if (!flipped || swipingRef.current) return;
-    const threshold = 100;
-    if (info.offset.x > threshold) {
+    if (info.offset.x > 100) {
       swipingRef.current = true;
-      animate(x, 350, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('right'));
-    } else if (info.offset.x < -threshold) {
+      animate(x, 380, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('right'));
+    } else if (info.offset.x < -100) {
       swipingRef.current = true;
-      animate(x, -350, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('left'));
+      animate(x, -380, { duration: 0.3, ease: 'easeIn' }).then(() => onSwipe('left'));
     } else {
       animate(x, 0, { type: 'spring', stiffness: 300, damping: 25 });
     }
   };
 
+  /* Background cards */
   if (!isTop) {
     return (
       <div
@@ -90,17 +105,17 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
 
   return (
     <motion.div
-      className="absolute inset-0 rounded-3xl cursor-pointer select-none"
+      className="absolute inset-0 rounded-3xl select-none"
       style={{ x, rotate, opacity: cardOpacity, zIndex: 20 }}
       drag={flipped ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.7}
       onDragEnd={handleDragEnd}
-      onClick={() => { if (!flipped && !swipingRef.current) setFlipped(true); }}
+      onClick={() => { if (!swipingRef.current) setFlipped(f => !f); }}
     >
       {/* 3D flip inner */}
       <div
-        className="w-full h-full relative"
+        className="w-full h-full relative cursor-pointer"
         style={{
           transformStyle: 'preserve-3d',
           transition: 'transform 0.55s cubic-bezier(.4,0,.2,1)',
@@ -149,7 +164,7 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
             <p className="text-xs text-white/70 text-center px-5 pb-2 italic relative">💡 {card.hint}</p>
           )}
           <div className="flex items-center justify-center gap-2 pb-5 flex-shrink-0 relative">
-            <p className="text-xs text-white/70 font-medium">Swipe ← ou → pour continuer</p>
+            <p className="text-xs text-white/60 font-medium">Toucher pour revoir la question · Swipe pour continuer</p>
           </div>
         </div>
       </div>
@@ -169,9 +184,82 @@ function SwipeCard({ card, isTop, stackOffset, onSwipe, palette, swipeTrigger })
   );
 }
 
+/* ─── Overview Grid ─────────────────────────────────────────────────────────── */
+function OverviewGrid({ cards, currentIndex, palette, onJumpTo, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60 }}
+        animate={{ y: 0 }}
+        className="bg-white rounded-3xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div>
+            <h3 className="font-bold text-slate-800 text-base">Toutes les cartes</h3>
+            <p className="text-xs text-slate-400">{cards.length} carte{cards.length > 1 ? 's' : ''} — appuie pour sauter</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition text-slate-500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Grid */}
+        <div className="overflow-y-auto p-4">
+          <div className="grid grid-cols-2 gap-3">
+            {cards.map((card, i) => {
+              const pal = PALETTE[i % PALETTE.length];
+              const isDone    = i < currentIndex;
+              const isCurrent = i === currentIndex;
+              return (
+                <motion.button
+                  key={card._id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onJumpTo(i)}
+                  className={`relative rounded-2xl p-3.5 text-left border-2 transition-all ${
+                    isCurrent
+                      ? 'border-blue-500 shadow-lg shadow-blue-100'
+                      : isDone
+                      ? 'border-slate-100 opacity-50'
+                      : 'border-slate-200 hover:border-blue-300'
+                  }`}
+                >
+                  {/* Color bar */}
+                  <div className="h-1 rounded-full mb-2.5" style={{ background: `linear-gradient(90deg,${pal.from},${pal.to})` }}/>
+
+                  {/* Number + status */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400">#{i + 1}</span>
+                    {isDone && <span className="text-xs text-slate-400">✓</span>}
+                    {isCurrent && (
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">En cours</span>
+                    )}
+                  </div>
+
+                  {/* Question preview */}
+                  <p className="text-xs font-semibold text-slate-700 leading-snug line-clamp-3">{card.front}</p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Result Screen ─────────────────────────────────────────────────────────── */
 function ResultScreen({ known, unknown, total, onRestart, onExit }) {
-  const pct = Math.round((known / total) * 100);
+  const pct   = Math.round((known / total) * 100);
   const stars = pct >= 80 ? 3 : pct >= 50 ? 2 : 1;
 
   return (
@@ -180,9 +268,7 @@ function ResultScreen({ known, unknown, total, onRestart, onExit }) {
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center justify-center py-8 px-4 text-center"
     >
-      <div className="text-6xl mb-4">
-        {pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}
-      </div>
+      <div className="text-6xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '💪' : '📚'}</div>
       <div className="flex gap-1 mb-4">
         {[1,2,3].map(i => (
           <span key={i} className="text-3xl" style={{ filter: i <= stars ? 'none' : 'grayscale(1) opacity(0.3)' }}>⭐</span>
@@ -208,7 +294,6 @@ function ResultScreen({ known, unknown, total, onRestart, onExit }) {
         </div>
       </div>
 
-      {/* Score bar */}
       <div className="w-full max-w-xs mb-8">
         <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
           <motion.div
@@ -237,17 +322,24 @@ function ResultScreen({ known, unknown, total, onRestart, onExit }) {
 }
 
 /* ─── Swipe Game ────────────────────────────────────────────────────────────── */
-function SwipeGame({ cards, onExit, onReviewed }) {
-  const total = cards.length;
-  const [stack, setStack] = useState(() => [...cards].reverse());
-  const [known, setKnown]   = useState(0);
-  const [unknown, setUnknown] = useState(0);
-  const [done, setDone]     = useState(false);
+function SwipeGame({ cards, onExit, onReviewed, semester, ue, chapter }) {
+  const total        = cards.length;
+  const savedIndex   = loadProgress(semester, ue, chapter);
+  const [currentIndex, setCurrentIndex] = useState(() => Math.min(savedIndex, total - 1));
+  const [known, setKnown]       = useState(0);
+  const [unknown, setUnknown]   = useState(0);
+  const [done, setDone]         = useState(false);
   const [swipeTrigger, setSwipeTrigger] = useState(null);
+  const [showOverview, setShowOverview] = useState(false);
   const triggerRef = useRef(null);
 
-  const done_count = total - stack.length;
-  const progress = (done_count / total) * 100;
+  const progress = (currentIndex / total) * 100;
+  const resumed  = savedIndex > 0 && savedIndex < total;
+
+  /* Save progress whenever index changes */
+  useEffect(() => {
+    saveProgress(semester, ue, chapter, currentIndex);
+  }, [currentIndex, semester, ue, chapter]);
 
   const handleSwipe = useCallback((dir) => {
     setSwipeTrigger(null);
@@ -258,125 +350,164 @@ function SwipeGame({ cards, onExit, onReviewed }) {
     } else {
       setUnknown(u => u + 1);
     }
-    setStack(s => {
-      const next = s.slice(0, -1);
-      if (next.length === 0) setDone(true);
-      return next;
-    });
-  }, [onReviewed]);
+    const next = currentIndex + 1;
+    if (next >= total) {
+      clearProgress(semester, ue, chapter);
+      setDone(true);
+    } else {
+      setCurrentIndex(next);
+    }
+  }, [currentIndex, total, semester, ue, chapter, onReviewed]);
 
   const triggerSwipe = (dir) => {
+    clearTimeout(triggerRef.current);
     setSwipeTrigger(dir);
-    // reset after a tick so it can trigger again
     triggerRef.current = setTimeout(() => setSwipeTrigger(null), 600);
   };
 
-  useEffect(() => () => clearTimeout(triggerRef.current), []);
+  const handleJumpTo = (index) => {
+    setCurrentIndex(index);
+    setShowOverview(false);
+  };
 
   const handleRestart = () => {
-    setStack([...cards].reverse());
+    clearProgress(semester, ue, chapter);
+    setCurrentIndex(0);
     setKnown(0);
     setUnknown(0);
     setDone(false);
     setSwipeTrigger(null);
   };
 
+  useEffect(() => () => clearTimeout(triggerRef.current), []);
+
   if (done) {
     return <ResultScreen known={known} unknown={unknown} total={total} onRestart={handleRestart} onExit={onExit} />;
   }
 
-  const topCard = stack[stack.length - 1];
-  const visibleStack = stack.slice(-3);
+  /* Build visible stack: current card + up to 2 next cards as background */
+  const visibleCards = [];
+  for (let i = Math.min(currentIndex + 2, total - 1); i >= currentIndex; i--) {
+    visibleCards.push({ card: cards[i], offset: i - currentIndex });
+  }
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Progress */}
-      <div className="w-full max-w-sm mb-3">
-        <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-          <span className="font-medium">{done_count} / {total} cartes</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-          <motion.div
-            className="h-2.5 rounded-full"
-            style={{ background: 'linear-gradient(90deg,#164e8a,#0891b2)' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4 }}
+    <>
+      {/* Overview modal */}
+      <AnimatePresence>
+        {showOverview && (
+          <OverviewGrid
+            cards={cards}
+            currentIndex={currentIndex}
+            palette={PALETTE}
+            onJumpTo={handleJumpTo}
+            onClose={() => setShowOverview(false)}
           />
-        </div>
-        <div className="flex justify-between mt-2">
-          <span className="text-xs font-bold text-red-400">✗ {unknown}</span>
-          <span className="text-xs font-bold text-green-500">✓ {known}</span>
-        </div>
-      </div>
+        )}
+      </AnimatePresence>
 
-      {/* Hint */}
-      <p className="text-xs text-slate-400 mb-5 text-center">
-        👆 Touche pour retourner · <span className="text-red-400 font-bold">←</span> Je ne savais pas · <span className="text-green-500 font-bold">→</span> Je savais !
-      </p>
+      <div className="flex flex-col items-center">
 
-      {/* Card Stack */}
-      <div className="relative w-full max-w-sm" style={{ height: 380 }}>
-        <AnimatePresence>
-          {visibleStack.map((card, i) => {
-            const isTop = card._id === topCard._id;
-            const offset = visibleStack.length - 1 - i;
-            return (
+        {/* Resume banner */}
+        {resumed && currentIndex === savedIndex && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-sm mb-3 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-2.5 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📌</span>
+              <p className="text-xs font-semibold text-blue-700">Reprise à la carte {savedIndex + 1}</p>
+            </div>
+            <button onClick={handleRestart} className="text-xs text-blue-500 hover:text-blue-700 font-medium transition">
+              Recommencer
+            </button>
+          </motion.div>
+        )}
+
+        {/* Progress */}
+        <div className="w-full max-w-sm mb-3">
+          <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+            <span className="font-medium">{currentIndex} / {total} cartes</span>
+            <div className="flex items-center gap-2">
+              {/* Overview button */}
+              <button
+                onClick={() => setShowOverview(true)}
+                className="flex items-center gap-1 text-blue-500 hover:text-blue-700 font-semibold transition"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                Vue d'ensemble
+              </button>
+            </div>
+          </div>
+          <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-2.5 rounded-full"
+              style={{ background: 'linear-gradient(90deg,#164e8a,#0891b2)' }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
+          <div className="flex justify-between mt-2">
+            <span className="text-xs font-bold text-red-400">✗ {unknown}</span>
+            <span className="text-xs font-bold text-green-500">✓ {known}</span>
+          </div>
+        </div>
+
+        {/* Hint */}
+        <p className="text-xs text-slate-400 mb-5 text-center">
+          👆 Touche pour retourner · <span className="text-red-400 font-bold">←</span> Je ne savais pas · <span className="text-green-500 font-bold">→</span> Je savais !
+        </p>
+
+        {/* Card Stack */}
+        <div className="relative w-full max-w-sm" style={{ height: 380 }}>
+          <AnimatePresence mode="wait">
+            {visibleCards.map(({ card, offset }) => (
               <SwipeCard
-                key={card._id + '-' + stack.length}
+                key={card._id}
                 card={card}
-                isTop={isTop}
+                isTop={offset === 0}
                 stackOffset={offset}
                 onSwipe={handleSwipe}
-                palette={PALETTE[cards.indexOf(card) % PALETTE.length]}
-                swipeTrigger={isTop ? swipeTrigger : null}
+                palette={PALETTE[currentIndex % PALETTE.length]}
+                swipeTrigger={offset === 0 ? swipeTrigger : null}
               />
-            );
-          })}
-        </AnimatePresence>
-
-        {stack.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-slate-400 text-sm">Chargement...</p>
-          </div>
-        )}
-      </div>
-
-      {/* Buttons */}
-      <div className="flex items-center gap-8 mt-10">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.1 }}
-          onClick={() => triggerSwipe('left')}
-          className="w-16 h-16 rounded-full bg-red-100 hover:bg-red-200 text-red-500 flex items-center justify-center text-2xl shadow-md hover:shadow-lg transition-colors"
-        >
-          ✗
-        </motion.button>
-
-        <div className="text-center">
-          <p className="text-xs text-slate-400 font-medium">{stack.length} restante{stack.length > 1 ? 's' : ''}</p>
+            ))}
+          </AnimatePresence>
         </div>
 
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.1 }}
-          onClick={() => triggerSwipe('right')}
-          className="w-16 h-16 rounded-full bg-green-100 hover:bg-green-200 text-green-600 flex items-center justify-center text-2xl shadow-md hover:shadow-lg transition-colors"
-        >
-          ✓
-        </motion.button>
-      </div>
+        {/* Buttons */}
+        <div className="flex items-center gap-8 mt-10">
+          <motion.button
+            whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }}
+            onClick={() => triggerSwipe('left')}
+            className="w-16 h-16 rounded-full bg-red-100 hover:bg-red-200 text-red-500 flex items-center justify-center text-2xl shadow-md hover:shadow-lg transition-colors"
+          >✗</motion.button>
 
-      <p className="text-xs text-slate-300 mt-4">Retourne la carte avant de swiper</p>
-    </div>
+          <div className="text-center">
+            <p className="text-xs text-slate-400 font-medium">{total - currentIndex} restante{total - currentIndex > 1 ? 's' : ''}</p>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.1 }}
+            onClick={() => triggerSwipe('right')}
+            className="w-16 h-16 rounded-full bg-green-100 hover:bg-green-200 text-green-600 flex items-center justify-center text-2xl shadow-md hover:shadow-lg transition-colors"
+          >✓</motion.button>
+        </div>
+
+        <p className="text-xs text-slate-300 mt-4">Retourne la carte avant de swiper</p>
+      </div>
+    </>
   );
 }
 
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Flashcards() {
-  const [cards, setCards]           = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [view, setView]             = useState('semesters');
+  const [cards, setCards]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView]       = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedUE, setSelectedUE]             = useState(null);
   const [selectedChapter, setSelectedChapter]   = useState(null);
@@ -467,8 +598,7 @@ export default function Flashcards() {
                       return (
                         <motion.button key={sem}
                           onClick={() => { setSelectedSemester(sem); setView('ues'); }}
-                          whileHover={{ y: -6, scale: 1.02 }}
-                          whileTap={{ scale: 0.97 }}
+                          whileHover={{ y: -6, scale: 1.02 }} whileTap={{ scale: 0.97 }}
                           transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                           className="relative overflow-hidden rounded-2xl p-6 text-left shadow-md hover:shadow-xl transition-shadow"
                           style={{ background: `linear-gradient(135deg, ${pal.from}, ${pal.to})` }}
@@ -517,8 +647,7 @@ export default function Flashcards() {
                     return (
                       <motion.button key={ue}
                         onClick={() => { setSelectedUE(ue); setView('chapters'); }}
-                        whileHover={{ y: -4, scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ y: -4, scale: 1.01 }} whileTap={{ scale: 0.98 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                         className="relative overflow-hidden rounded-2xl p-5 text-left shadow-md hover:shadow-xl transition-shadow"
                         style={{ background: `linear-gradient(135deg, ${pal.from}, ${pal.to})` }}
@@ -555,13 +684,14 @@ export default function Flashcards() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {chapters.map((chap, idx) => {
-                    const pal   = PALETTE[idx % PALETTE.length];
-                    const count = structure[selectedSemester][selectedUE][chap].length;
+                    const pal     = PALETTE[idx % PALETTE.length];
+                    const count   = structure[selectedSemester][selectedUE][chap].length;
+                    const saved   = loadProgress(selectedSemester, selectedUE, chap);
+                    const hasProgress = saved > 0 && saved < count;
                     return (
                       <motion.button key={chap}
                         onClick={() => { setSelectedChapter(chap); setView('cards'); }}
-                        whileHover={{ y: -3 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}
                         className="bg-white rounded-2xl p-5 border border-slate-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50 transition-all text-left group flex items-center gap-4 shadow-sm"
                       >
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
@@ -571,6 +701,16 @@ export default function Flashcards() {
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-slate-800 text-sm truncate">{chap}</h3>
                           <p className="text-xs text-slate-400 mt-0.5">{count} carte{count > 1 ? 's' : ''}</p>
+                          {hasProgress && (
+                            <div className="mt-1.5">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-1 rounded-full" style={{ width: `${(saved/count)*100}%`, background: `linear-gradient(90deg,${pal.from},${pal.to})` }}/>
+                                </div>
+                                <span className="text-xs text-blue-500 font-semibold whitespace-nowrap">📌 {saved}/{count}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="text-slate-300 group-hover:text-blue-500 transition flex-shrink-0">
                           <ChevronRight/>
@@ -598,6 +738,9 @@ export default function Flashcards() {
                   cards={currentCards}
                   onExit={() => setView('chapters')}
                   onReviewed={() => setReviewedCount(c => c + 1)}
+                  semester={selectedSemester}
+                  ue={selectedUE}
+                  chapter={selectedChapter}
                 />
               </motion.div>
             )}

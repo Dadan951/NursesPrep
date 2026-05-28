@@ -489,39 +489,72 @@ export default function Quiz() {
                     <p className="text-sm text-slate-400 mt-0.5">{currentQuizzes.length} quiz disponible{currentQuizzes.length > 1 ? 's' : ''}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {currentQuizzes.map((quiz, i) => (
-                      <motion.div key={quiz._id}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i < 6 ? i * 0.04 : 0, duration: 0.25 }}
-                        whileHover={{ y: -4 }}
-                        className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-100 transition-all cursor-pointer group"
-                        onClick={() => navigate(`/dashboard/quiz/${quiz._id}`)}
-                      >
-                        <div className="h-1.5" style={{ background: 'linear-gradient(90deg,#2563eb,#0891b2)' }}/>
-                        <div className="p-5">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">{quiz.category}</span>
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${diffColors[quiz.difficulty]}`}>{diffLabel[quiz.difficulty]}</span>
-                          </div>
-                          <h3 className="text-sm font-bold text-slate-800 mb-2 leading-snug">{quiz.title}</h3>
-                          {quiz.description && <p className="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-2">{quiz.description}</p>}
-                          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                            <div className="flex items-center gap-3 text-xs text-slate-400">
-                              <span className="flex items-center gap-1.5">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/></svg>
-                                {quiz.questions?.length || 0} questions
-                              </span>
-                              <span className="flex items-center gap-1.5">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                                {quiz.duration} min
+                    {currentQuizzes.map((quiz, i) => {
+                      const a = quiz.attempt;
+                      const isDone  = a?.status === 'completed';
+                      const isResume = a?.status === 'in_progress';
+                      const pct = isDone ? Math.round((a.score / a.totalQuestions) * 100) : null;
+                      const barColor = pct >= 60 ? '#22c55e' : '#ef4444';
+                      return (
+                        <motion.div key={quiz._id}
+                          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i < 6 ? i * 0.04 : 0, duration: 0.25 }}
+                          whileHover={{ y: -4 }}
+                          className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-100 transition-all cursor-pointer group"
+                          onClick={() => navigate(`/dashboard/quiz/${quiz._id}`)}
+                        >
+                          {/* Barre de statut colorée en haut */}
+                          <div className="h-1.5" style={{ background: isDone ? barColor : isResume ? '#f59e0b' : 'linear-gradient(90deg,#2563eb,#0891b2)' }}/>
+                          <div className="p-5">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">{quiz.category}</span>
+                              <div className="flex items-center gap-2">
+                                {isDone && (
+                                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${pct >= 60 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                                    {pct >= 60 ? '✓' : '✗'} {a.score}/{a.totalQuestions}
+                                  </span>
+                                )}
+                                {isResume && (
+                                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                                    ● Q{a.currentQuestion + 1}/{a.totalQuestions}
+                                  </span>
+                                )}
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${diffColors[quiz.difficulty]}`}>{diffLabel[quiz.difficulty]}</span>
+                              </div>
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-800 mb-2 leading-snug">{quiz.title}</h3>
+
+                            {/* Barre de score si terminé */}
+                            {isDone && (
+                              <div className="mb-3">
+                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-1 rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }}/>
+                                </div>
+                                {a.wrongAnswers > 0 && (
+                                  <p className="text-xs text-red-500 mt-1">{a.wrongAnswers} erreur{a.wrongAnswers > 1 ? 's' : ''} lors du dernier essai</p>
+                                )}
+                              </div>
+                            )}
+
+                            {quiz.description && !isDone && <p className="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-2">{quiz.description}</p>}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                              <div className="flex items-center gap-3 text-xs text-slate-400">
+                                <span className="flex items-center gap-1.5">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/></svg>
+                                  {quiz.questions?.length || 0} questions
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                  {quiz.duration} min
+                                </span>
+                              </div>
+                              <span className="text-xs font-bold text-blue-600 group-hover:text-blue-800 transition flex items-center gap-1">
+                                {isDone ? 'Refaire' : isResume ? 'Reprendre →' : 'Commencer →'}
                               </span>
                             </div>
-                            <span className="text-xs font-bold text-blue-600 group-hover:text-blue-800 transition flex items-center gap-1">
-                              Commencer <ChevronRight/>
-                            </span>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}

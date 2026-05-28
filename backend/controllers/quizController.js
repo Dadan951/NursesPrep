@@ -1,6 +1,7 @@
-const Quiz = require('../models/Quiz');
-const User = require('../models/User');
-const Anthropic = require('@anthropic-ai/sdk');
+const Quiz        = require('../models/Quiz');
+const User        = require('../models/User');
+const QuizAttempt = require('../models/QuizAttempt');
+const Anthropic   = require('@anthropic-ai/sdk');
 
 const DAILY_LIMIT = 10; // max generations per day for pro
 const DAILY_LIMIT_PREMIUM = 20; // for premium
@@ -12,7 +13,28 @@ function todayString() {
 exports.getAll = async (req, res) => {
   try {
     const quizzes = await Quiz.find({ isPublished: true }).select('-questions.options.isCorrect');
-    res.json(quizzes);
+
+    // Récupère tous les attempts de l'utilisateur en une seule requête
+    const attempts = await QuizAttempt.find({ user: req.user._id }).select('quiz status score currentQuestion answers completedAt');
+    const attemptMap = {};
+    for (const a of attempts) attemptMap[a.quiz.toString()] = a;
+
+    const result = quizzes.map(q => {
+      const a = attemptMap[q._id.toString()];
+      return {
+        ...q.toObject(),
+        attempt: a ? {
+          status:          a.status,
+          score:           a.score,
+          currentQuestion: a.currentQuestion,
+          totalQuestions:  q.questions.length,
+          completedAt:     a.completedAt,
+          wrongAnswers:    a.answers.filter(x => !x.isCorrect).length,
+        } : null,
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -57,13 +79,52 @@ exports.remove = async (req, res) => {
   }
 };
 
+// ── GET /api/quizzes/:id/progress ─────────────────────────────────────────
+// Renvoie l'attempt en cours ou complété pour ce quiz
+exports.getProgress = async (req, res) => {
+  try {
+    const attempt = await QuizAttempt.findOne({ user: req.user._id, quiz: req.params.id });
+    res.json(attempt || null);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── PUT /api/quizzes/:id/progress ─────────────────────────────────────────
+// Sauvegarde la progression en cours (après chaque question répondue)
+exports.saveProgress = async (req, res) => {
+  try {
+    const { currentQuestion, score, answers } = req.body;
+    const attempt = await QuizAttempt.findOneAndUpdate(
+      { user: req.user._id, quiz: req.params.id },
+      { $set: { currentQuestion, score, answers, status: 'in_progress' } },
+      { upsert: true, new: true }
+    );
+    res.json(attempt);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── POST /api/quizzes/:id/attempt ──────────────────────────────────────────
+// Marque le quiz comme terminé + met à jour les stats utilisateur
 exports.submitAttempt = async (req, res) => {
   try {
-    const { score } = req.body;
+    const { score, answers } = req.body;
+
+    // Marquer l'attempt comme completed
+    await QuizAttempt.findOneAndUpdate(
+      { user: req.user._id, quiz: req.params.id },
+      { $set: { status: 'completed', score, answers, completedAt: new Date(), currentQuestion: 0 } },
+      { upsert: true, new: true }
+    );
+
+    // Mettre à jour les stats globales de l'utilisateur
     await User.findByIdAndUpdate(req.user._id, {
       $inc: { 'progress.quizCompleted': 1, 'progress.totalScore': score },
       $set: { 'progress.lastActivity': new Date() }
     });
+
     res.json({ message: 'Résultat enregistré', score });
   } catch (err) {
     res.status(500).json({ message: err.message });

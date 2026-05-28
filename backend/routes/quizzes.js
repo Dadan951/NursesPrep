@@ -9,6 +9,8 @@ router.get('/gen-status', protect, ctrl.genStatus);
 router.post('/generate', protect, ctrl.generateQuiz);
 router.delete('/personal/:id', protect, ctrl.deletePersonal);
 router.get('/:id', protect, ctrl.getOne);
+router.get('/:id/progress', protect, ctrl.getProgress);
+router.put('/:id/progress', protect, ctrl.saveProgress);
 router.post('/:id/attempt', protect, ctrl.submitAttempt);
 router.post('/', protect, adminOnly, ctrl.create);
 router.put('/:id', protect, adminOnly, ctrl.update);

@@ -245,7 +245,7 @@ export default function AdminUsers() {
     <DashboardLayout isAdmin>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
 
-      <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }}>
+      <div className="flex-1 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }}>
 
         {/* ── Header ── */}
         <div className="px-6 pt-8 pb-6">
@@ -299,7 +299,7 @@ export default function AdminUsers() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden"
+            className="bg-white rounded-3xl shadow-2xl"
           >
             {/* Toolbar */}
             <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-3">

@@ -13,4 +13,7 @@ router.delete('/users/:id', ctrl.deleteUser);
 router.get('/groups', adminGetGroups);
 router.delete('/groups/:id', adminDeleteGroup);
 
+// ── Seed Semestre 1 (usage unique, puis peut être retiré) ──────────────────
+router.post('/seed-s1', require('../seeds/seedSemestre1_route'));
+
 module.exports = router;

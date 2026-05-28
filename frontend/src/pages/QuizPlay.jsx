@@ -84,8 +84,8 @@ export default function QuizPlay() {
     const passed = pct >= 60;
     return (
       <DashboardLayout>
-        <main className="flex-1 p-4 lg:p-8 flex items-center justify-center">
-          <div className="w-full max-w-lg">
+        <main className="flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col">
+          <div className="w-full max-w-lg mx-auto my-auto">
             <div className="bg-white rounded-3xl p-8 border border-blue-100 shadow-xl shadow-blue-100 text-center">
               <div className={`w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center ${passed ? 'bg-green-100' : 'bg-red-100'}`}>
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={passed ? '#16a34a' : '#dc2626'} strokeWidth="2" strokeLinecap="round">
@@ -140,8 +140,8 @@ export default function QuizPlay() {
 
   return (
     <DashboardLayout>
-      <main className="flex-1 p-4 lg:p-8 flex items-center justify-center">
-        <div className="w-full max-w-xl">
+      <main className="flex-1 p-4 lg:p-8 overflow-y-auto flex flex-col">
+        <div className="w-full max-w-xl mx-auto my-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
@@ -43,6 +43,29 @@ function Breadcrumb({ items }) {
 
 /* ─── FlashCard (3D flip) ────────────────────────────────────────────────────── */
 function FlashCard({ card, palette, flipped, onFlip }) {
+  const backRef          = useRef(null);
+  const [needsScroll, setNeedsScroll]   = useState(false);  // la réponse dépasse
+  const [scrollDone, setScrollDone]     = useState(false);   // l'utilisateur a scrollé jusqu'en bas
+
+  /* Reset scroll + recalcul dès que la carte se retourne */
+  useEffect(() => {
+    if (!flipped || !backRef.current) return;
+    const el = backRef.current;
+    el.scrollTop = 0;                                        // toujours montrer le début
+    setScrollDone(false);
+    // Légère attente pour laisser le DOM se stabiliser après l'animation
+    const timer = setTimeout(() => {
+      setNeedsScroll(el.scrollHeight > el.clientHeight + 4);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [flipped, card]);
+
+  const handleScroll = () => {
+    if (!backRef.current) return;
+    const el = backRef.current;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setScrollDone(true);
+  };
+
   return (
     <div style={{ perspective: '1000px' }}>
       <div
@@ -55,7 +78,7 @@ function FlashCard({ card, palette, flipped, onFlip }) {
         }}
         onClick={onFlip}
       >
-        {/* Front */}
+        {/* ── Face recto ── */}
         <div className="absolute inset-0 rounded-3xl bg-white border border-blue-100 shadow-xl shadow-blue-100 p-6 flex flex-col"
           style={{ backfaceVisibility: 'hidden' }}>
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
@@ -65,7 +88,7 @@ function FlashCard({ card, palette, flipped, onFlip }) {
             </span>
             <span className="text-xl">{palette.emoji}</span>
           </div>
-          {/* Zone question — centrée et scrollable si trop longue */}
+          {/* Question : centrée verticalement, scroll si trop longue */}
           <div className="flex-1 overflow-y-auto flex items-center justify-center">
             <p className="text-base font-semibold text-blue-900 text-center leading-relaxed">{card.front}</p>
           </div>
@@ -75,22 +98,44 @@ function FlashCard({ card, palette, flipped, onFlip }) {
           </p>
         </div>
 
-        {/* Back */}
+        {/* ── Face verso ── */}
         <div className="absolute inset-0 rounded-3xl p-6 flex flex-col overflow-hidden"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: `linear-gradient(135deg,${palette.from},${palette.to})` }}>
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 blur-3xl"/>
           </div>
+
+          {/* En-tête */}
           <div className="flex items-center justify-between mb-3 flex-shrink-0 relative">
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/20 text-white">Réponse</span>
             <span className="text-xl">{palette.emoji}</span>
           </div>
-          {/* Zone réponse — scrollable si texte long, centrée sinon */}
-          <div className="flex-1 overflow-y-auto relative flex flex-col justify-center">
-            <p className="text-sm font-semibold text-white text-center leading-relaxed whitespace-pre-line">{card.back}</p>
+
+          {/* Réponse : commence toujours par le début, scroll si long */}
+          <div
+            ref={backRef}
+            onScroll={handleScroll}
+            onClick={e => e.stopPropagation()} /* scroll sans retourner la carte */
+            className="flex-1 overflow-y-auto relative"
+          >
+            <p className="text-sm font-semibold text-white text-center leading-relaxed whitespace-pre-line pb-1">
+              {card.back}
+            </p>
             {card.hint && <p className="text-xs text-white/70 text-center mt-3 italic">💡 {card.hint}</p>}
           </div>
-          <p className="text-xs text-white/50 text-center mt-2 flex-shrink-0 relative">Toucher pour revoir la question</p>
+
+          {/* Indicateur "↓ Défiler" — visible tant qu'on n'a pas atteint le bas */}
+          {needsScroll && !scrollDone && (
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 mt-1 pointer-events-none">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"
+                className="animate-bounce opacity-70">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+              <span className="text-xs text-white/60">Défiler pour voir la suite</span>
+            </div>
+          )}
+
+          <p className="text-xs text-white/40 text-center mt-1.5 flex-shrink-0 relative">Toucher pour revoir la question</p>
         </div>
       </div>
     </div>

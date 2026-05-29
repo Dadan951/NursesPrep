@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
+import { getCache, setCache } from '../utils/cache';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -149,14 +150,24 @@ export default function Medicaments() {
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
+    // Cache immédiat
+    const cachedClasses = getCache('drugs_classes');
+    const cachedDrugs   = getCache('drugs_list');
+    if (cachedClasses && cachedDrugs) {
+      setClasses(cachedClasses);
+      setDrugs(cachedDrugs);
+      setLoading(false);
+    }
+
+    // Rafraîchissement arrière-plan
     const load = async () => {
       try {
         const [cRes, dRes] = await Promise.all([
           axios.get(`${API}/api/drugs/classes`, { headers }),
           axios.get(`${API}/api/drugs`,         { headers }),
         ]);
-        setClasses(cRes.data);
-        setDrugs(dRes.data);
+        setClasses(cRes.data);  setCache('drugs_classes', cRes.data);
+        setDrugs(dRes.data);    setCache('drugs_list',    dRes.data);
       } catch (e) {
         console.error(e);
       } finally {

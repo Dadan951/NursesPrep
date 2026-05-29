@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL } from '../context/AuthContext';
+import { getCache, setCache } from '../utils/cache';
 
 /* ─── Palette ───────────────────────────────────────────────────────────────── */
 const PALETTE = [
@@ -403,13 +404,20 @@ export default function Flashcards() {
   const [resumeModal,     setResumeModal]     = useState(false);
   const [errorsModal,     setErrorsModal]     = useState(false);
 
-  /* Chargement initial */
+  /* Chargement initial avec cache */
   useEffect(() => {
+    // Affiche immédiatement le cache si disponible
+    const cachedCards = getCache('flashcards_list');
+    if (cachedCards) { setCards(cachedCards); setLoading(false); }
+
+    // Toujours rafraîchir les attempts (données utilisateur, doivent être fraîches)
+    // Les cartes sont rafraîchies en arrière-plan
     Promise.all([
       axios.get(`${API_URL}/flashcards`),
       axios.get(`${API_URL}/flashcards/attempts`).catch(() => ({ data: [] })),
     ]).then(([cardsRes, attemptsRes]) => {
       setCards(cardsRes.data);
+      setCache('flashcards_list', cardsRes.data);
       setAttempts(attemptsRes.data);
     }).finally(() => setLoading(false));
   }, []);

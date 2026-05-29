@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
+import { getCache, setCache } from '../utils/cache';
 
 /* ─── Category colour palette ──────────────────────────────────────────────── */
 const PALETTE = [
@@ -247,7 +248,15 @@ export default function Quiz() {
   const isPro = ['pro', 'premium'].includes(user?.subscription);
 
   useEffect(() => {
-    axios.get(`${API_URL}/quizzes`).then(r => setQuizzes(r.data)).finally(() => setLoading(false));
+    // Affiche immédiatement les données en cache si disponibles
+    const cached = getCache('quizzes_list');
+    if (cached) { setQuizzes(cached); setLoading(false); }
+
+    // Rafraîchit en arrière-plan (silencieux si cache présent)
+    axios.get(`${API_URL}/quizzes`).then(r => {
+      setQuizzes(r.data);
+      setCache('quizzes_list', r.data);
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {

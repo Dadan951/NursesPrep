@@ -56,34 +56,41 @@ function FlashCard({ card, palette, flipped, onFlip }) {
         onClick={onFlip}
       >
         {/* Front */}
-        <div className="absolute inset-0 rounded-3xl bg-white border border-blue-100 shadow-xl shadow-blue-100 p-7 flex flex-col"
+        <div className="absolute inset-0 rounded-3xl bg-white border border-blue-100 shadow-xl shadow-blue-100 p-6 flex flex-col"
           style={{ backfaceVisibility: 'hidden' }}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 flex-shrink-0">
             <span className="text-xs font-semibold px-3 py-1 rounded-full text-white"
               style={{ background: `linear-gradient(135deg,${palette.from},${palette.to})` }}>
               {card.category}
             </span>
-            <span className="text-2xl">{palette.emoji}</span>
+            <span className="text-xl">{palette.emoji}</span>
           </div>
-          <p className="text-base font-semibold text-blue-900 flex-1 flex items-center leading-relaxed">{card.front}</p>
-          <p className="text-xs text-blue-300 text-center mt-4 flex items-center justify-center gap-1.5">
+          {/* Zone question — centrée et scrollable si trop longue */}
+          <div className="flex-1 overflow-y-auto flex items-center justify-center">
+            <p className="text-base font-semibold text-blue-900 text-center leading-relaxed">{card.front}</p>
+          </div>
+          <p className="text-xs text-blue-300 text-center mt-3 flex-shrink-0 flex items-center justify-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-blue-400 inline-block"/>
             Toucher pour révéler la réponse
           </p>
         </div>
+
         {/* Back */}
-        <div className="absolute inset-0 rounded-3xl p-7 flex flex-col overflow-hidden"
+        <div className="absolute inset-0 rounded-3xl p-6 flex flex-col overflow-hidden"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: `linear-gradient(135deg,${palette.from},${palette.to})` }}>
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/10 blur-3xl"/>
           </div>
-          <div className="flex items-center justify-between mb-4 relative">
+          <div className="flex items-center justify-between mb-3 flex-shrink-0 relative">
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/20 text-white">Réponse</span>
-            <span className="text-2xl">{palette.emoji}</span>
+            <span className="text-xl">{palette.emoji}</span>
           </div>
-          <p className="text-base font-semibold text-white flex-1 flex items-center justify-center text-center leading-relaxed whitespace-pre-line relative">{card.back}</p>
-          {card.hint && <p className="text-xs text-white/70 text-center mt-2 italic relative">💡 {card.hint}</p>}
-          <p className="text-xs text-white/50 text-center mt-3 relative">Toucher pour revoir la question</p>
+          {/* Zone réponse — scrollable si texte long, centrée sinon */}
+          <div className="flex-1 overflow-y-auto relative flex flex-col justify-center">
+            <p className="text-sm font-semibold text-white text-center leading-relaxed whitespace-pre-line">{card.back}</p>
+            {card.hint && <p className="text-xs text-white/70 text-center mt-3 italic">💡 {card.hint}</p>}
+          </div>
+          <p className="text-xs text-white/50 text-center mt-2 flex-shrink-0 relative">Toucher pour revoir la question</p>
         </div>
       </div>
     </div>
@@ -228,7 +235,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
             <div className="flex items-center justify-center gap-6 mb-6">
               <div className="text-center">
                 <span className="text-4xl font-bold text-green-500">{known}</span>
-                <p className="text-xs text-green-400 mt-1">✓ Sus</p>
+                <p className="text-xs text-green-400 mt-1">✓ Connu</p>
               </div>
               <div className="text-3xl text-blue-200">/</div>
               <div className="text-center">
@@ -360,7 +367,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
           {/* Score live */}
           <div className="flex justify-between mt-3 px-1">
             <span className="text-xs font-bold text-red-400">✗ {unknown} à retravailler</span>
-            <span className="text-xs font-bold text-green-500">✓ {known} sus</span>
+            <span className="text-xs font-bold text-green-500">✓ {known} Connu</span>
           </div>
 
           {/* Boutons après flip */}
@@ -530,7 +537,7 @@ export default function Flashcards() {
               <div className="w-full h-2 bg-blue-100 rounded-full mb-1 overflow-hidden">
                 <div className="h-2 bg-amber-400 rounded-full" style={{ width: `${pct}%` }}/>
               </div>
-              <p className="text-xs text-blue-400 mb-6">{pct}% complété · {a.known} sus · {a.unknown} à revoir</p>
+              <p className="text-xs text-blue-400 mb-6">{pct}% complété · {a.known} connu · {a.unknown} à revoir</p>
               <div className="flex flex-col gap-3">
                 <button onClick={handleResume}
                   className="w-full py-3 bg-blue-500 text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition">
@@ -569,7 +576,7 @@ export default function Flashcards() {
                 </div>
                 <h2 className="text-lg font-bold text-blue-900">Dernière session</h2>
                 <p className={`text-3xl font-bold mt-1 ${passed ? 'text-green-500' : 'text-orange-500'}`}>{pct}%</p>
-                <p className="text-sm text-blue-400">{a.known} sus · {a.unknown} à revoir · {tot} cartes au total</p>
+                <p className="text-sm text-blue-400">{a.known} connu · {a.unknown} à revoir · {tot} cartes au total</p>
               </div>
 
               {/* Cartes ratées */}

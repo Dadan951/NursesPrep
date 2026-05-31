@@ -16,8 +16,11 @@ const part2 = require('./quizSemestre1_part2');
 const part3 = require('./quizSemestre1_part3');
 const part4 = require('./quizSemestre1_part4');
 const part5 = require('./quizSemestre1_part5');
+const part6 = require('./quizSemestre1_part6');
+const part7 = require('./quizSemestre1_part7');
+const part8 = require('./quizSemestre1_part8');
 
-const ALL_QUIZZES = [...part1, ...part2, ...part3, ...part4, ...part5];
+const ALL_QUIZZES = [...part1, ...part2, ...part3, ...part4, ...part5, ...part6, ...part7, ...part8];
 
 const URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 

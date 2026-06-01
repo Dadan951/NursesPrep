@@ -122,6 +122,9 @@ export default function Dashboard() {
   const [greeting,     setGreeting]     = useState('');
   const [streak,       setStreak]       = useState(p.streak || 0);
   const [weeklyData,   setWeeklyData]   = useState([0,0,0,0,0,0,0]);
+  const [showDetail,   setShowDetail]   = useState(false);
+  const [detailPeriod, setDetailPeriod] = useState('semaine');
+  const [customRange,  setCustomRange]  = useState({ from: '', to: '' });
 
   /* Time-based greeting */
   useEffect(() => {
@@ -334,18 +337,33 @@ export default function Dashboard() {
             {/* ── Left col (2/3) ──────────────────────────────────────── */}
             <div className="lg:col-span-2 space-y-6">
 
-              {/* Progress rings */}
+              {/* Progress rings + En détail */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+                className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
               >
-                <div className="flex items-center justify-between mb-6">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-6 pb-5">
                   <h2 className="text-sm font-semibold text-slate-700">Progression globale</h2>
-                  <span className="text-xs text-slate-400">Ce mois-ci</span>
+                  <button
+                    onClick={() => setShowDetail(v => !v)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                    style={showDetail
+                      ? { background: 'linear-gradient(135deg,#164e8a,#0891b2)', color: '#fff' }
+                      : { background: '#f1f5f9', color: '#475569' }}
+                  >
+                    En détail
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                      style={{ transform: showDetail ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+
+                {/* Rings résumé */}
+                <div className="grid grid-cols-3 gap-4 px-6 pb-6">
                   {rings.map((rg, i) => {
                     const pct = rg.max > 0 ? Math.round((rg.value / rg.max) * 100) : 0;
                     return (
@@ -359,6 +377,226 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
+
+                {/* ── Panneau détaillé ── */}
+                <AnimatePresence>
+                {showDetail && (
+                  <motion.div
+                    key="detail-panel"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="border-t border-slate-100 px-6 pt-5 pb-6 space-y-5"
+                      style={{ background: 'linear-gradient(180deg,#f8fafc,#fff)' }}>
+
+                      {/* Sélecteur de période */}
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {[
+                          { key: 'jour',    label: "Aujourd'hui" },
+                          { key: 'semaine', label: 'Cette semaine' },
+                          { key: 'mois',    label: 'Ce mois' },
+                          { key: 'custom',  label: 'Personnalisé' },
+                        ].map(p => (
+                          <button key={p.key}
+                            onClick={() => setDetailPeriod(p.key)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                            style={detailPeriod === p.key
+                              ? { background:'linear-gradient(135deg,#164e8a,#0891b2)', color:'#fff', boxShadow:'0 2px 8px rgba(8,145,178,.35)' }
+                              : { background:'#f1f5f9', color:'#64748b' }}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Plage personnalisée */}
+                      <AnimatePresence>
+                      {detailPeriod === 'custom' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                          className="flex gap-3 items-center flex-wrap"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-slate-400 font-medium">Du</span>
+                            <input type="date" value={customRange.from}
+                              onChange={e => setCustomRange(r => ({ ...r, from: e.target.value }))}
+                              className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] text-slate-400 font-medium">Au</span>
+                            <input type="date" value={customRange.to}
+                              onChange={e => setCustomRange(r => ({ ...r, to: e.target.value }))}
+                              className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                      </AnimatePresence>
+
+                      {/* Cartes détaillées par catégorie */}
+                      {(() => {
+                        const pr = user?.progress || {};
+                        const wSum = weeklyData.reduce((a, b) => a + b, 0);
+                        const todayAct = weeklyData[6] || 0;
+
+                        // Coefficients pour estimer la part par période
+                        const coeff = detailPeriod === 'jour'
+                          ? (wSum > 0 ? todayAct / wSum : 0)
+                          : detailPeriod === 'semaine'
+                          ? (wSum > 0 ? Math.min(wSum / Math.max(pr.quizCompleted + pr.flashcardsReviewed + pr.exercisesCompleted || 1, 1), 1) : 0)
+                          : 1; // mois / custom → totaux
+
+                        const qTotal  = Math.round((pr.quizCompleted || 0) * coeff);
+                        const fTotal  = Math.round((pr.flashcardsReviewed || 0) * coeff);
+                        const eTotal  = Math.round((pr.exercisesCompleted || 0) * coeff);
+
+                        // Score moyen estimé (totalScore / quizCompleted si dispo)
+                        const avgScore = pr.quizCompleted > 0
+                          ? Math.min(Math.round((pr.totalScore || 0) / (pr.quizCompleted * 10)), 100)
+                          : 0;
+
+                        const detailCards = [
+                          {
+                            label: 'Quiz',
+                            color: '#3b82f6',
+                            bg: 'from-blue-50 to-blue-100/60',
+                            border: 'border-blue-100',
+                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+                            rows: [
+                              { label: 'Réalisés',    val: qTotal,                          unit: 'quiz'    },
+                              { label: 'Score moyen', val: avgScore > 0 ? `${avgScore}%` : '—', unit: ''   },
+                              { label: 'Erreurs est.', val: avgScore > 0 ? `~${Math.round(qTotal * (1 - avgScore/100))}` : '—', unit: '' },
+                              { label: 'Objectif',    val: '50',                            unit: 'quiz'    },
+                            ],
+                            pct: Math.min(Math.round(((pr.quizCompleted || 0) / 50) * 100), 100),
+                          },
+                          {
+                            label: 'Flashcards',
+                            color: '#6366f1',
+                            bg: 'from-indigo-50 to-indigo-100/60',
+                            border: 'border-indigo-100',
+                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
+                            rows: [
+                              { label: 'Révisées',    val: fTotal,  unit: 'cartes' },
+                              { label: 'Mémorisées',  val: '—',     unit: ''       },
+                              { label: 'À revoir',    val: '—',     unit: ''       },
+                              { label: 'Objectif',    val: '100',   unit: 'cartes' },
+                            ],
+                            pct: Math.min(Math.round(((pr.flashcardsReviewed || 0) / 100) * 100), 100),
+                          },
+                          {
+                            label: 'Exercices',
+                            color: '#14b8a6',
+                            bg: 'from-teal-50 to-teal-100/60',
+                            border: 'border-teal-100',
+                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>,
+                            rows: [
+                              { label: 'Complétés',  val: eTotal, unit: 'exercices' },
+                              { label: 'Réussis',    val: '—',    unit: ''          },
+                              { label: 'Erreurs',    val: '—',    unit: ''          },
+                              { label: 'Objectif',   val: '30',   unit: 'exercices' },
+                            ],
+                            pct: Math.min(Math.round(((pr.exercisesCompleted || 0) / 30) * 100), 100),
+                          },
+                        ];
+
+                        return (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {detailCards.map((dc, i) => (
+                              <motion.div
+                                key={dc.label}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.07 }}
+                                className={`rounded-xl border ${dc.border} bg-gradient-to-br ${dc.bg} p-4`}
+                              >
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                                    {dc.icon}
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-700">{dc.label}</span>
+                                </div>
+                                <div className="space-y-1.5 mb-3">
+                                  {dc.rows.map((r, j) => (
+                                    <div key={j} className="flex items-center justify-between">
+                                      <span className="text-[10px] text-slate-500">{r.label}</span>
+                                      <span className="text-[11px] font-bold text-slate-700 tabular-nums">
+                                        {r.val}{r.unit ? <span className="text-[9px] font-normal text-slate-400 ml-0.5">{r.unit}</span> : null}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* Barre de progression */}
+                                <div className="mt-2">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[10px] text-slate-400">Progression</span>
+                                    <span className="text-[10px] font-bold" style={{ color: dc.color }}>{dc.pct}%</span>
+                                  </div>
+                                  <div className="h-1.5 bg-white/70 rounded-full overflow-hidden">
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      style={{ background: dc.color }}
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${dc.pct}%` }}
+                                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                    />
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Mini graphe activité (semaine seulement) */}
+                      {(detailPeriod === 'semaine' || detailPeriod === 'jour') && (
+                        <div>
+                          <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-3">
+                            Activité {detailPeriod === 'jour' ? "aujourd'hui" : 'de la semaine'}
+                          </p>
+                          <div className="flex items-end gap-2 h-16">
+                            {Array.from({ length: 7 }, (_, i) => {
+                              const dayLetters = ['D','L','M','M','J','V','S'];
+                              const d = new Date(Date.now() - (6 - i) * 86400000);
+                              const day = dayLetters[d.getDay()];
+                              const maxVal = Math.max(...weeklyData, 1);
+                              const hPct = Math.round((weeklyData[i] / maxVal) * 100) || 0;
+                              const isToday = i === 6;
+                              const isActive = detailPeriod === 'jour' ? isToday : true;
+                              return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                  <motion.div
+                                    className="w-full rounded-md"
+                                    style={{
+                                      height: hPct > 0 ? `${Math.max(hPct, 10)}%` : '4%',
+                                      background: isToday
+                                        ? 'linear-gradient(180deg,#0891b2,#164e8a)'
+                                        : '#bfdbfe',
+                                      opacity: isActive ? (isToday ? 1 : 0.55) : 0.2,
+                                    }}
+                                    initial={{ scaleY: 0, originY: 1 }}
+                                    animate={{ scaleY: 1 }}
+                                    transition={{ delay: 0.1 + i * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                                  />
+                                  <span className={`text-[9px] font-medium ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>{day}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-slate-300 text-center">
+                        Données basées sur ta progression enregistrée · Le suivi d'erreurs détaillé arrive prochainement
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Quick actions */}
@@ -403,43 +641,6 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Weekly activity bar chart */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
-              >
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-sm font-semibold text-slate-700">Activité de la semaine</h2>
-                  <span className="text-xs text-blue-500 font-medium">7 derniers jours ✓</span>
-                </div>
-                <div className="flex items-end gap-2 h-20">
-                  {Array.from({ length: 7 }, (_, i) => {
-                    const dayLetters = ['D','L','M','M','J','V','S'];
-                    const d = new Date(Date.now() - (6 - i) * 86400000);
-                    const day = dayLetters[d.getDay()];
-                    const maxVal = Math.max(...weeklyData, 1);
-                    const heightPct = Math.round((weeklyData[i] / maxVal) * 100) || 0;
-                    const isToday = i === 6;
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                        <motion.div
-                          className="w-full rounded-lg relative overflow-hidden"
-                          style={{ height: heightPct > 0 ? `${Math.max(heightPct, 8)}%` : '4%' }}
-                          initial={{ scaleY: 0, originY: 1 }}
-                          animate={{ scaleY: 1 }}
-                          transition={{ delay: 0.7 + i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                        >
-                          <div className={`w-full h-full rounded-lg ${isToday ? 'opacity-100' : 'opacity-40'}`}
-                            style={{ background: isToday ? 'linear-gradient(180deg,#0891b2,#164e8a)' : '#bfdbfe' }}/>
-                        </motion.div>
-                        <span className={`text-[10px] font-medium ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>{day}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
             </div>
 
             {/* ── Right col (1/3) ─────────────────────────────────────── */}

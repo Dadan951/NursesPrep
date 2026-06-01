@@ -360,9 +360,11 @@ export default function Quiz() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {semesters.map((sem, idx) => {
-                        const pal     = PALETTE[idx % PALETTE.length];
-                        const ueCount = Object.keys(structure[sem]).length;
-                        const total   = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat().length;
+                        const pal       = PALETTE[idx % PALETTE.length];
+                        const ueCount   = Object.keys(structure[sem]).length;
+                        const allQ      = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat();
+                        const total     = allQ.length;
+                        const doneCount = allQ.filter(q => q.attempt?.status === 'completed').length;
                         return (
                           <motion.button key={sem}
                             onClick={() => { setSelectedSemester(sem); setView('ues'); }}
@@ -376,8 +378,11 @@ export default function Quiz() {
                             <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-black/10 blur-xl"/>
                             <div className="text-4xl mb-4">{pal.emoji}</div>
                             <h3 className="font-bold text-white text-base mb-1 leading-snug">{sem}</h3>
-                            <p className="text-white/75 text-xs mb-4">{ueCount} UE · {total} quiz</p>
-                            <div className="flex items-center justify-between">
+                            <p className="text-white/75 text-xs mb-1">{ueCount} UE · {total} quiz</p>
+                            {doneCount > 0 && (
+                              <p className="text-white/90 text-xs mb-3 font-semibold">✓ {doneCount} quiz terminé{doneCount > 1 ? 's' : ''}</p>
+                            )}
+                            <div className={`flex items-center justify-between ${doneCount > 0 ? '' : 'mt-4'}`}>
                               <div className="flex gap-1">
                                 {Array.from({ length: Math.min(ueCount, 5) }).map((_, i) => (
                                   <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/60"/>
@@ -410,9 +415,11 @@ export default function Quiz() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {ues.map((ue, idx) => {
-                      const pal   = PALETTE[idx % PALETTE.length];
-                      const total = Object.values(structure[selectedSemester][ue]).flat().length;
-                      const chCount = Object.keys(structure[selectedSemester][ue]).length;
+                      const pal       = PALETTE[idx % PALETTE.length];
+                      const allQ      = Object.values(structure[selectedSemester][ue]).flat();
+                      const total     = allQ.length;
+                      const chCount   = Object.keys(structure[selectedSemester][ue]).length;
+                      const doneCount = allQ.filter(q => q.attempt?.status === 'completed').length;
                       return (
                         <motion.button key={ue}
                           onClick={() => { setSelectedUE(ue); setView('chapters'); }}
@@ -425,8 +432,11 @@ export default function Quiz() {
                           <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-2xl"/>
                           <div className="text-3xl mb-3">{pal.emoji}</div>
                           <h3 className="font-bold text-white text-sm mb-1 leading-snug">{ue}</h3>
-                          <p className="text-white/75 text-xs mb-3">{chCount} chapitre{chCount > 1 ? 's' : ''} · {total} quiz</p>
-                          <div className="flex justify-end">
+                          <p className="text-white/75 text-xs mb-1">{chCount} chapitre{chCount > 1 ? 's' : ''} · {total} quiz</p>
+                          {doneCount > 0 && (
+                            <p className="text-white/90 text-xs mb-2 font-semibold">✓ {doneCount}/{total} terminé{doneCount > 1 ? 's' : ''}</p>
+                          )}
+                          <div className={`flex justify-end ${doneCount > 0 ? '' : 'mt-3'}`}>
                             <div className="w-7 h-7 bg-white/20 rounded-xl flex items-center justify-center">
                               <ChevronRight className="text-white"/>
                             </div>
@@ -454,27 +464,48 @@ export default function Quiz() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {chapters.map((chap, idx) => {
-                      const pal   = PALETTE[idx % PALETTE.length];
-                      const count = structure[selectedSemester][selectedUE][chap].length;
+                      const pal       = PALETTE[idx % PALETTE.length];
+                      const chapQ     = structure[selectedSemester][selectedUE][chap];
+                      const count     = chapQ.length;
+                      const doneCount = chapQ.filter(q => q.attempt?.status === 'completed').length;
+                      const allDone   = doneCount === count && count > 0;
                       return (
                         <motion.button key={chap}
                           onClick={() => { setSelectedChapter(chap); setView('quizzes'); }}
                           whileHover={{ y: -3 }}
                           whileTap={{ scale: 0.98 }}
                           style={{ willChange: 'transform' }}
-                          className="bg-white rounded-2xl p-5 border border-slate-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50 transition-shadow transition-colors text-left group flex items-center gap-4 shadow-sm"
+                          className="bg-white rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50 transition-shadow transition-colors text-left group shadow-sm overflow-hidden"
                         >
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
-                            style={{ background: `linear-gradient(135deg,${pal.from},${pal.to})` }}>
-                            {pal.emoji}
+                          <div className="flex items-center gap-4 p-5">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"
+                              style={{ background: `linear-gradient(135deg,${pal.from},${pal.to})` }}>
+                              {pal.emoji}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-bold text-slate-800 text-sm truncate">{chap}</h3>
+                                {doneCount > 0 && (
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${allDone ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-600'}`}>
+                                    ✓ {doneCount}/{count}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5">{count} quiz disponible{count > 1 ? 's' : ''}</p>
+                            </div>
+                            <div className="text-slate-300 group-hover:text-blue-500 transition flex-shrink-0">
+                              <ChevronRight/>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-800 text-sm truncate">{chap}</h3>
-                            <p className="text-xs text-slate-400 mt-0.5">{count} quiz disponible{count > 1 ? 's' : ''}</p>
-                          </div>
-                          <div className="text-slate-300 group-hover:text-blue-500 transition flex-shrink-0">
-                            <ChevronRight/>
-                          </div>
+                          {/* Barre de progression verte */}
+                          {doneCount > 0 && (
+                            <div className="h-1 bg-slate-100">
+                              <div
+                                className={`h-1 transition-all ${allDone ? 'bg-green-400' : 'bg-blue-400'}`}
+                                style={{ width: `${(doneCount / count) * 100}%` }}
+                              />
+                            </div>
+                          )}
                         </motion.button>
                       );
                     })}

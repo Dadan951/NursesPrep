@@ -2,10 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
-
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 /* ─── Table of contents item ─────────────────────────────────────────────── */
 function TocItem({ num, title, active, onClick }) {
@@ -132,7 +130,7 @@ export default function MedicamentDetail() {
     const headers = { Authorization: `Bearer ${token}` };
     const load = async () => {
       try {
-        const res = await axios.get(`${API}/api/drugs/${id}`, { headers });
+        const res = await axios.get(`${API_URL}/drugs/${id}`, { headers });
         setDrug(res.data);
       } catch (e) {
         console.error(e);

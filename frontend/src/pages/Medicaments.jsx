@@ -2,11 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import { getCache, setCache } from '../utils/cache';
-
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 /* ─── Alphabet anchor header ─────────────────────────────────────────────── */
 function AlphaBar({ letters, active }) {
@@ -165,8 +163,8 @@ export default function Medicaments() {
     const load = async () => {
       try {
         const [cRes, dRes] = await Promise.all([
-          axios.get(`${API}/api/drugs/classes`, { headers }),
-          axios.get(`${API}/api/drugs`,         { headers }),
+          axios.get(`${API_URL}/drugs/classes`, { headers }),
+          axios.get(`${API_URL}/drugs`,         { headers }),
         ]);
         setClasses(cRes.data);  setCache('drugs_classes', cRes.data);
         setDrugs(dRes.data);    setCache('drugs_list',    dRes.data);

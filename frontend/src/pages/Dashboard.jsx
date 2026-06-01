@@ -176,8 +176,8 @@ export default function Dashboard() {
     },
     {
       label: 'Flashcards', val: flashVal,
-      grad: null, glow: 'shadow-indigo-200', textC: 'text-indigo-600',
-      icon: null,
+      grad: 'from-indigo-500 to-violet-500', glow: 'shadow-indigo-200', textC: 'text-indigo-600',
+      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
     },
     {
       label: 'Exercices', val: exercVal,
@@ -321,27 +321,11 @@ export default function Dashboard() {
             {stats.map((s, i) => (
               <motion.div key={i} variants={item}>
                 <TiltCard className={`rounded-2xl p-5 bg-white border border-slate-100 shadow-md ${s.glow} hover:shadow-xl transition-shadow cursor-default`}>
-                  {s.grad ? (
-                    <>
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.grad} flex items-center justify-center mb-3 shadow-lg`}>
-                        <span className="text-white">{s.icon}</span>
-                      </div>
-                      <p className="text-2xl font-bold text-slate-800 tabular-nums">{s.val}</p>
-                      <p className={`text-xs font-medium mt-0.5 ${s.textC}`}>{s.label}</p>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <img
-                        src="/icons/card-icon.png"
-                        alt="Flashcards"
-                        className="w-20 h-20 object-contain drop-shadow-lg flex-shrink-0"
-                      />
-                      <div>
-                        <p className="text-2xl font-bold text-slate-800 tabular-nums">{s.val}</p>
-                        <p className={`text-xs font-medium mt-0.5 ${s.textC}`}>{s.label}</p>
-                      </div>
-                    </div>
-                  )}
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.grad} flex items-center justify-center mb-3 shadow-lg`}>
+                    <span className="text-white">{s.icon}</span>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-800 tabular-nums">{s.val}</p>
+                  <p className={`text-xs font-medium mt-0.5 ${s.textC}`}>{s.label}</p>
                 </TiltCard>
               </motion.div>
             ))}

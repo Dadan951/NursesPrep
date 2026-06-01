@@ -552,44 +552,6 @@ export default function Dashboard() {
                         );
                       })()}
 
-                      {/* Mini graphe activité (semaine seulement) */}
-                      {(detailPeriod === 'semaine' || detailPeriod === 'jour') && (
-                        <div>
-                          <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-3">
-                            Activité {detailPeriod === 'jour' ? "aujourd'hui" : 'de la semaine'}
-                          </p>
-                          <div className="flex items-end gap-2 h-16">
-                            {Array.from({ length: 7 }, (_, i) => {
-                              const dayLetters = ['D','L','M','M','J','V','S'];
-                              const d = new Date(Date.now() - (6 - i) * 86400000);
-                              const day = dayLetters[d.getDay()];
-                              const maxVal = Math.max(...weeklyData, 1);
-                              const hPct = Math.round((weeklyData[i] / maxVal) * 100) || 0;
-                              const isToday = i === 6;
-                              const isActive = detailPeriod === 'jour' ? isToday : true;
-                              return (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                                  <motion.div
-                                    className="w-full rounded-md"
-                                    style={{
-                                      height: hPct > 0 ? `${Math.max(hPct, 10)}%` : '4%',
-                                      background: isToday
-                                        ? 'linear-gradient(180deg,#0891b2,#164e8a)'
-                                        : '#bfdbfe',
-                                      opacity: isActive ? (isToday ? 1 : 0.55) : 0.2,
-                                    }}
-                                    initial={{ scaleY: 0, originY: 1 }}
-                                    animate={{ scaleY: 1 }}
-                                    transition={{ delay: 0.1 + i * 0.05, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                                  />
-                                  <span className={`text-[9px] font-medium ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>{day}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
                       <p className="text-[10px] text-slate-300 text-center">
                         Données basées sur ta progression enregistrée · Le suivi d'erreurs détaillé arrive prochainement
                       </p>

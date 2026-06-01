@@ -177,7 +177,7 @@ export default function Dashboard() {
     {
       label: 'Flashcards', val: flashVal,
       grad: 'from-indigo-500 to-violet-500', glow: 'shadow-indigo-200', textC: 'text-indigo-600',
-      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
+      icon: <img src="/icons/card-icon.png" alt="Flashcards" className="w-5 h-5 object-contain" />,
     },
     {
       label: 'Exercices', val: exercVal,

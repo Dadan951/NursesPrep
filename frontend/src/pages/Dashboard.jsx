@@ -231,6 +231,12 @@ export default function Dashboard() {
       grad: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-400/40',
       icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
     },
+    {
+      to: '/dashboard/subscription', label: 'Abonnement',
+      desc: 'Gérer mon offre',
+      grad: 'from-cyan-500 to-blue-600', shadow: 'shadow-cyan-400/40',
+      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+    },
   ];
 
   const rings = [
@@ -564,35 +570,6 @@ export default function Dashboard() {
                 </div>
               </motion.div>
 
-              {/* Mini quick links */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
-              >
-                <p className="text-xs font-semibold text-slate-500 mb-3">Navigation rapide</p>
-                <div className="space-y-1">
-                  {[
-                    { to:'/dashboard/cours',        label:'Cours & Fiches', color:'text-blue-600'   },
-                    { to:'/dashboard/annales',       label:'Annales',        color:'text-violet-600' },
-                    { to:'/dashboard/medicaments',   label:'Médicaments',    color:'text-rose-600'   },
-                    { to:'/dashboard/groups',        label:'Groupes',        color:'text-amber-600'  },
-                    { to:'/dashboard/profile',       label:'Mon profil',     color:'text-slate-600'  },
-                    { to:'/dashboard/subscription',  label:'Abonnement',     color:'text-cyan-600'   },
-                  ].map((l, i) => (
-                    <motion.div key={i} whileHover={{ x: 4 }} transition={{ type:'spring', stiffness:400 }}>
-                      <Link to={l.to}
-                        className={`flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-slate-50 transition-colors text-xs font-medium ${l.color}`}>
-                        {l.label}
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="9 18 15 12 9 6"/>
-                        </svg>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
             </motion.div>
           </div>
         </div>

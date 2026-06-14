@@ -36,7 +36,6 @@ Multer — Upload de fichiers
 Nodemailer / Resend — Envoi d'emails
 Web Push — Notifications push
 PDF Parse — Extraction de contenu depuis des PDFs
-Claude AI (Anthropic SDK) — Fonctionnalités d'intelligence artificielle
 
 Déploiement
 

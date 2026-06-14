@@ -7,7 +7,7 @@ const Exercise = require('./models/Exercise');
 const Lesson = require('./models/Lesson');
 
 async function seed() {
-  // ⚠️ Compte admin par défaut supprimé pour raison de sécurité.
+  // Compte admin par défaut supprimé pour raison de sécurité.
   // Le compte admin doit être créé manuellement via /admin/users.
 
   // Sample quizzes

@@ -1,6 +1,24 @@
-const jwt    = require('jsonwebtoken');
-const User   = require('../models/User');
-const email  = require('../services/emailService');
+const jwt         = require('jsonwebtoken');
+const User        = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
+const email       = require('../services/emailService');
+const { parseUA, getIP } = require('../utils/parseUA');
+
+async function log(action, req, user = null, extraEmail = '') {
+  try {
+    const ua = req.headers['user-agent'] || '';
+    const { device, browser, os } = parseUA(ua);
+    await ActivityLog.create({
+      user:      user?._id || null,
+      userEmail: user?.email || extraEmail,
+      userName:  user?.name || '',
+      action,
+      ip:        getIP(req),
+      userAgent: ua,
+      device, browser, os,
+    });
+  } catch (_) {}
+}
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -86,6 +104,7 @@ exports.verifyEmail = async (req, res) => {
     await user.save();
 
     const token = signToken(user._id);
+    await log('register', req, user);
     res.json({ token, user: formatUser(user) });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -195,8 +214,10 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Email et mot de passe requis' });
 
     const user = await User.findOne({ email: emailAddr });
-    if (!user || !(await user.comparePassword(password)))
+    if (!user || !(await user.comparePassword(password))) {
+      await log('login_failed', req, null, emailAddr);
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+    }
 
     // Bloquer uniquement si le compte a un code de vérification en attente
     // (les anciens comptes sans verificationCode passent normalement)
@@ -213,7 +234,18 @@ exports.login = async (req, res) => {
     }
 
     const token = signToken(user._id);
+    await log('login', req, user);
     res.json({ token, user: formatUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── POST /auth/logout ───────────────────────────────────────────────────── */
+exports.logout = async (req, res) => {
+  try {
+    await log('logout', req, req.user);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

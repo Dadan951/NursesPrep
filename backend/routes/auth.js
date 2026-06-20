@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const {
-  register, login, getMe, updateProfile, updateAvatar, ping,
+  register, login, logout, getMe, updateProfile, updateAvatar, ping,
   verifyEmail, resendCode, forgotPassword, resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
@@ -45,6 +45,7 @@ router.post('/resend-code',      resendCode);
 router.post('/forgot-password',  forgotPassword);
 router.post('/reset-password',   resetPassword);
 router.post('/login',            login);
+router.post('/logout',           protect, logout);
 router.get('/me',                protect, getMe);
 router.put('/profile',           protect, updateProfile);
 router.post('/ping',             protect, ping);

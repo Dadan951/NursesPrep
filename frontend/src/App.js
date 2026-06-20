@@ -34,6 +34,7 @@ import MedicamentDetail from './pages/MedicamentDetail';
 import AdminMedicaments from './pages/admin/AdminMedicaments';
 import AdminAnnales from './pages/admin/AdminAnnales';
 import AdminTickets from './pages/admin/AdminTickets';
+import AdminLogs from './pages/admin/AdminLogs';
 
 function App() {
   return (
@@ -73,6 +74,7 @@ function App() {
           <Route path="/admin/medicaments" element={<AdminRoute><AdminMedicaments /></AdminRoute>} />
           <Route path="/admin/annales" element={<AdminRoute><AdminAnnales /></AdminRoute>} />
           <Route path="/admin/tickets" element={<AdminRoute><AdminTickets /></AdminRoute>} />
+          <Route path="/admin/logs" element={<AdminRoute><AdminLogs /></AdminRoute>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

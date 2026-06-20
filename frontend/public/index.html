@@ -1,30 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- ── Favicon & PWA ─────────────────────────────────────────────── -->
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <meta name="theme-color" content="#0f172a" />
-    <meta name="description" content="NursesPrep — La plateforme de révision pour les étudiants IFSI" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="NursesPrep" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <title>NursesPrep</title>
+
+    <!-- ── SEO de base ───────────────────────────────────────────────── -->
+    <title>NursesPrep — Révision IFSI pour étudiants infirmiers</title>
+    <meta name="description" content="NursesPrep est la plateforme de révision dédiée aux étudiants infirmiers IFSI : quiz, flashcards, fiches de cours, exercices cliniques et médicaments. Prépare tes examens efficacement." />
+    <meta name="keywords" content="IFSI, infirmier, révision, quiz infirmier, flashcards IFSI, fiches soins infirmiers, étudiant infirmier, préparation concours IFSI, médicaments infirmiers, UE infirmier" />
+    <meta name="author" content="NursesPrep" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://VOTRE-DOMAINE.com" />
+
+    <!-- ── Open Graph (Facebook, LinkedIn, WhatsApp…) ───────────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://VOTRE-DOMAINE.com" />
+    <meta property="og:title" content="NursesPrep — Révision IFSI pour étudiants infirmiers" />
+    <meta property="og:description" content="Quiz, flashcards, fiches de cours et exercices cliniques pour réussir ta formation infirmière IFSI. Révise intelligemment, progresse chaque jour." />
+    <meta property="og:image" content="https://VOTRE-DOMAINE.com/logo512.png" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="NursesPrep" />
+
+    <!-- ── Twitter Card ──────────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://VOTRE-DOMAINE.com" />
+    <meta name="twitter:title" content="NursesPrep — Révision IFSI pour étudiants infirmiers" />
+    <meta name="twitter:description" content="Quiz, flashcards, fiches de cours et exercices cliniques pour réussir ta formation infirmière IFSI." />
+    <meta name="twitter:image" content="https://VOTRE-DOMAINE.com/logo512.png" />
+
+    <!-- ── Données structurées JSON-LD (Google Rich Results) ─────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "NursesPrep",
+      "url": "https://VOTRE-DOMAINE.com",
+      "description": "Plateforme de révision pour étudiants infirmiers IFSI : quiz, flashcards, fiches de cours, exercices cliniques et base médicaments.",
+      "applicationCategory": "EducationApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "fr",
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Étudiants infirmiers IFSI"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      }
+    }
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>Activez JavaScript pour utiliser NursesPrep.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

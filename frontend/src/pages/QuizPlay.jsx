@@ -119,7 +119,7 @@ export default function QuizPlay() {
   /* ── Réponse sélectionnée ──────────────────────────────────────────── */
   const handleAnswer = (optIdx) => {
     if (answered || !quiz) return;
-    const q         = quiz.questions[current];
+    const q         = shuffledQuestions[current] || quiz.questions[current];
     const isCorrect = q.options[optIdx].isCorrect;
     const correctOpt = q.options.find(o => o.isCorrect);
     const newScore  = isCorrect ? score + 1 : score;

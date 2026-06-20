@@ -17,5 +17,6 @@ router.delete('/groups/:id', adminDeleteGroup);
 router.post('/seed-s1', require('../seeds/seedSemestre1_route'));
 router.post('/seed-flashcards-s1', require('../seeds/seedFlashcardsSemestre1_route'));
 router.post('/seed-medicaments', require('../seeds/seedMedicaments_route'));
+router.post('/migrate-buprenorphine', require('../seeds/migrateBuprenorphine'));
 
 module.exports = router;

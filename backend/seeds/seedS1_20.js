@@ -53,10 +53,9 @@ async function seedS1_20() {
     const result = await Quiz.findOneAndUpdate(
       { title: quiz.title, category: quiz.category },
       { $set: { chapter: quiz.chapter, difficulty: quiz.difficulty, questions: quiz.questions } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
-    if (result.__v === undefined || result.isNew) inserted++;
-    else updated++;
+    updated++;
   }
   console.log(`[seedS1_20] ✅ ${inserted} insérés, ${updated} mis à jour (total: ${ALL_S1_20.length})`);
   return { inserted, updated, total: ALL_S1_20.length };

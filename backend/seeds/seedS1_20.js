@@ -48,18 +48,18 @@ const ALL_S1_20 = [
 
 async function seedS1_20() {
   let inserted = 0;
-  let skipped = 0;
+  let updated = 0;
   for (const quiz of ALL_S1_20) {
-    const exists = await Quiz.findOne({ title: quiz.title, category: quiz.category });
-    if (!exists) {
-      await Quiz.create(quiz);
-      inserted++;
-    } else {
-      skipped++;
-    }
+    const result = await Quiz.findOneAndUpdate(
+      { title: quiz.title, category: quiz.category },
+      { $set: { chapter: quiz.chapter, difficulty: quiz.difficulty, questions: quiz.questions } },
+      { upsert: true, new: true }
+    );
+    if (result.__v === undefined || result.isNew) inserted++;
+    else updated++;
   }
-  console.log(`[seedS1_20] ✅ ${inserted} insérés, ${skipped} déjà existants (total: ${ALL_S1_20.length})`);
-  return { inserted, skipped, total: ALL_S1_20.length };
+  console.log(`[seedS1_20] ✅ ${inserted} insérés, ${updated} mis à jour (total: ${ALL_S1_20.length})`);
+  return { inserted, updated, total: ALL_S1_20.length };
 }
 
 module.exports = { seedS1_20, count: ALL_S1_20.length };

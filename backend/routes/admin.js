@@ -57,4 +57,16 @@ router.post('/seed-flashcards-s1', require('../seeds/seedFlashcardsSemestre1_rou
 router.post('/seed-medicaments', require('../seeds/seedMedicaments_route'));
 router.post('/migrate-buprenorphine', require('../seeds/migrateBuprenorphine'));
 
+/* ── POST /admin/seed-new-quizzes ────────────────────────────────────────── */
+router.post('/seed-new-quizzes', async (req, res) => {
+  try {
+    const { seedNewQuizzes } = require('../seeds/seedNewQuizzes');
+    const result = await seedNewQuizzes();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[seed-new-quizzes]', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

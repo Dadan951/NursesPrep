@@ -99,6 +99,55 @@ router.post('/fix-chapter-names', async (req, res) => {
   }
 });
 
+/* ── POST /admin/restructure-ue1-1 ───────────────────────────────────────── */
+router.post('/restructure-ue1-1', async (req, res) => {
+  try {
+    const Quiz = require('../models/Quiz');
+    const mapping = [
+      // Fondements de la psychologie
+      { from: 'Introduction à la psychologie — définitions, méthodes et courants théoriques', to: 'Fondements de la psychologie' },
+      { from: 'Introduction à la psychologie et mécanismes de défense',                       to: 'Fondements de la psychologie' },
+      { from: 'Mécanismes de défense — types, rôles et repérage clinique',                    to: 'Fondements de la psychologie' },
+      { from: 'Psychanalyse de Freud — inconscient, pulsions et structure psychique',         to: 'Fondements de la psychologie' },
+      { from: 'Conditionnement classique et opérant — Pavlov, Watson, Skinner',               to: 'Fondements de la psychologie' },
+      { from: 'Stress, coping et résilience — définitions et mécanismes',                     to: 'Fondements de la psychologie' },
+      // Développement psychologique
+      { from: 'Piaget — stades du développement cognitif de 0 à l\'adolescence',              to: 'Développement psychologique' },
+      { from: 'Erikson — stades psychosociaux du nourrisson à la vieillesse',                 to: 'Développement psychologique' },
+      { from: 'Psychologie du développement — stades de Piaget et Erikson',                   to: 'Développement psychologique' },
+      { from: 'Bowlby — théorie de l\'attachement et implications cliniques',                  to: 'Développement psychologique' },
+      { from: 'Psychologie du sujet âgé — vieillissement normal et psychopathologique',       to: 'Développement psychologique' },
+      // Relation, besoins et communication
+      { from: 'Maslow — hiérarchie des besoins et applications en soins',                     to: 'Relation, besoins et communication' },
+      { from: 'Carl Rogers — relation d\'aide, empathie et congruence',                        to: 'Relation, besoins et communication' },
+      { from: 'Communication et relations interpersonnelles en soins',                         to: 'Relation, besoins et communication' },
+      { from: 'La famille comme système — approche systémique',                                to: 'Relation, besoins et communication' },
+      { from: 'Deuil — étapes de Kübler-Ross, deuil pathologique et accompagnement',          to: 'Relation, besoins et communication' },
+      // Sociologie et anthropologie de la santé
+      { from: 'Sociologie générale — groupe social, norme et déviance',                       to: 'Sociologie et anthropologie de la santé' },
+      { from: 'Sociologie des soins et anthropologie de la santé',                             to: 'Sociologie et anthropologie de la santé' },
+      { from: 'Déterminants sociaux de santé — inégalités et facteurs socio-économiques',     to: 'Sociologie et anthropologie de la santé' },
+      { from: 'Anthropologie médicale — maladie, culture et représentations du corps',        to: 'Sociologie et anthropologie de la santé' },
+      { from: 'Représentations sociales de la maladie et du soin',                            to: 'Sociologie et anthropologie de la santé' },
+      // Identité professionnelle et soignant
+      { from: 'Identité professionnelle infirmière — construction et enjeux',                 to: 'Identité professionnelle et soignant' },
+      { from: 'Burnout soignant — signes, facteurs de risque et prévention',                  to: 'Identité professionnelle et soignant' },
+    ];
+    let total = 0;
+    for (const { from, to } of mapping) {
+      const r = await Quiz.updateMany(
+        { category: 'UE 1.1 - Psychologie, sociologie, anthropologie', chapter: from },
+        { $set: { chapter: to } }
+      );
+      total += r.modifiedCount;
+    }
+    res.json({ success: true, updated: total });
+  } catch (err) {
+    console.error('[restructure-ue1-1]', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /* ── POST /admin/merge-ue-categories ─────────────────────────────────────── */
 router.post('/merge-ue-categories', async (req, res) => {
   try {

@@ -99,6 +99,28 @@ router.post('/fix-chapter-names', async (req, res) => {
   }
 });
 
+/* ── POST /admin/merge-ue-categories ─────────────────────────────────────── */
+router.post('/merge-ue-categories', async (req, res) => {
+  try {
+    const Quiz = require('../models/Quiz');
+    const renames = [
+      { from: 'UE 2.10 - Infectiologie, hygiène',         to: 'UE 2.10 - Infectiologie et hygiène' },
+      { from: 'UE 4.1 - Soins de confort et de relation', to: 'UE 4.1 - Soins de confort et de bien-être' },
+      { from: 'UE 6.2 - Anglais médical',                 to: 'UE 6.2 - Anglais' },
+    ];
+    const results = [];
+    for (const { from, to } of renames) {
+      const r = await Quiz.updateMany({ category: from }, { $set: { category: to } });
+      results.push({ from, to, updated: r.modifiedCount });
+    }
+    console.log('[merge-ue-categories]', results);
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('[merge-ue-categories]', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /* ── POST /admin/seed-new-quizzes ────────────────────────────────────────── */
 router.post('/seed-new-quizzes', async (req, res) => {
   try {

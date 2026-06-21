@@ -1,11 +1,11 @@
-// UE 4.1 - Soins de confort et de relation — chapitres 16-20, Semestre 1 IFSI
+// UE 4.1 - Soins de confort et de bien-être — chapitres 16-20, Semestre 1 IFSI
 module.exports = [
   // ─── 16. Élimination intestinale ─────────────────────────────────────────────
   {
     "title": "Élimination intestinale — constipation, lavement et stomie",
     "description": "Quiz sur les soins infirmiers liés à l'élimination intestinale : constipation, lavement évacuateur et prise en charge des stomies digestives.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Élimination intestinale — constipation, lavement et stomie : soins infirmiers",
     "difficulty": "medium",
     "duration": 12,
@@ -99,7 +99,7 @@ module.exports = [
     "title": "Confort thermique — hyperthermie, frissons et refroidissement",
     "description": "Quiz sur la gestion infirmière de l'hyperthermie, le mécanisme des frissons et les moyens physiques de refroidissement pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Confort thermique — hyperthermie, frissons et moyens physiques de refroidissement",
     "difficulty": "medium",
     "duration": 12,
@@ -193,7 +193,7 @@ module.exports = [
     "title": "Soins palliatifs et fin de vie — confort et accompagnement",
     "description": "Quiz sur les soins palliatifs, la gestion de la douleur en fin de vie, le soulagement des symptômes et l'accompagnement du patient et de sa famille.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Soins palliatifs et fin de vie — confort, soulagement et accompagnement",
     "difficulty": "medium",
     "duration": 12,
@@ -287,7 +287,7 @@ module.exports = [
     "title": "Relation soignant-soigné — écoute, reformulation et soutien",
     "description": "Quiz sur les fondamentaux de la relation thérapeutique : écoute active, reformulation, empathie et soutien émotionnel dans la pratique infirmière.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Relation soignant-soigné — écoute active, reformulation et soutien émotionnel",
     "difficulty": "medium",
     "duration": 12,
@@ -381,7 +381,7 @@ module.exports = [
     "title": "Documentation des soins — traçabilité et observations infirmières",
     "description": "Quiz sur la traçabilité des soins infirmiers, la rédaction des observations, la cotation des actes et les enjeux médicolégaux de la documentation.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Documentation des soins — tracabilité, observations infirmières et cotation",
     "difficulty": "medium",
     "duration": 12,

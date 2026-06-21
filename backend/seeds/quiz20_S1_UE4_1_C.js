@@ -1,11 +1,11 @@
-// UE 4.1 - Soins de confort et de relation — chapitres 11-15 (Semestre 1 IFSI)
+// UE 4.1 - Soins de confort et de bien-être — chapitres 11-15 (Semestre 1 IFSI)
 module.exports = [
   // ─── 11. Positionnement et installation ───────────────────────────────────────
   {
     "title": "Positionnement et installation — positions thérapeutiques",
     "description": "Quiz sur les positions thérapeutiques, leurs indications et la prévention des complications liées à l'immobilité, pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Positionnement et installation — positions thérapeutiques et prévention des complications",
     "difficulty": "easy",
     "duration": 12,
@@ -99,7 +99,7 @@ module.exports = [
     "title": "Contention physique — indications, cadre légal et surveillance",
     "description": "Quiz sur les indications de la contention physique, le cadre réglementaire et les soins de surveillance infirmière, pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Contention physique — indications, cadre légal et surveillance",
     "difficulty": "medium",
     "duration": 12,
@@ -193,7 +193,7 @@ module.exports = [
     "title": "Nutrition entérale — pose de SNG, débit et surveillance",
     "description": "Quiz sur la pose de la sonde naso-gastrique, la conduite de la nutrition entérale et la surveillance infirmière, pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Nutrition entérale — pose de SNG, débit et surveillance infirmière",
     "difficulty": "medium",
     "duration": 12,
@@ -287,7 +287,7 @@ module.exports = [
     "title": "Nutrition parentérale — voies d'abord, composition et complications",
     "description": "Quiz sur la nutrition parentérale totale et partielle, les voies d'accès vasculaires et la prévention des complications, pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Nutrition parentérale — voies d'abord, composition et complications",
     "difficulty": "hard",
     "duration": 12,
@@ -381,7 +381,7 @@ module.exports = [
     "title": "Sondage urinaire — technique, matériel et prévention des infections",
     "description": "Quiz sur la technique du sondage urinaire aller-retour et à demeure, le matériel utilisé et la prévention des infections urinaires associées aux soins, pour les étudiants IFSI Semestre 1.",
     "semester": "Semestre 1",
-    "category": "UE 4.1 - Soins de confort et de relation",
+    "category": "UE 4.1 - Soins de confort et de bien-être",
     "chapter": "Sondage urinaire — technique, matériel et prévention des infections",
     "difficulty": "medium",
     "duration": 12,

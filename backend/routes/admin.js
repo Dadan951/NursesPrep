@@ -57,6 +57,18 @@ router.post('/seed-flashcards-s1', require('../seeds/seedFlashcardsSemestre1_rou
 router.post('/seed-medicaments', require('../seeds/seedMedicaments_route'));
 router.post('/migrate-buprenorphine', require('../seeds/migrateBuprenorphine'));
 
+/* ── POST /admin/seed-s1-20 ──────────────────────────────────────────────── */
+router.post('/seed-s1-20', async (req, res) => {
+  try {
+    const { seedS1_20 } = require('../seeds/seedS1_20');
+    const result = await seedS1_20();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[seed-s1-20]', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /* ── POST /admin/seed-new-quizzes ────────────────────────────────────────── */
 router.post('/seed-new-quizzes', async (req, res) => {
   try {

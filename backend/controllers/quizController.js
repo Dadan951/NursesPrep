@@ -229,6 +229,9 @@ RÈGLES :
 - Une seule réponse correcte par question
 - Les questions doivent tester la compréhension réelle, pas la mémorisation superficielle
 - Inclure une explication courte pour chaque bonne réponse
+- TRÈS IMPORTANT : toutes les options doivent avoir une longueur et un niveau de détail similaires — la bonne réponse ne doit PAS être identifiable parce qu'elle est plus longue ou plus précise que les autres
+- Les mauvaises réponses (distracteurs) doivent être plausibles, crédibles et de même complexité que la bonne réponse — évite les distracteurs trop courts, trop vagues ou manifestement faux
+- Un étudiant ne doit pas pouvoir deviner la bonne réponse par la longueur ou la formulation, seulement par ses connaissances
 
 Réponds UNIQUEMENT avec un JSON valide dans ce format exact, sans texte avant ou après :
 {

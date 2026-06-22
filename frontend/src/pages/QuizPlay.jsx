@@ -38,7 +38,6 @@ export default function QuizPlay() {
   // États pour la gestion de la progression
   const [prevAttempt, setPrevAttempt]   = useState(null);   // attempt existant au chargement
   const [resumeModal, setResumeModal]   = useState(false);  // modal "reprendre ou recommencer ?"
-  const [errorsModal, setErrorsModal]   = useState(false);  // modal "voir les erreurs précédentes"
   const [ready, setReady]               = useState(false);  // le quiz est prêt à démarrer
 
   /* ── Chargement du quiz + attempt existant ─────────────────────────── */
@@ -58,8 +57,16 @@ export default function QuizPlay() {
         // Quiz en cours → proposer de reprendre
         setResumeModal(true);
       } else if (a?.status === 'completed') {
-        // Quiz terminé → proposer de voir les erreurs ou recommencer
-        setErrorsModal(true);
+        // Quiz déjà terminé → afficher le nouvel écran de résultats avec les données de la tentative
+        const prevAnswers = a.answers || [];
+        const matched = prevAnswers.map(ans =>
+          q.questions.find(qst => qst.text === ans.questionText) ||
+          { text: ans.questionText, options: [], explanation: '' }
+        );
+        setAnswers(prevAnswers);
+        setScore(a.score);
+        setShuffledQuestions(matched.length > 0 ? matched : shuffleOptions(q.questions));
+        setDone(true);
       } else {
         // Pas d'attempt → démarrer directement
         setReady(true);
@@ -84,7 +91,6 @@ export default function QuizPlay() {
     setTimeLeft(quiz.duration * 60);
     setShuffledQuestions(shuffleOptions(quiz.questions)); // nouveau mélange à chaque recommencement
     setResumeModal(false);
-    setErrorsModal(false);
     setReady(true);
   };
 
@@ -217,74 +223,6 @@ export default function QuizPlay() {
     );
   }
 
-  /* ── Modal : quiz déjà terminé — voir les erreurs ou refaire ──────── */
-  if (errorsModal && prevAttempt) {
-    const pct     = Math.round((prevAttempt.score / total) * 100);
-    const passed  = pct >= 60;
-    const wrongs  = (prevAttempt.answers || []).filter(a => !a.isCorrect);
-    return (
-      <DashboardLayout>
-        <main className="flex-1 p-4 overflow-y-auto flex flex-col">
-          <div className="w-full max-w-lg mx-auto my-auto">
-            <div className="bg-white rounded-3xl p-7 border border-blue-100 shadow-xl">
-              {/* En-tête score */}
-              <div className="text-center mb-5">
-                <div className={`w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center ${passed ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={passed ? '#16a34a' : '#dc2626'} strokeWidth="2.5" strokeLinecap="round">
-                    {passed ? <polyline points="20 6 9 17 4 12"/> : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}
-                  </svg>
-                </div>
-                <h2 className="text-lg font-bold text-blue-900">Dernier résultat</h2>
-                <p className={`text-3xl font-bold mt-1 ${passed ? 'text-green-500' : 'text-red-500'}`}>{pct}%</p>
-                <p className="text-sm text-blue-400">{prevAttempt.score}/{total} questions correctes</p>
-              </div>
-
-              {/* Erreurs de la session précédente */}
-              {wrongs.length > 0 ? (
-                <div className="mb-5">
-                  <p className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide">
-                    Tes {wrongs.length} erreur{wrongs.length > 1 ? 's' : ''} de la dernière session :
-                  </p>
-                  <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                    {wrongs.map((w, i) => (
-                      <div key={i} className="bg-red-50 border border-red-100 rounded-xl p-3">
-                        <p className="text-xs font-semibold text-red-800 mb-1.5">{w.questionText}</p>
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-red-500 flex items-start gap-1.5">
-                            <span className="font-bold flex-shrink-0">✗</span>
-                            <span>Ta réponse : {w.selectedText}</span>
-                          </p>
-                          <p className="text-xs text-green-700 flex items-start gap-1.5">
-                            <span className="font-bold flex-shrink-0">✓</span>
-                            <span>Bonne réponse : {w.correctText}</span>
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-green-50 rounded-xl p-4 text-center mb-5">
-                  <p className="text-sm font-semibold text-green-700">Aucune erreur lors de ta dernière session !</p>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3">
-                <button onClick={handleRestart}
-                  className="w-full py-3 bg-blue-500 text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition">
-                  Refaire ce quiz
-                </button>
-                <button onClick={() => navigate('/dashboard/quiz')}
-                  className="w-full py-2.5 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-50 transition">
-                  ← Retour aux quiz
-                </button>
-              </div>
-            </div>
-          </div>
-        </main>
-      </DashboardLayout>
-    );
-  }
 
   /* ── Résultat final ────────────────────────────────────────────────── */
   if (done) {

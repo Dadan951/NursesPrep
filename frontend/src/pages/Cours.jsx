@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
@@ -160,11 +161,62 @@ function CoursBreadcrumb({ items }) {
 }
 
 /* ─── Cours Tab ──────────────────────────────────────────────────────────────── */
+/* ─── Quota helpers (localStorage, free plan) ────────────────────────────────── */
+const monthKey = () => new Date().toISOString().slice(0, 7);
+
+function getViewed(type) {
+  return JSON.parse(localStorage.getItem(`${type}_viewed_${monthKey()}`) || '[]');
+}
+function addViewed(type, id) {
+  const list = getViewed(type);
+  if (!list.includes(id)) localStorage.setItem(`${type}_viewed_${monthKey()}`, JSON.stringify([...list, id]));
+}
+
+function QuotaModal({ type, onClose }) {
+  const navigate = useNavigate();
+  const labels = {
+    cours: { title: 'Accès limité aux cours', body: 'Le plan Gratuit vous permet de lire 1 cours par mois. Passez à Étudiant pour un accès illimité.' },
+    fiche: { title: 'Accès limité aux fiches', body: 'Le plan Gratuit vous permet de consulter 1 fiche de révision par mois. Passez à Étudiant pour un accès illimité.' },
+  };
+  const { title, body } = labels[type] || labels.cours;
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center"
+        onClick={e => e.stopPropagation()}>
+        <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
+        <p className="text-sm text-slate-500 mb-6 leading-relaxed">{body}</p>
+        <div className="flex flex-col gap-2">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/dashboard/subscription')}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
+            Voir les abonnements
+          </motion.button>
+          <button onClick={onClose}
+            className="w-full py-2.5 rounded-2xl text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">
+            Plus tard
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CoursTab() {
+  const { user } = useAuth();
+  const isFree   = (user?.subscription || 'free') === 'free';
+
   const [lessons, setLessons]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState(null);
   const [fetching, setFetching] = useState(false);
+  const [quotaModal, setQuotaModal] = useState(false);
 
   const [view, setView]                 = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
@@ -200,6 +252,14 @@ function CoursTab() {
   const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedUE(null); setSelectedChapter(null); };
 
   const openLesson = async (lesson) => {
+    if (isFree) {
+      const viewed = getViewed('cours');
+      if (!viewed.includes(lesson._id) && viewed.length >= 1) {
+        setQuotaModal(true);
+        return;
+      }
+      addViewed('cours', lesson._id);
+    }
     setFetching(true);
     try {
       const { data } = await axios.get(`${API_URL}/lessons/${lesson._id}`);
@@ -212,6 +272,24 @@ function CoursTab() {
       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
     </div>
   );
+
+  return (
+    <>
+      <AnimatePresence>{quotaModal && <QuotaModal type="cours" onClose={() => setQuotaModal(false)}/>}</AnimatePresence>
+      <CoursTabContent selected={selected} setSelected={setSelected} fetching={fetching} view={view} setView={setView}
+        selectedSemester={selectedSemester} setSelectedSemester={setSelectedSemester}
+        selectedUE={selectedUE} setSelectedUE={setSelectedUE}
+        selectedChapter={selectedChapter} setSelectedChapter={setSelectedChapter}
+        semesters={semesters} ues={ues} chapters={chapters} currentLessons={currentLessons}
+        openLesson={openLesson} reset={reset} structure={structure}/>
+    </>
+  );
+}
+
+function CoursTabContent({ selected, setSelected, fetching, view, setView,
+  selectedSemester, setSelectedSemester, selectedUE, setSelectedUE,
+  selectedChapter, setSelectedChapter, semesters, ues, chapters, currentLessons,
+  openLesson, reset, structure }) {
 
   /* ── Lesson detail view ── */
   if (selected) return (
@@ -422,12 +500,25 @@ const FICHE_COLORS = [
 ];
 
 function FicheFileCard({ fiche, index }) {
+  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const isFree    = (user?.subscription || 'free') === 'free';
+
   const palette = FICHE_COLORS[index % FICHE_COLORS.length];
-  const [open, setOpen]         = useState(false);
-  const [fullData, setFullData] = useState(null);
+  const [open,       setOpen]       = useState(false);
+  const [fullData,   setFullData]   = useState(null);
   const [loadingFull, setLoadingFull] = useState(false);
+  const [quotaModal, setQuotaModal] = useState(false);
 
   const handleOpen = async () => {
+    if (!open && !fullData && isFree) {
+      const viewed = getViewed('fiche');
+      if (!viewed.includes(fiche._id) && viewed.length >= 1) {
+        setQuotaModal(true);
+        return;
+      }
+      addViewed('fiche', fiche._id);
+    }
     if (!fullData) {
       setLoadingFull(true);
       try {
@@ -441,6 +532,39 @@ function FicheFileCard({ fiche, index }) {
   const lesson = fullData || fiche;
 
   return (
+    <>
+      <AnimatePresence>
+        {quotaModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setQuotaModal(false)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center"
+              onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Accès limité aux fiches</h3>
+              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                Le plan Gratuit vous permet de consulter <strong>1 fiche de révision</strong> par mois.<br/>
+                Passez à Étudiant pour un accès illimité.
+              </p>
+              <div className="flex flex-col gap-2">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate('/dashboard/subscription')}
+                  className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
+                  Voir les abonnements
+                </motion.button>
+                <button onClick={() => setQuotaModal(false)}
+                  className="w-full py-2.5 rounded-2xl text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">
+                  Plus tard
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     <div className="rounded-2xl overflow-hidden border transition-all shadow-sm hover:shadow-md"
       style={{ borderColor: open ? palette.accent : palette.border }}>
       <button onClick={handleOpen} className="w-full px-5 py-4 flex items-center justify-between text-left transition-all"
@@ -512,6 +636,7 @@ function FicheFileCard({ fiche, index }) {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
 

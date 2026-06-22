@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
-import { API_URL } from '../context/AuthContext';
+import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
 
 /* ─── Palette ───────────────────────────────────────────────────────────────── */
@@ -440,10 +441,15 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
 
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Flashcards() {
-  const [cards,    setCards]    = useState([]);
-  const [attempts, setAttempts] = useState([]); // tous les attempts de l'utilisateur
-  const [loading,  setLoading]  = useState(true);
-  const [view,     setView]     = useState('semesters');
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const isFree   = (user?.subscription || 'free') === 'free';
+
+  const [cards,      setCards]      = useState([]);
+  const [attempts,   setAttempts]   = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [view,       setView]       = useState('semesters');
+  const [quotaModal, setQuotaModal] = useState(false);
 
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedUE,       setSelectedUE]       = useState(null);
@@ -514,8 +520,22 @@ export default function Flashcards() {
     }
   };
 
+  /* Vérifier quota flashcards (free: 20 cartes/mois) */
+  const checkQuota = async () => {
+    if (!isFree) return true;
+    try {
+      const { data } = await axios.get(`${API_URL}/flashcards/quota`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.exceeded) { setQuotaModal(true); return false; }
+    } catch {}
+    return true;
+  };
+
   /* Démarrer depuis le début */
-  const handleStart = () => {
+  const handleStart = async () => {
+    const ok = await checkQuota();
+    if (!ok) return;
     setResumeModal(false);
     setErrorsModal(false);
     setChapterAttempt(null);
@@ -523,7 +543,9 @@ export default function Flashcards() {
   };
 
   /* Reprendre */
-  const handleResume = () => {
+  const handleResume = async () => {
+    const ok = await checkQuota();
+    if (!ok) return;
     setResumeModal(false);
     setView('cards');
   };
@@ -662,6 +684,41 @@ export default function Flashcards() {
   return (
     <DashboardLayout>
       <div className="flex-1 overflow-auto">
+
+        {/* ── Quota modal ── */}
+        <AnimatePresence>
+          {quotaModal && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+              onClick={() => setQuotaModal(false)}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center"
+                onClick={e => e.stopPropagation()}>
+                <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">Quota mensuel atteint</h3>
+                <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                  Vous avez utilisé vos <strong>20 flashcards gratuites</strong> ce mois-ci.<br/>
+                  Passez à l'abonnement Étudiant pour des flashcards illimitées.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => navigate('/dashboard/subscription')}
+                    className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+                    style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
+                    Voir les abonnements
+                  </motion.button>
+                  <button onClick={() => setQuotaModal(false)}
+                    className="w-full py-2.5 rounded-2xl text-sm font-semibold text-slate-500 hover:bg-slate-50 transition">
+                    Plus tard
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Hero */}
         <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }} className="px-6 pt-8 pb-4">
           <div className="flex items-end justify-between mb-5">

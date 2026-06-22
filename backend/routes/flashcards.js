@@ -4,6 +4,7 @@ const { protect, adminOnly } = require('../middleware/auth');
 
 router.get('/',                        protect,             ctrl.getAll);
 router.get('/admin',                   protect, adminOnly,  ctrl.adminGetAll);
+router.get('/quota',                   protect,             ctrl.getQuota);
 router.get('/attempts',                protect,             ctrl.getAttempts);
 router.get('/attempt',                 protect,             ctrl.getAttempt);
 router.put('/attempt',                 protect,             ctrl.saveAttempt);

@@ -19,8 +19,8 @@ const plans = [
     icon: '📚',
     features: [
       { text: '10 quiz par mois seulement',          ok: 'warn' },
-      { text: 'Flashcards (accès de base)',           ok: true   },
-      { text: 'Cours & fiches de révision',          ok: true   },
+      { text: '20 flashcards par mois',              ok: 'warn' },
+      { text: '1 cours · 1 fiche de révision',       ok: 'warn' },
       { text: 'Exercices théoriques',                ok: false  },
       { text: 'Génération IA de quiz',               ok: false  },
       { text: 'Fiches personnalisées par IA',        ok: false  },
@@ -252,17 +252,17 @@ export default function Subscription() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {[
-                  { num: '1 440+', label: 'Questions' },
-                  { num: '9 UE',   label: 'Semestre 1' },
-                  { num: 'IA',     label: 'Quiz & fiches' },
-                  { num: '0€',     label: "Sans engagement" },
-                ].map((s, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.08 }}
-                    className="bg-white/8 border border-white/10 rounded-2xl px-4 py-3 text-center">
-                    <div className="text-xl font-black text-white mb-0.5">{s.num}</div>
-                    <div className="text-white/40 text-xs">{s.label}</div>
+                  { icon: '🎓', text: 'Conçu pour les étudiants IFSI' },
+                  { icon: '🔓', text: 'Sans engagement' },
+                  { icon: '⚡', text: 'Accès immédiat' },
+                  { icon: '🔒', text: 'Paiement sécurisé Stripe' },
+                ].map((v, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.07 }}
+                    className="flex items-center gap-2 bg-white/10 border border-white/10 px-3 py-1.5 rounded-xl">
+                    <span className="text-sm">{v.icon}</span>
+                    <span className="text-white/70 text-xs font-medium">{v.text}</span>
                   </motion.div>
                 ))}
               </div>

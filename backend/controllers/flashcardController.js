@@ -134,6 +134,24 @@ exports.completeAttempt = async (req, res) => {
   }
 };
 
+const FREE_FLASHCARD_LIMIT = 20;
+
+exports.getQuota = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('subscription');
+    if (user.subscription !== 'free') return res.json({ limited: false });
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const attempts = await FlashcardAttempt.find({
+      user: req.user._id,
+      startedAt: { $gte: startOfMonth },
+    }).select('known unknown');
+    const used = attempts.reduce((sum, a) => sum + (a.known || 0) + (a.unknown || 0), 0);
+    res.json({ limited: true, used, limit: FREE_FLASHCARD_LIMIT, exceeded: used >= FREE_FLASHCARD_LIMIT });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 exports.adminGetAll = async (req, res) => {
   try {
     const flashcards = await Flashcard.find().sort({ createdAt: -1 });

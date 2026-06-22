@@ -113,10 +113,16 @@ const currentMonth = () => new Date().toISOString().slice(0, 7); // "2026-06"
 
 exports.getQuota = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('subscription monthlyQuiz');
+    const user = await User.findById(req.user._id).select('subscription');
     if (user.subscription !== 'free') return res.json({ limited: false });
-    const month = currentMonth();
-    const count = user.monthlyQuiz?.month === month ? (user.monthlyQuiz.count || 0) : 0;
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const count = await QuizAttempt.countDocuments({
+      user: req.user._id,
+      completedAt: { $gte: startOfMonth },
+      status: 'completed',
+    });
     res.json({ limited: true, used: count, limit: FREE_MONTHLY_LIMIT, exceeded: count >= FREE_MONTHLY_LIMIT });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
@@ -124,20 +130,20 @@ exports.getQuota = async (req, res) => {
 exports.submitAttempt = async (req, res) => {
   try {
     const { score, answers } = req.body;
-    const user = await User.findById(req.user._id).select('subscription monthlyQuiz');
+    const user = await User.findById(req.user._id).select('subscription');
 
     // Vérifier quota mensuel pour les free
     if (user.subscription === 'free') {
-      const month = currentMonth();
-      const count = user.monthlyQuiz?.month === month ? (user.monthlyQuiz.count || 0) : 0;
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const count = await QuizAttempt.countDocuments({
+        user: req.user._id,
+        completedAt: { $gte: startOfMonth },
+        status: 'completed',
+      });
       if (count >= FREE_MONTHLY_LIMIT) {
         return res.status(403).json({ message: 'quota_exceeded' });
-      }
-      // Incrémenter le compteur mensuel
-      if (user.monthlyQuiz?.month === month) {
-        await User.updateOne({ _id: req.user._id }, { $inc: { 'monthlyQuiz.count': 1 } });
-      } else {
-        await User.updateOne({ _id: req.user._id }, { $set: { 'monthlyQuiz.count': 1, 'monthlyQuiz.month': month } });
       }
     }
 

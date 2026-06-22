@@ -498,17 +498,6 @@ export default function Login() {
               Continuer avec Google
             </motion.button>
 
-            <motion.button
-              whileHover={{ scale: 1.015, y: -1 }}
-              whileTap={{ scale: 0.985 }}
-              onClick={() => showToast('Lien magique — bientôt disponible')}
-              className="w-full flex items-center justify-center gap-3 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm hover:shadow"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-              </svg>
-              Connexion par lien magique
-            </motion.button>
           </div>
 
           {/* Divider */}

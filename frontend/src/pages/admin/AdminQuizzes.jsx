@@ -195,8 +195,10 @@ export default function AdminQuizzes() {
   const [modal,    setModal]    = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [search,   setSearch]   = useState('');
-  const [filterSem, setFilterSem] = useState('');   // ← filtre semestre
-  const [filterDiff,setFilterDiff]= useState('');   // ← filtre difficulté
+  const [filterSem,  setFilterSem]  = useState('');
+  const [filterDiff, setFilterDiff] = useState('');
+  const [filterUE,   setFilterUE]   = useState('');
+  const [filterChap, setFilterChap] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -208,12 +210,18 @@ export default function AdminQuizzes() {
   const handleDelete = async id   => { await axios.delete(`${API_URL}/quizzes/${id}`); setDeleting(null); load(); };
 
   const semesters = [...new Set(quizzes.map(q => q.semester).filter(Boolean))].sort();
+  const ues       = [...new Set(quizzes.map(q => q.category).filter(Boolean))].sort();
+  const chapters  = [...new Set(
+    quizzes.filter(q => !filterUE || q.category === filterUE).map(q => q.chapter).filter(Boolean)
+  )].sort();
 
   const filtered = quizzes.filter(q => {
     const matchSearch = q.title.toLowerCase().includes(search.toLowerCase()) || (q.category||'').toLowerCase().includes(search.toLowerCase()) || (q.chapter||'').toLowerCase().includes(search.toLowerCase());
-    const matchSem  = !filterSem  || q.semester === filterSem;
+    const matchSem  = !filterSem  || q.semester  === filterSem;
     const matchDiff = !filterDiff || q.difficulty === filterDiff;
-    return matchSearch && matchSem && matchDiff;
+    const matchUE   = !filterUE   || q.category  === filterUE;
+    const matchChap = !filterChap || q.chapter    === filterChap;
+    return matchSearch && matchSem && matchDiff && matchUE && matchChap;
   });
 
   const published = quizzes.filter(q => q.isPublished).length;
@@ -280,6 +288,20 @@ export default function AdminQuizzes() {
                 <option value="hard">Difficile</option>
               </select>
 
+              {/* Filtre UE */}
+              <select value={filterUE} onChange={e => { setFilterUE(e.target.value); setFilterChap(''); }}
+                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-white max-w-[220px]">
+                <option value="">Toutes les UE</option>
+                {ues.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+
+              {/* Filtre chapitre (cascade sur UE) */}
+              <select value={filterChap} onChange={e => setFilterChap(e.target.value)}
+                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-white max-w-[220px]">
+                <option value="">Tous les chapitres</option>
+                {chapters.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
               {/* Compteur résultats */}
               <span className="text-xs text-slate-400 font-medium ml-auto">
                 {filtered.length} / {quizzes.length} quiz
@@ -293,7 +315,7 @@ export default function AdminQuizzes() {
                 <div className="text-5xl mb-3"></div>
                 <p className="font-semibold">Aucun quiz trouvé</p>
                 {(search || filterSem || filterDiff) && (
-                  <button onClick={() => { setSearch(''); setFilterSem(''); setFilterDiff(''); }}
+                  <button onClick={() => { setSearch(''); setFilterSem(''); setFilterDiff(''); setFilterUE(''); setFilterChap(''); }}
                     className="mt-3 text-xs text-blue-500 hover:text-blue-700 underline">
                     Réinitialiser les filtres
                   </button>

@@ -36,6 +36,7 @@ import AdminAnnales from './pages/admin/AdminAnnales';
 import AdminTickets from './pages/admin/AdminTickets';
 import AdminLogs from './pages/admin/AdminLogs';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
+import History from './pages/History';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/dashboard/quiz/:id" element={<ProtectedRoute><QuizPlay /></ProtectedRoute>} />
+          <Route path="/dashboard/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
           <Route path="/dashboard/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
           <Route path="/dashboard/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />
           <Route path="/dashboard/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />

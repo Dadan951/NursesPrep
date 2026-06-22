@@ -80,6 +80,36 @@ exports.remove = async (req, res) => {
 };
 
 // ── GET /api/quizzes/:id/progress ─────────────────────────────────────────
+// ── GET /api/quizzes/history ──────────────────────────────────────────────
+// Historique complet des quiz terminés par l'utilisateur
+exports.getHistory = async (req, res) => {
+  try {
+    const attempts = await QuizAttempt.find({
+      user: req.user._id,
+      status: 'completed',
+    })
+      .populate('quiz', 'title category chapter semester difficulty')
+      .sort({ completedAt: -1 })
+      .limit(200);
+
+    const result = attempts.map(a => ({
+      _id:         a._id,
+      quizId:      a.quiz?._id,
+      title:       a.quiz?.title || 'Quiz supprimé',
+      category:    a.quiz?.category || '',
+      chapter:     a.quiz?.chapter || '',
+      semester:    a.quiz?.semester || '',
+      difficulty:  a.quiz?.difficulty || '',
+      score:       a.score,
+      total:       a.answers?.length || 0,
+      pct:         a.answers?.length ? Math.round((a.score / a.answers.length) * 100) : 0,
+      completedAt: a.completedAt,
+    }));
+
+    res.json(result);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 // Renvoie l'attempt en cours ou complété pour ce quiz
 exports.getProgress = async (req, res) => {
   try {

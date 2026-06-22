@@ -5,11 +5,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const passport = require('passport');
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
+app.use(passport.initialize());
 
 // ⚠️ Webhook Stripe — raw body AVANT express.json()
 app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));

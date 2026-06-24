@@ -487,4 +487,7 @@ router.post('/seed-new-quizzes', async (req, res) => {
   }
 });
 
+/* ── POST /admin/seed-exercises-s1 ───────────────────────────────────────── */
+router.post('/seed-exercises-s1', require('../seeds/seedExercises_route'));
+
 module.exports = router;

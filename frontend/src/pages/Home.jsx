@@ -48,13 +48,14 @@ function Stars({ n = 5 }) {
 /* ─── FLASHCARD FLIP ─────────────────────────────────────────────────────── */
 function FlipCard({ front, back, color }) {
   const [flipped, setFlipped] = useState(false);
+  const isJSX = typeof front === 'object';
   return (
     <div
       className="cursor-pointer select-none"
-      style={{ perspective: 800, height: 130 }}
+      style={{ perspective: 800, height: '100%', minHeight: isJSX ? undefined : 130 }}
       onClick={() => setFlipped(f => !f)}
-      onMouseEnter={() => setFlipped(true)}
-      onMouseLeave={() => setFlipped(false)}
+      onMouseEnter={() => !isJSX && setFlipped(true)}
+      onMouseLeave={() => !isJSX && setFlipped(false)}
     >
       <div style={{
         width: '100%', height: '100%', position: 'relative',
@@ -63,15 +64,21 @@ function FlipCard({ front, back, color }) {
         transform: flipped ? 'rotateY(180deg)' : 'rotateY(0)',
       }}>
         {/* Front */}
-        <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden' }}
-          className={`rounded-2xl border flex flex-col items-center justify-center p-4 ${color.front}`}>
-          <p className="text-xs font-semibold text-center leading-snug">{front}</p>
-          <p className="text-xs mt-2 opacity-50">Survoler pour voir</p>
+        <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden' }}>
+          {isJSX ? front : (
+            <div className={`rounded-2xl border flex flex-col items-center justify-center p-4 h-full ${color?.front}`}>
+              <p className="text-xs font-semibold text-center leading-snug">{front}</p>
+              <p className="text-xs mt-2 opacity-50">Survoler pour voir</p>
+            </div>
+          )}
         </div>
         {/* Back */}
-        <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          className={`rounded-2xl border flex items-center justify-center p-4 ${color.back}`}>
-          <p className="text-xs font-semibold text-center leading-snug">{back}</p>
+        <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+          {isJSX ? back : (
+            <div className={`rounded-2xl border flex items-center justify-center p-4 h-full ${color?.back}`}>
+              <p className="text-xs font-semibold text-center leading-snug">{back}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -840,42 +847,215 @@ export default function Home() {
       </section>
 
       {/* ── FLASHCARDS PREVIEW ──────────────────────────────────────── */}
-      <section id="flashcards" className="py-16 md:py-20 bg-white">
+      <section id="flashcards" className="py-16 md:py-24 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="reveal text-center mb-12">
-            <span className="text-xs font-semibold text-cyan-600 uppercase tracking-widest">Flashcards</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mt-2 mb-3">Mémorise en jouant</h2>
-            <p className="text-slate-500 text-sm max-w-lg mx-auto">Retourne les cartes pour tester ta mémoire. La répétition espacée optimise la rétention.</p>
+          <div className="reveal text-center mb-14">
+            <span className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Flashcards</span>
+            <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mt-3 mb-3">Mémorise en jouant</h2>
+            <p className="text-slate-500 text-sm md:text-base max-w-xl mx-auto">Répétition espacée, flip 3D, decks par UE — le meilleur moyen de retenir les définitions et valeurs clés.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            {[
-              {
-                front: "Définition de la bradycardie",
-                back: "FC < 60 bpm au repos",
-                color: { front: 'bg-blue-50 border-blue-200 text-blue-800', back: 'bg-blue-500 border-blue-500 text-white' }
-              },
-              {
-                front: "Valeurs normales de la SpO₂",
-                back: "95 % – 100 %\n(< 94 % → O₂ nécessaire)",
-                color: { front: 'bg-teal-50 border-teal-200 text-teal-800', back: 'bg-teal-500 border-teal-500 text-white' }
-              },
-              {
-                front: "Qu'est-ce que l'oligurie ?",
-                back: "Diurèse < 400 mL/24h\n(ou < 0,5 mL/kg/h)",
-                color: { front: 'bg-purple-50 border-purple-200 text-purple-800', back: 'bg-purple-500 border-purple-500 text-white' }
-              },
-              {
-                front: "Définition de la dyspnée",
-                back: "Sensation subjective de difficulté respiratoire",
-                color: { front: 'bg-pink-50 border-pink-200 text-pink-800', back: 'bg-pink-500 border-pink-500 text-white' }
-              },
-            ].map((card, i) => (
-              <div key={i} className="reveal" style={{ transitionDelay: `${i*0.1}s` }}>
-                <FlipCard front={card.front} back={card.back} color={card.color}/>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* ── Deck principal : grande carte flip ── */}
+            <div className="reveal lg:col-span-2" style={{ transitionDelay: '0s' }}>
+              <div className="rounded-3xl overflow-hidden shadow-lg shadow-teal-100/60 border border-teal-100">
+                {/* Header deck */}
+                <div className="px-6 py-4 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #0f766e, #0891b2)' }}>
+                  <div>
+                    <p className="text-[10px] font-bold text-teal-200 uppercase tracking-widest mb-0.5">Deck actif · UE 2.1</p>
+                    <p className="text-sm font-black text-white">Biologie fondamentale</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <p className="text-base font-black text-white">84</p>
+                      <p className="text-[10px] text-teal-200">cartes</p>
+                    </div>
+                    <div className="w-px h-8 bg-white/20"/>
+                    <div className="text-center">
+                      <p className="text-base font-black text-emerald-300">61 %</p>
+                      <p className="text-[10px] text-teal-200">maîtrisées</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6">
+                  {/* Barre de progression */}
+                  <div className="mb-5">
+                    <div className="flex justify-between text-[10px] text-slate-400 mb-1.5">
+                      <span>Progression du deck</span><span>61 / 84</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: '61%', background: 'linear-gradient(90deg,#0f766e,#0891b2)' }}/>
+                    </div>
+                    <div className="flex gap-4 mt-2">
+                      {[['Maîtrisées','61 %','text-emerald-600'],['À revoir','28 %','text-amber-500'],['Nouvelles','11 %','text-blue-500']].map(([l,v,c])=>(
+                        <div key={l} className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-bold ${c}`}>{v}</span>
+                          <span className="text-[10px] text-slate-400">{l}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2 cartes flip côte à côte */}
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    {[
+                      {
+                        ue: 'UE 2.1',
+                        front: "Définition de l'hémostase primaire",
+                        back: "Vasoconstriction réflexe + adhésion et agrégation plaquettaire → formation du clou plaquettaire (thrombus blanc)",
+                        extra: "Durée : 3 – 5 min",
+                        grad: ['#0f766e','#0891b2'],
+                        light: '#f0fdfa',
+                        border: '#99f6e4',
+                      },
+                      {
+                        ue: 'UE 2.4',
+                        front: "Valeurs normales des plaquettes",
+                        back: "150 000 – 400 000 /mm³\n• < 50 000 → risque hémorragique\n• > 450 000 → thrombocytose",
+                        extra: "Seuil transfusion : < 10 000",
+                        grad: ['#6d28d9','#7c3aed'],
+                        light: '#faf5ff',
+                        border: '#ddd6fe',
+                      },
+                    ].map((c, i) => (
+                      <div key={i} style={{ perspective: 900, height: 180 }}>
+                        <FlipCard
+                          front={
+                            <div className="w-full h-full rounded-2xl border flex flex-col justify-between p-4 cursor-pointer"
+                              style={{ background: c.light, borderColor: c.border }}>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full self-start"
+                                style={{ background: c.border, color: c.grad[0] }}>{c.ue}</span>
+                              <div>
+                                <p className="text-[10px] text-slate-400 mb-1">Question</p>
+                                <p className="text-xs font-bold text-slate-800 leading-snug">{c.front}</p>
+                              </div>
+                              <p className="text-[10px] text-slate-400 text-center">Cliquer pour retourner →</p>
+                            </div>
+                          }
+                          back={
+                            <div className="w-full h-full rounded-2xl flex flex-col justify-between p-4 cursor-pointer"
+                              style={{ background: `linear-gradient(135deg,${c.grad[0]},${c.grad[1]})` }}>
+                              <p className="text-[10px] text-white/60">Réponse</p>
+                              <p className="text-xs font-semibold text-white leading-relaxed whitespace-pre-line">{c.back}</p>
+                              <p className="text-[10px] text-white/50 border-t border-white/20 pt-1.5 mt-1">{c.extra}</p>
+                            </div>
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Catégories de decks */}
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2.5">Autres decks disponibles</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Pharmacologie UE 2.11', count: 120, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                        { label: 'Anatomie UE 2.3', count: 95, color: 'bg-pink-50 text-pink-700 border-pink-200' },
+                        { label: 'Cardiologie UE 2.2', count: 78, color: 'bg-red-50 text-red-700 border-red-200' },
+                        { label: 'Législation UE 1.3', count: 45, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        { label: 'Microbiologie UE 2.10', count: 62, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                      ].map(d => (
+                        <div key={d.label} className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-full border ${d.color}`}>
+                          {d.label}
+                          <span className="opacity-60">· {d.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* ── Panneau stats + session ── */}
+            <div className="reveal flex flex-col gap-4" style={{ transitionDelay: '0.15s' }}>
+
+              {/* Streak */}
+              <div className="rounded-3xl overflow-hidden shadow-lg shadow-amber-100/60 border border-amber-100">
+                <div className="px-5 py-4 flex items-center gap-4" style={{ background: 'linear-gradient(135deg,#b45309,#d97706)' }}>
+                  <div className="text-3xl">🔥</div>
+                  <div>
+                    <p className="text-2xl font-black text-white">14 jours</p>
+                    <p className="text-xs text-amber-200">Série de révision en cours</p>
+                  </div>
+                </div>
+                <div className="bg-white px-5 py-3">
+                  <div className="flex justify-between">
+                    {['L','M','M','J','V','S','D'].map((j, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i < 6 ? 'bg-amber-400' : 'bg-slate-100'}`}>
+                          {i < 6 && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </div>
+                        <p className="text-[10px] text-slate-400">{j}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats du jour */}
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
+                <p className="text-xs font-bold text-slate-600 mb-3">Statistiques globales</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Cartes maîtrisées', val: '347', color: 'text-emerald-600', icon: '✓', bg: 'bg-emerald-50' },
+                    { label: 'À réviser aujourd\'hui', val: '23', color: 'text-amber-600', icon: '↻', bg: 'bg-amber-50' },
+                    { label: 'Decks disponibles', val: '18', color: 'text-blue-600', icon: '▤', bg: 'bg-blue-50' },
+                    { label: 'Temps moyen/session', val: '12 min', color: 'text-purple-600', icon: '⏱', bg: 'bg-purple-50' },
+                  ].map(s => (
+                    <div key={s.label} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center text-xs font-bold ${s.color}`}>{s.icon}</div>
+                        <p className="text-xs text-slate-600">{s.label}</p>
+                      </div>
+                      <p className={`text-sm font-black ${s.color}`}>{s.val}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mini flashcard flip */}
+              <div className="rounded-3xl border border-pink-100 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(135deg,#9d174d,#db2777)' }}>
+                  <p className="text-xs font-bold text-white">Carte du jour</p>
+                  <span className="text-[10px] font-semibold text-pink-200 bg-pink-800/30 px-2 py-0.5 rounded-full">UE 4.1</span>
+                </div>
+                <div className="p-4" style={{ perspective: 700, height: 130 }}>
+                  <FlipCard
+                    front={
+                      <div className="w-full h-full rounded-2xl border border-pink-200 bg-pink-50 flex flex-col justify-between p-3 cursor-pointer">
+                        <p className="text-[10px] text-pink-400">Question du jour</p>
+                        <p className="text-xs font-bold text-pink-800 text-center leading-snug">Définition de la douleur selon l'IASP</p>
+                        <p className="text-[10px] text-pink-300 text-center">Cliquer pour voir →</p>
+                      </div>
+                    }
+                    back={
+                      <div className="w-full h-full rounded-2xl flex flex-col justify-center p-3 cursor-pointer text-center"
+                        style={{ background: 'linear-gradient(135deg,#9d174d,#db2777)' }}>
+                        <p className="text-[10px] text-white/60 mb-1">Réponse</p>
+                        <p className="text-xs font-semibold text-white leading-relaxed">
+                          Expérience sensorielle et émotionnelle désagréable, liée à une lésion tissulaire réelle ou potentielle.
+                        </p>
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+
+            </div>
           </div>
-          <p className="text-center text-xs text-slate-400 mt-6 reveal">Survolez une carte pour la retourner</p>
+
+          <div className="text-center mt-10 reveal">
+            <Link to="/register"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-bold text-white transition hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg,#0f766e,#0891b2)', boxShadow: '0 6px 20px rgba(8,145,178,0.35)' }}>
+              Commencer à mémoriser
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </Link>
+            <p className="text-xs text-slate-400 mt-3">+1 000 flashcards · 18 decks classés par UE et semestre</p>
+          </div>
         </div>
       </section>
 

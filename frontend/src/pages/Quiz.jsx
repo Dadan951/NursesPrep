@@ -454,7 +454,7 @@ export default function Quiz() {
                     { label: selectedSemester }
                   ]}/>
                   <div className="mb-6">
-                    <h2 className="text-xl font-bold text-slate-800">{selectedSemester}</h2>
+                    <h2 className="text-xl font-black text-slate-900">{selectedSemester}</h2>
                     <p className="text-sm text-slate-400 mt-0.5">{ues.length} unité{ues.length > 1 ? 's' : ''} d'enseignement</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -503,7 +503,7 @@ export default function Quiz() {
                     { label: selectedUE }
                   ]}/>
                   <div className="mb-6">
-                    <h2 className="text-xl font-bold text-slate-800">{selectedUE}</h2>
+                    <h2 className="text-xl font-black text-slate-900">{selectedUE}</h2>
                     <p className="text-sm text-slate-400 mt-0.5">{totalInUE} quiz disponible{totalInUE > 1 ? 's' : ''}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -569,7 +569,7 @@ export default function Quiz() {
                     { label: selectedChapter }
                   ]}/>
                   <div className="mb-6">
-                    <h2 className="text-xl font-bold text-slate-800">{selectedChapter}</h2>
+                    <h2 className="text-xl font-black text-slate-900">{selectedChapter}</h2>
                     <p className="text-sm text-slate-400 mt-0.5">{currentQuizzes.length} quiz disponible{currentQuizzes.length > 1 ? 's' : ''}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

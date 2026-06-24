@@ -134,7 +134,7 @@ exports.completeAttempt = async (req, res) => {
   }
 };
 
-const FREE_FLASHCARD_LIMIT = 20;
+const FREE_FLASHCARD_LIMIT = 30;
 
 exports.getQuota = async (req, res) => {
   try {

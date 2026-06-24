@@ -18,10 +18,10 @@ const plans = [
     glowColor: 'rgba(71,85,105,0.2)',
     icon: '📚',
     features: [
-      { text: '10 quiz par mois seulement',          ok: 'warn' },
-      { text: '20 flashcards par mois',              ok: 'warn' },
+      { text: '20 quiz par mois',                    ok: 'warn' },
+      { text: '30 flashcards par mois',              ok: 'warn' },
       { text: '1 cours · 1 fiche de révision',       ok: 'warn' },
-      { text: 'Exercices théoriques',                ok: false  },
+      { text: '1 exercice théorique / mois',         ok: 'warn' },
       { text: 'Génération IA de quiz',               ok: false  },
       { text: 'Fiches personnalisées par IA',        ok: false  },
       { text: 'Support prioritaire',                 ok: false  },
@@ -73,10 +73,10 @@ const plans = [
 /* ─── Comparison table ───────────────────────────────────────────────────────── */
 const compareRows = [
   { category: 'Quiz & Révision', rows: [
-    { label: 'Accès aux quiz',          vals: ['10 / mois', 'Illimités', 'Illimités'] },
-    { label: 'Flashcards',              vals: ['Accès de base', 'Illimitées', 'Illimitées'] },
+    { label: 'Accès aux quiz',          vals: ['20 / mois', 'Illimités', 'Illimités'] },
+    { label: 'Flashcards',              vals: ['30 / mois', 'Illimitées', 'Illimitées'] },
     { label: 'Cours & fiches',          vals: ['✓', '✓ Complets', '✓ Complets'] },
-    { label: 'Exercices théoriques',    vals: ['—', '✓', '✓'] },
+    { label: 'Exercices théoriques',    vals: ['1 / mois', '✓', '✓'] },
   ]},
   { category: 'Intelligence artificielle', rows: [
     { label: 'Génération de quiz IA',   vals: ['—', '5 / jour', '10 / jour'] },
@@ -91,7 +91,7 @@ const compareRows = [
 const faqs = [
   { q: 'Puis-je annuler à tout moment ?', a: "Oui. Annulez depuis le portail de facturation à n'importe quel moment. Vous conservez l'accès jusqu'à la fin de la période payée, sans frais supplémentaires." },
   { q: 'Quels modes de paiement sont acceptés ?', a: 'Visa, Mastercard, American Express. Le paiement est géré de manière sécurisée par Stripe — aucune donnée bancaire stockée sur nos serveurs.' },
-  { q: "Y a-t-il une période d'essai ?", a: "Le plan Gratuit vous permet de découvrir la plateforme librement (10 quiz/mois). Accès immédiat, sans engagement." },
+  { q: "Y a-t-il une période d'essai ?", a: "Le plan Gratuit vous permet de découvrir la plateforme librement (20 quiz/mois, 30 flashcards, 1 exercice). Accès immédiat, sans engagement." },
   { q: 'Comment gérer mon abonnement ?', a: 'Cliquez sur "Gérer mon abonnement" pour accéder au portail Stripe : modification, mise à niveau ou annulation en quelques clics.' },
   { q: "L'abonnement est-il remboursable ?", a: "Oui. Si vous n'êtes pas satisfait dans les 7 jours suivant votre souscription, contactez le support et nous procédons au remboursement." },
 ];

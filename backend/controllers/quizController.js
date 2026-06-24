@@ -138,7 +138,7 @@ exports.saveProgress = async (req, res) => {
 
 // ── POST /api/quizzes/:id/attempt ──────────────────────────────────────────
 // Marque le quiz comme terminé + met à jour les stats utilisateur
-const FREE_MONTHLY_LIMIT = 10;
+const FREE_MONTHLY_LIMIT = 20;
 const currentMonth = () => new Date().toISOString().slice(0, 7); // "2026-06"
 
 exports.getQuota = async (req, res) => {

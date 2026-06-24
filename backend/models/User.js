@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
     count: { type: Number, default: 0 },
     month: { type: String, default: '' }
   },
+  monthlyExercise: {
+    count: { type: Number, default: 0 },
+    month: { type: String, default: '' }
+  },
   quizGen: {
     count: { type: Number, default: 0 },
     date: { type: String, default: '' }

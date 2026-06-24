@@ -1294,8 +1294,9 @@ export default function Home() {
                 <p className="text-xs text-slate-400 mb-6">Pour commencer sans risque</p>
                 <div className="space-y-1 mb-6">
                   {[
-                    { t: '10 quiz / mois', ok: true },
-                    { t: '20 flashcards / mois', ok: true },
+                    { t: '20 quiz / mois', ok: true },
+                    { t: '30 flashcards / mois', ok: true },
+                    { t: '1 exercice théorique / mois', ok: true },
                     { t: '1 fiche de cours / mois', ok: true },
                     { t: 'Fiches illimitées', ok: false },
                     { t: 'Exercices & Cas cliniques', ok: false },
@@ -1480,7 +1481,7 @@ export default function Home() {
           </div>
           <div className="space-y-3">
             {[
-              { q: "Puis-je utiliser Nurses Prép gratuitement ?", a: "Oui, l'accès Starter est entièrement gratuit : 10 quiz, 20 flashcards, 1 cours et 1 fiche de révision par mois. Pour un accès illimité, les abonnements Étudiant (9,99 €/mois) et Étudiant Pro (14,99 €/mois) sont disponibles." },
+              { q: "Puis-je utiliser Nurses Prép gratuitement ?", a: "Oui, l'accès Starter est entièrement gratuit : 20 quiz, 30 flashcards, 1 exercice théorique, 1 cours et 1 fiche de révision par mois. Pour un accès illimité, les abonnements Étudiant (9,99 €/mois) et Étudiant Pro (14,99 €/mois) sont disponibles." },
               { q: "Les contenus sont-ils adaptés à mon IFSI ?", a: "Oui, tous les contenus sont basés sur le référentiel IFSI officiel (arrêté du 31 juillet 2009) et couvrent l'ensemble des unités d'enseignement de la S1 à la S6." },
               { q: "Comment fonctionne la génération de fiches par IA ?", a: "Disponible avec l'abonnement Étudiant Pro, tu colles le texte de ton cours — notre IA génère une fiche de révision structurée en quelques secondes. Tu peux aussi générer des quiz personnalisés à partir de tes propres cours." },
               { q: "Puis-je résilier à tout moment ?", a: "Oui, sans engagement. Tu peux résilier depuis ton espace personnel à n'importe quel moment, sans frais. L'accès reste actif jusqu'à la fin de la période payée." },

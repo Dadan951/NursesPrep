@@ -83,7 +83,7 @@ export default function CGU() {
           </Section>
 
           <Section title="4. Offres et abonnements">
-            <p><strong>Offre Starter (gratuite)</strong> — Accès limité à 10 quiz, 20 flashcards, 1 cours et 1 fiche de révision par mois calendaire. Sans engagement.</p>
+            <p><strong>Offre Starter (gratuite)</strong> — Accès limité à 20 quiz, 30 flashcards, 1 exercice théorique, 1 cours et 1 fiche de révision par mois calendaire. Sans engagement.</p>
             <p><strong>Offre Étudiant (9,99 € / mois)</strong> — Accès illimité aux quiz, flashcards, cours et fiches. Renouvellement mensuel automatique.</p>
             <p><strong>Offre Étudiant Pro (14,99 € / mois)</strong> — Accès illimité à toutes les fonctionnalités, incluant la génération de fiches et de quiz par IA, les annales complètes, et le support prioritaire. Renouvellement mensuel automatique.</p>
             <p>

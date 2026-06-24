@@ -1060,30 +1060,190 @@ export default function Home() {
       </section>
 
       {/* ── FEATURES ────────────────────────────────────────────────── */}
-      <section id="features" className="py-16 md:py-20 bg-slate-50">
+      <section id="features" className="py-16 md:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="reveal text-center mb-12">
-            <span className="text-xs font-semibold text-cyan-600 uppercase tracking-widest">Tout en un</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mt-2 mb-3">Tout ce qu'il te faut</h2>
-            <p className="text-slate-500 text-sm max-w-lg mx-auto">Des outils pensés pour l'apprentissage infirmier, de la première année jusqu'au diplôme.</p>
+          <div className="reveal text-center mb-14">
+            <span className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Tout en un</span>
+            <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mt-3 mb-3">Tout ce qu'il te faut</h2>
+            <p className="text-slate-500 text-sm md:text-base max-w-xl mx-auto">Des outils pensés pour l'apprentissage infirmier, de la première année jusqu'au diplôme.</p>
           </div>
+
+          {/* Bento grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
-              <div key={i} className="reveal card-hover bg-white rounded-2xl border border-slate-100 p-7 cursor-default relative overflow-hidden" style={{ transitionDelay: `${i*0.1}s` }}>
-                {f.badge && (
-                  <span className="absolute top-4 right-4 text-xs font-bold text-white px-2 py-0.5 rounded-full"
-                    style={{ background: 'linear-gradient(135deg,#164e8a,#0891b2)' }}>
-                    {f.badge}
-                  </span>
-                )}
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ background: 'linear-gradient(135deg,#e0f2fe,#f0f9ff)' }}>
-                  {f.icon}
+
+            {/* ── Quiz ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-blue-100/60 border border-blue-100 bg-white" style={{ transitionDelay: '0s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#1d4ed8,#0891b2)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#dbeafe,#e0f2fe)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">+1 247 questions</span>
                 </div>
-                <h3 className="text-base font-bold text-slate-800 mb-2">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Quiz interactifs</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Des centaines de questions sur toutes les UE, avec corrections détaillées et explications pédagogiques.</p>
+                {/* Mini aperçu UE */}
+                <div className="space-y-1.5">
+                  {[['UE 2.4 — Hémostase', 92], ['UE 2.11 — Pharmacologie', 78], ['UE 4.4 — Soins infirmiers', 65]].map(([ue, pct]) => (
+                    <div key={ue}>
+                      <div className="flex justify-between text-[10px] text-slate-400 mb-0.5"><span>{ue}</span><span>{pct}%</span></div>
+                      <div className="h-1.5 bg-blue-50 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#1d4ed8,#0891b2)' }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2">Progression exemple sur 3 UE</p>
               </div>
-            ))}
+            </div>
+
+            {/* ── Flashcards ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-teal-100/60 border border-teal-100 bg-white" style={{ transitionDelay: '0.08s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#0f766e,#0891b2)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#ccfbf1,#cffafe)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="16" height="13" rx="2"/><rect x="6" y="7" width="16" height="13" rx="2"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">+1 000 cartes</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Flashcards intelligentes</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Mémorise les notions clés grâce à la répétition espacée — la méthode scientifiquement prouvée.</p>
+                {/* Mini carte flip démo */}
+                <div className="bg-teal-50 border border-teal-200 rounded-2xl p-3.5 mb-3">
+                  <p className="text-[10px] font-bold text-teal-600 mb-1">Exemple · UE 2.1</p>
+                  <p className="text-xs font-semibold text-slate-800 mb-2">Qu'est-ce que la thrombopénie ?</p>
+                  <div className="bg-white border border-teal-200 rounded-xl px-3 py-2">
+                    <p className="text-xs text-teal-800 font-medium">Taux de plaquettes &lt; 150 000 /mm³ — risque hémorragique si &lt; 50 000</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {[['18 decks','bg-teal-50 text-teal-700'],['Répétition espacée','bg-cyan-50 text-cyan-700'],['S1 → S6','bg-slate-100 text-slate-600']].map(([t,c])=>(
+                    <span key={t} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${c}`}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Fiches ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-violet-100/60 border border-violet-100 bg-white" style={{ transitionDelay: '0.16s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#6d28d9,#a21caf)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#ede9fe,#fae8ff)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-200 px-2.5 py-1 rounded-full">+50 fiches</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Fiches de cours</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Des résumés clairs et structurés — définitions, valeurs normales, protocoles et points clés pour chaque module IFSI.</p>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'Hémostase', tags: ['UE 2.4','Valeurs','Protocoles'] },
+                    { label: 'Score de Glasgow', tags: ['UE 2.2','Cotation'] },
+                    { label: 'Les 5 droits du médicament', tags: ['UE 2.11','Sécurité'] },
+                  ].map(f => (
+                    <div key={f.label} className="flex items-center justify-between bg-violet-50 rounded-xl px-3 py-2">
+                      <p className="text-xs font-semibold text-slate-700">{f.label}</p>
+                      <div className="flex gap-1">{f.tags.map(t=><span key={t} className="text-[10px] font-medium text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full">{t}</span>)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Médicaments ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-emerald-100/60 border border-emerald-100 bg-white" style={{ transitionDelay: '0.24s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#065f46,#0891b2)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#d1fae5,#ccfbf1)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2" strokeLinecap="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">Base complète</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Médicaments</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Posologies, voies d'administration, contre-indications et interactions — la base de données essentielle en soins infirmiers.</p>
+                {/* Mini fiche médicament */}
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs font-black text-emerald-800">Paracétamol</p>
+                    <span className="text-[10px] font-bold text-white bg-emerald-600 px-1.5 py-0.5 rounded">Antalgique</span>
+                  </div>
+                  {[['Posologie adulte', '500 mg – 1 g / 6 h'],['Voie', 'PO · IV · Rectale'],['CI principale', 'Insuffisance hépatique']].map(([k,v])=>(
+                    <div key={k} className="flex justify-between text-[10px] py-0.5 border-t border-emerald-200/50">
+                      <span className="text-slate-500">{k}</span>
+                      <span className="font-semibold text-emerald-800">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Groupes ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-indigo-100/60 border border-indigo-100 bg-white" style={{ transitionDelay: '0.32s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#3730a3,#6d28d9)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#e0e7ff,#ede9fe)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3730a3" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">247 groupes actifs</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Groupes d'étudiants</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Crée ou rejoins un groupe de révision, échange avec ta promo et progressez ensemble avant les examens.</p>
+                {/* Mini groupe */}
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-indigo-800">IFSI Lyon · Promo 2025</p>
+                    <span className="text-[10px] text-indigo-500">12 membres</span>
+                  </div>
+                  <div className="flex gap-1 mb-2">
+                    {['A','B','C','D','E'].map((l,i)=>(
+                      <div key={i} className="w-6 h-6 rounded-full bg-indigo-400 border-2 border-white flex items-center justify-center -ml-1 first:ml-0 text-[9px] font-bold text-white">{l}</div>
+                    ))}
+                    <div className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center -ml-1 text-[9px] font-bold text-slate-500">+7</div>
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['UE 2.4','Quiz partagés','Entraide'].map(t=>(
+                      <span key={t} className="text-[10px] font-medium text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-full">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Annales ── */}
+            <div className="reveal card-hover rounded-3xl overflow-hidden shadow-md shadow-amber-100/60 border border-amber-100 bg-white" style={{ transitionDelay: '0.4s' }}>
+              <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg,#b45309,#d97706)' }}/>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#fef3c7,#fde68a)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">120 sujets</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 mb-1.5">Annales</h3>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">Entraîne-toi sur les annales des examens IFSI — sujets corrigés pour te préparer dans les meilleures conditions.</p>
+                <div className="space-y-2">
+                  {[
+                    { year: 'Session 2024', count: '34 sujets', pct: 90 },
+                    { year: 'Session 2023', count: '31 sujets', pct: 75 },
+                    { year: 'Session 2022', count: '28 sujets', pct: 55 },
+                  ].map(a=>(
+                    <div key={a.year} className="flex items-center gap-3">
+                      <span className="text-[10px] font-semibold text-slate-600 w-24 flex-shrink-0">{a.year}</span>
+                      <div className="flex-1 h-2 bg-amber-50 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width:`${a.pct}%`, background:'linear-gradient(90deg,#b45309,#d97706)' }}/>
+                      </div>
+                      <span className="text-[10px] text-slate-400 w-14 text-right">{a.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>

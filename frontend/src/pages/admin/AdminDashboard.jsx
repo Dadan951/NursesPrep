@@ -603,6 +603,50 @@ const SEEDS = [
   },
 ];
 
+function InventoryPanel({ token }) {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [open,    setOpen]    = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API_URL}/admin/lessons-inventory`, { headers: { Authorization: `Bearer ${token}` } });
+      setData(r.data);
+      setOpen(true);
+    } catch (e) { alert('Erreur : ' + (e.response?.data?.error || e.message)); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-100 overflow-hidden">
+      <button onClick={open ? () => setOpen(false) : load}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 transition">
+        <span>🗂 Voir les cours en base (semestre / UE)</span>
+        <span>{loading ? '…' : open ? '▲' : '▼'}</span>
+      </button>
+      {open && data && (
+        <div className="px-3 pb-3 space-y-2 max-h-96 overflow-y-auto">
+          <p className="text-[9px] text-slate-400">{data.total} cours au total</p>
+          {Object.entries(data.grouped).sort().map(([sem, ues]) => (
+            <div key={sem}>
+              <p className="text-[10px] font-black text-slate-700 mt-2">{sem}</p>
+              {Object.entries(ues).sort().map(([ue, titles]) => (
+                <div key={ue} className="ml-2 mb-1">
+                  <p className="text-[9px] font-bold text-blue-600">{ue} <span className="text-slate-400 font-normal">({titles.length} cours)</span></p>
+                  {titles.map((t, i) => (
+                    <p key={i} className="text-[9px] text-slate-500 ml-2 truncate">· {t}</p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SeedPanel() {
   const [results,  setResults]  = useState({});
   const [loading,  setLoading]  = useState({});
@@ -690,6 +734,9 @@ function SeedPanel() {
       >
         🔧 Corriger les labels UE (migration)
       </button>
+
+      {/* Inventaire : voir les cours par semestre/UE */}
+      <InventoryPanel token={token} />
 
       {SEEDS.map(seed => (
         <div key={seed.id} className="rounded-xl border border-slate-100 overflow-hidden">

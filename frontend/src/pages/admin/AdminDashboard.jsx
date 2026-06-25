@@ -585,6 +585,22 @@ const SEEDS = [
       </svg>
     ),
   },
+  {
+    id: 'gen-content',
+    label: 'Générer Quiz + Flashcards (IA)',
+    desc: 'Depuis les cours déjà importés · Anthropic Haiku',
+    count: '8 QCM + 12 flashcards / cours',
+    endpoint: '/admin/generate-content-lessons',
+    grad: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+    aiMode: true,
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M12 2a10 10 0 1 0 10 10"/>
+        <path d="M12 6v6l4 2"/>
+        <circle cx="18" cy="6" r="3" fill="white" stroke="none"/>
+      </svg>
+    ),
+  },
 ];
 
 function SeedPanel() {
@@ -593,7 +609,7 @@ function SeedPanel() {
   const [zipFiles, setZipFiles] = useState({});
   const { token } = useAuth();
 
-  const runSeed = async (seed) => {
+  const runSeed = async (seed, aiMode = null) => {
     setLoading(l => ({ ...l, [seed.id]: true }));
     setResults(r => ({ ...r, [seed.id]: null }));
     try {
@@ -611,6 +627,12 @@ function SeedPanel() {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
           timeout: 300000,
           onUploadProgress: () => {},
+        });
+      } else if (seed.aiMode) {
+        const params = aiMode ? `?mode=${aiMode}` : '';
+        res = await axios.post(`${API_URL}${seed.endpoint}${params}`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 600000,
         });
       } else {
         res = await axios.post(`${API_URL}${seed.endpoint}`, {}, {
@@ -658,18 +680,36 @@ function SeedPanel() {
               <p className="text-xs font-bold text-slate-800 truncate">{seed.label}</p>
               <p className="text-[10px] text-slate-400 truncate">{seed.desc} · {seed.count}</p>
             </div>
-            <button
-              onClick={() => runSeed(seed)}
-              disabled={loading[seed.id]}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: seed.grad }}
-            >
-              {loading[seed.id]
-                ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
-              }
-              {loading[seed.id] ? 'Import en cours…' : 'Insérer'}
-            </button>
+            {seed.aiMode ? (
+              <div className="flex gap-1.5 flex-shrink-0">
+                {[['quiz','Quiz'],['flashcards','Flashcards'],['both','Les deux']].map(([mode, label]) => (
+                  <button key={mode}
+                    onClick={() => runSeed(seed, mode)}
+                    disabled={loading[seed.id]}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: seed.grad }}
+                  >
+                    {loading[seed.id]
+                      ? <span className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      : null}
+                    {loading[seed.id] ? '…' : label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                onClick={() => runSeed(seed)}
+                disabled={loading[seed.id]}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ background: seed.grad }}
+              >
+                {loading[seed.id]
+                  ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                  : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
+                }
+                {loading[seed.id] ? 'Import en cours…' : 'Insérer'}
+              </button>
+            )}
           </div>
 
           {/* Zone fichier ZIP si besoin */}

@@ -67,9 +67,10 @@ router.delete('/generated-content', async (req, res) => {
   try {
     const Quiz      = require('../models/Quiz');
     const Flashcard = require('../models/Flashcard');
-    const qDel = await Quiz.deleteMany({ isPersonal: false, title: /^Quiz — / });
-    const fDel = await Flashcard.deleteMany({ isPublished: true });
-    res.json({ ok: true, message: `${qDel.deletedCount} quiz et ${fDel.deletedCount} flashcards supprimés` });
+    // Ne supprimer QUE le contenu marqué isAIGenerated: true
+    const qDel = await Quiz.deleteMany({ isAIGenerated: true });
+    const fDel = await Flashcard.deleteMany({ isAIGenerated: true });
+    res.json({ ok: true, message: `${qDel.deletedCount} quiz et ${fDel.deletedCount} flashcards générés par IA supprimés` });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 router.get('/generate-content-lessons/count', async (req, res) => {

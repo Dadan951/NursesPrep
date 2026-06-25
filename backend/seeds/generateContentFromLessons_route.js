@@ -222,11 +222,12 @@ module.exports = async (req, res) => {
             const quizChapter = chapters.length === 1 ? chap : chapterDef.title;
 
             await Quiz.create({
-              title:       quizTitle,
-              description: `${qs.length} questions · "${chapterDef.title}" (${ueLabel}, ${semester})`,
+              title:         quizTitle,
+              description:   `${qs.length} questions · "${chapterDef.title}" (${ueLabel}, ${semester})`,
               semester,
               category,
-              chapter:     quizChapter,
+              chapter:       quizChapter,
+              isAIGenerated: true,
               questions:   qs.map(q => ({
                 text:        q.text,
                 type:        'qcm',
@@ -262,14 +263,15 @@ module.exports = async (req, res) => {
             if (!fcs?.length) throw new Error('0 flashcards retournées');
 
             await Flashcard.insertMany(fcs.map(f => ({
-              front:       f.front,
-              back:        f.back,
-              hint:        f.hint || '',
+              front:         f.front,
+              back:          f.back,
+              hint:          f.hint || '',
               semester,
               category,
-              chapter:     chap,
-              difficulty:  'medium',
-              isPublished: true,
+              chapter:       chap,
+              difficulty:    'medium',
+              isPublished:   true,
+              isAIGenerated: true,
             })));
 
             flashInserted += fcs.length;

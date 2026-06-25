@@ -21,8 +21,9 @@ const quizSchema = new mongoose.Schema({
   questions: [questionSchema],
   difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
   duration: { type: Number, default: 15 },
-  isPublished: { type: Boolean, default: true },
-  isPersonal: { type: Boolean, default: false },
+  isPublished:   { type: Boolean, default: true },
+  isPersonal:    { type: Boolean, default: false },
+  isAIGenerated: { type: Boolean, default: false },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   createdAt: { type: Date, default: Date.now }
 });

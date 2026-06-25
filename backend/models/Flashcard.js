@@ -8,7 +8,8 @@ const flashcardSchema = new mongoose.Schema({
   chapter:  { type: String, default: '', trim: true },
   difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
   hint: { type: String, default: '' },
-  isPublished: { type: Boolean, default: true },
+  isPublished:   { type: Boolean, default: true },
+  isAIGenerated: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

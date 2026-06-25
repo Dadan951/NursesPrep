@@ -62,7 +62,18 @@ router.post('/migrate-buprenorphine', require('../seeds/migrateBuprenorphine'));
 router.post('/seed-cours-files', require('../seeds/seedCours_route'));
 router.post('/seed-cours-zip',   uploadZip.single('zip'), require('../seeds/seedCoursZip_route'));
 router.post('/seed-annales-zip',          uploadZip.single('zip'), require('../seeds/seedAnnalesZip_route'));
-router.post('/generate-content-lessons',  require('../seeds/generateContentFromLessons_route'));
+router.post('/generate-content-lessons', require('../seeds/generateContentFromLessons_route'));
+router.get('/generate-content-lessons/count', async (req, res) => {
+  try {
+    const Lesson   = require('../models/Lesson');
+    const Quiz     = require('../models/Quiz');
+    const Flashcard= require('../models/Flashcard');
+    const total    = await Lesson.countDocuments({});
+    const quizDone = await Quiz.countDocuments({ isPublished: true, isPersonal: false });
+    const flashDone= await Flashcard.countDocuments({ isPublished: true });
+    res.json({ total, quizDone, flashDone, toGenerate: Math.max(0, total - quizDone) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 /* ── POST /admin/seed-s1-20 ──────────────────────────────────────────────── */
 router.post('/seed-s1-20', async (req, res) => {

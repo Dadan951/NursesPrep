@@ -604,10 +604,17 @@ const SEEDS = [
 ];
 
 function SeedPanel() {
-  const [results, setResults] = useState({});
-  const [loading, setLoading] = useState({});
+  const [results,  setResults]  = useState({});
+  const [loading,  setLoading]  = useState({});
   const [zipFiles, setZipFiles] = useState({});
+  const [aiCount,  setAiCount]  = useState(null); // { total, quizDone, flashDone }
   const { token } = useAuth();
+
+  useEffect(() => {
+    axios.get(`${API_URL}/admin/generate-content-lessons/count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => setAiCount(r.data)).catch(() => {});
+  }, [token]);
 
   const runSeed = async (seed, aiMode = null, isTest = false) => {
     setLoading(l => ({ ...l, [seed.id]: true }));
@@ -683,30 +690,15 @@ function SeedPanel() {
               <p className="text-[10px] text-slate-400 truncate">{seed.desc} · {seed.count}</p>
             </div>
             {seed.aiMode ? (
-              <div className="flex flex-wrap gap-1.5 flex-shrink-0 justify-end">
-                {/* Bouton test 1 cours */}
+              <div className="flex-shrink-0">
                 <button
                   onClick={() => runSeed(seed, 'both', true)}
                   disabled={loading[seed.id]}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition hover:opacity-90 disabled:opacity-50 border"
                   style={{ color: '#7c3aed', borderColor: '#7c3aed', background: 'white' }}
                 >
-                  {loading[seed.id] ? '…' : '🧪 Tester (1 cours)'}
+                  {loading[seed.id] ? '…' : '🧪 Test'}
                 </button>
-                {/* Boutons principaux */}
-                {[['quiz','Quiz'],['flashcards','Flashcards'],['both','Les deux']].map(([mode, label]) => (
-                  <button key={mode}
-                    onClick={() => runSeed(seed, mode, false)}
-                    disabled={loading[seed.id]}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-                    style={{ background: seed.grad }}
-                  >
-                    {loading[seed.id]
-                      ? <span className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                      : null}
-                    {loading[seed.id] ? '…' : label}
-                  </button>
-                ))}
               </div>
             ) : (
               <button
@@ -723,6 +715,49 @@ function SeedPanel() {
               </button>
             )}
           </div>
+
+          {/* Bloc compteur + boutons génération IA */}
+          {seed.aiMode && (
+            <div className="px-3 pb-3 space-y-2">
+              {/* Compteur */}
+              {aiCount && (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-violet-50 rounded-lg py-2">
+                    <p className="text-base font-black text-violet-700">{aiCount.total}</p>
+                    <p className="text-[9px] text-violet-400 font-medium">cours</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg py-2">
+                    <p className="text-base font-black text-blue-700">{aiCount.total * 8}</p>
+                    <p className="text-[9px] text-blue-400 font-medium">questions QCM</p>
+                  </div>
+                  <div className="bg-indigo-50 rounded-lg py-2">
+                    <p className="text-base font-black text-indigo-700">{aiCount.total * 12}</p>
+                    <p className="text-[9px] text-indigo-400 font-medium">flashcards</p>
+                  </div>
+                </div>
+              )}
+              {/* Boutons */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[['quiz','🎯 Quiz seulement'],['flashcards','🃏 Flashcards seules'],['both','⚡ Les deux']].map(([mode, label]) => (
+                  <button key={mode}
+                    onClick={() => runSeed(seed, mode, false)}
+                    disabled={loading[seed.id]}
+                    className="py-2 rounded-xl text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-50 text-center"
+                    style={{ background: seed.grad }}
+                  >
+                    {loading[seed.id]
+                      ? <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      : label}
+                  </button>
+                ))}
+              </div>
+              {aiCount && (
+                <p className="text-[9px] text-slate-400 text-center">
+                  Durée estimée · Quiz : ~{Math.ceil(aiCount.total * 2 / 60)} min · Flashcards : ~{Math.ceil(aiCount.total * 2 / 60)} min · Les deux : ~{Math.ceil(aiCount.total * 4 / 60)} min
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Zone fichier ZIP si besoin */}
           {seed.zipField && (

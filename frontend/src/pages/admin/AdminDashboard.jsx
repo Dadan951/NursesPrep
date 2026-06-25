@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import {
   motion, useMotionValue, useTransform, useSpring,
@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 import DashboardLayout from '../../components/DashboardLayout';
 import NursesLogo from '../../components/NursesLogo';
-import { API_URL } from '../../context/AuthContext';
+import { useAuth, API_URL } from '../../context/AuthContext';
 
 /* ─── Animated counter ───────────────────────────────────────────────────── */
 function useCounter(target, delay = 0) {
@@ -556,20 +556,56 @@ const SEEDS = [
       </svg>
     ),
   },
+  {
+    id: 'cours-zip',
+    label: 'Cours — Import ZIP complet',
+    desc: '1A S1/S2 · 2A S3/S4 · UE 1.1, 1.3, 2.5, 2.7, 2.8, 2.11',
+    count: '~62 cours PDF',
+    endpoint: '/admin/seed-cours-zip',
+    grad: 'linear-gradient(135deg,#1d4ed8,#0891b2)',
+    zipField: 'zip',
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    ),
+  },
 ];
 
 function SeedPanel() {
   const [results, setResults] = useState({});
   const [loading, setLoading] = useState({});
+  const [zipFiles, setZipFiles] = useState({});
+  const { token } = useAuth();
 
   const runSeed = async (seed) => {
     setLoading(l => ({ ...l, [seed.id]: true }));
     setResults(r => ({ ...r, [seed.id]: null }));
     try {
-      const res = await axios.post(`${API_URL}${seed.endpoint}`);
+      let res;
+      if (seed.zipField) {
+        const file = zipFiles[seed.id];
+        if (!file) {
+          setResults(r => ({ ...r, [seed.id]: { ok: false, msg: 'Sélectionne d\'abord le fichier ZIP' } }));
+          setLoading(l => ({ ...l, [seed.id]: false }));
+          return;
+        }
+        const fd = new FormData();
+        fd.append(seed.zipField, file);
+        res = await axios.post(`${API_URL}${seed.endpoint}`, fd, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+          timeout: 300000,
+          onUploadProgress: () => {},
+        });
+      } else {
+        res = await axios.post(`${API_URL}${seed.endpoint}`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
       setResults(r => ({ ...r, [seed.id]: { ok: true, msg: res.data.message } }));
     } catch (err) {
-      setResults(r => ({ ...r, [seed.id]: { ok: false, msg: err.response?.data?.message || 'Erreur' } }));
+      setResults(r => ({ ...r, [seed.id]: { ok: false, msg: err.response?.data?.message || err.message || 'Erreur' } }));
     } finally {
       setLoading(l => ({ ...l, [seed.id]: false }));
     }
@@ -618,9 +654,30 @@ function SeedPanel() {
                 ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                 : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
               }
-              {loading[seed.id] ? 'En cours…' : 'Insérer'}
+              {loading[seed.id] ? 'Import en cours…' : 'Insérer'}
             </button>
           </div>
+
+          {/* Zone fichier ZIP si besoin */}
+          {seed.zipField && (
+            <div className="px-3 pb-2.5">
+              <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed cursor-pointer transition text-[10px] font-medium ${
+                zipFiles[seed.id] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-200 hover:text-blue-500'
+              }`}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {zipFiles[seed.id]
+                  ? `${zipFiles[seed.id].name} (${(zipFiles[seed.id].size / 1024 / 1024).toFixed(0)} MB)`
+                  : 'Glisse ou clique pour sélectionner le ZIP (≤ 300 MB)'}
+                <input type="file" accept=".zip" className="hidden"
+                  onChange={e => setZipFiles(z => ({ ...z, [seed.id]: e.target.files[0] || null }))}/>
+              </label>
+            </div>
+          )}
+
           {results[seed.id] && (
             <motion.div
               initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}

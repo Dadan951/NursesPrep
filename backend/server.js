@@ -16,7 +16,8 @@ app.use(passport.initialize());
 // ⚠️ Webhook Stripe — raw body AVANT express.json()
 app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
+app.use(express.json({ limit: '300mb' }));
+app.use(express.urlencoded({ extended: true, limit: '300mb' }));
 app.use(express.static('public'));
 
 // Routes

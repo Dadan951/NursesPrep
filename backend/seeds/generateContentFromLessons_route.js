@@ -7,18 +7,40 @@ const Flashcard = require('../models/Flashcard');
 const MODEL          = 'claude-haiku-4-5-20251001';
 const MIN_CONTENT    = 100; // chars : en dessous on génère depuis les connaissances IA
 
+// Répartition homogène : index % 3 → 8 / 10 / 15 questions
+function questionCount(index) {
+  const cycle = index % 3;
+  if (cycle === 0) return 8;
+  if (cycle === 1) return 10;
+  return 15;
+}
+
+// Durée estimée du quiz (minutes) selon nombre de questions
+function quizDuration(n) {
+  if (n <= 8)  return 7;
+  if (n <= 10) return 10;
+  return 15;
+}
+
 /* ─── Prompt QCM ─────────────────────────────────────────────────────────── */
-function promptQCM(title, ueLabel, semester, content) {
+function promptQCM(title, ueLabel, semester, content, nbQuestions) {
   const hasContent = content && content.length >= MIN_CONTENT;
   const source = hasContent
     ? `Contenu du cours :\n---\n${content.slice(0, 6000)}\n---`
     : `(PDF non lisible — génère depuis tes connaissances approfondies du programme IFSI français sur ce sujet)`;
 
-  return `Tu es un formateur IFSI expert en France. Génère 8 questions QCM rigoureuses pour des étudiants infirmiers.
+  const difficulty = nbQuestions === 8
+    ? 'Niveau accessible — questions de définition et de reconnaissance (quiz rapide)'
+    : nbQuestions === 10
+    ? 'Niveau standard — mélange définitions, mécanismes et application clinique'
+    : 'Niveau complet — questions approfondies incluant raisonnement clinique, valeurs précises et gestes infirmiers';
+
+  return `Tu es un formateur IFSI expert en France. Génère exactement ${nbQuestions} questions QCM pour des étudiants infirmiers.
 
 Cours : "${title}"
 UE : ${ueLabel}
 Semestre : ${semester}
+Niveau : ${difficulty}
 ${source}
 
 Réponds UNIQUEMENT en JSON valide (aucun texte avant ou après) :
@@ -38,10 +60,10 @@ Réponds UNIQUEMENT en JSON valide (aucun texte avant ou après) :
 }
 
 Règles :
-- Exactement 8 questions
+- Exactement ${nbQuestions} questions, pas une de plus, pas une de moins
 - 1 seule bonne réponse par question, toujours 4 options
-- Varier : définitions, mécanismes physiopathologiques, traitements, signes cliniques, rôle infirmier
-- Niveau examen IFSI réaliste, conforme au référentiel de formation français
+- Varier : définitions, mécanismes physiopathologiques, traitements, signes cliniques, rôle infirmier, surveillance
+- Conforme au référentiel de formation infirmier français
 - Options incorrectes plausibles (pas fantaisistes)`;
 }
 
@@ -128,12 +150,14 @@ module.exports = async (req, res) => {
 
     console.log(`[GenContent] ${lessons.length} cours éligibles, mode=${mode}, test=${testMode}`);
 
-    for (const lesson of lessons) {
+    for (let idx = 0; idx < lessons.length; idx++) {
+      const lesson = lessons[idx];
       const { title, semester, category, chapter, content } = lesson;
-      const ueLabel = category || 'UE inconnue';
-      const chap    = chapter || title;
+      const ueLabel  = category || 'UE inconnue';
+      const chap     = chapter || title;
+      const nbQ      = questionCount(idx); // 8 / 10 / 15 en rotation
 
-      console.log(`[GenContent] → ${title} (${content.length} chars)`);
+      console.log(`[GenContent] → [${idx+1}/${lessons.length}] ${title} (${nbQ} questions)`);
 
       // ── QUIZ ──
       if (mode === 'quiz' || mode === 'both') {
@@ -143,19 +167,21 @@ module.exports = async (req, res) => {
           log.push(`⊘ Quiz déjà présent : ${title}`);
         } else {
           try {
-            const parsed = await callAI(client, promptQCM(title, ueLabel, semester, content));
+            const parsed = await callAI(client, promptQCM(title, ueLabel, semester, content, nbQ));
             const qs = parsed.questions;
             if (!qs?.length) throw new Error('0 questions retournées');
 
-            // Vérification basique : chaque question doit avoir exactement 1 bonne réponse
+            // Vérification : chaque question doit avoir exactement 1 bonne réponse
             for (const q of qs) {
               const nbCorrect = q.options.filter(o => o.isCorrect).length;
-              if (nbCorrect !== 1) throw new Error(`Question "${q.text.slice(0,40)}…" : ${nbCorrect} bonne(s) réponse(s) au lieu de 1`);
+              if (nbCorrect !== 1) throw new Error(`Question "${q.text.slice(0,40)}…" : ${nbCorrect} bonne(s) réponse(s)`);
             }
+
+            const diffLabel = nbQ === 8 ? 'easy' : nbQ === 10 ? 'medium' : 'hard';
 
             await Quiz.create({
               title:       `Quiz — ${title}`,
-              description: `8 questions sur "${title}" (${ueLabel}, ${semester})`,
+              description: `${qs.length} questions sur "${title}" (${ueLabel}, ${semester})`,
               semester,
               category,
               chapter:     chap,
@@ -165,8 +191,8 @@ module.exports = async (req, res) => {
                 explanation: q.explanation || '',
                 options:     q.options,
               })),
-              difficulty:  'medium',
-              duration:    12,
+              difficulty:  diffLabel,
+              duration:    quizDuration(nbQ),
               isPublished: true,
             });
 

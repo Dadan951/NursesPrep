@@ -720,22 +720,37 @@ function SeedPanel() {
           {seed.aiMode && (
             <div className="px-3 pb-3 space-y-2">
               {/* Compteur */}
-              {aiCount && (
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-violet-50 rounded-lg py-2">
-                    <p className="text-base font-black text-violet-700">{aiCount.total}</p>
-                    <p className="text-[9px] text-violet-400 font-medium">cours</p>
+              {aiCount && (() => {
+                // Répartition 8/10/15 : 1/3 chacun
+                const n   = aiCount.total;
+                const n15 = Math.floor(n / 3);
+                const n10 = Math.floor(n / 3);
+                const n8  = n - n15 - n10;
+                const totalQ = n8 * 8 + n10 * 10 + n15 * 15;
+                return (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-violet-50 rounded-lg py-2">
+                        <p className="text-base font-black text-violet-700">{n}</p>
+                        <p className="text-[9px] text-violet-400 font-medium">quiz générés</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg py-2">
+                        <p className="text-base font-black text-blue-700">{totalQ}</p>
+                        <p className="text-[9px] text-blue-400 font-medium">questions total</p>
+                      </div>
+                      <div className="bg-indigo-50 rounded-lg py-2">
+                        <p className="text-base font-black text-indigo-700">{n * 12}</p>
+                        <p className="text-[9px] text-indigo-400 font-medium">flashcards</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 justify-center text-[9px] text-slate-400">
+                      <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">{n8} quiz × 8 q.</span>
+                      <span className="bg-yellow-50 text-yellow-600 px-2 py-0.5 rounded-full font-medium">{n10} quiz × 10 q.</span>
+                      <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-medium">{n15} quiz × 15 q.</span>
+                    </div>
                   </div>
-                  <div className="bg-blue-50 rounded-lg py-2">
-                    <p className="text-base font-black text-blue-700">{aiCount.total * 8}</p>
-                    <p className="text-[9px] text-blue-400 font-medium">questions QCM</p>
-                  </div>
-                  <div className="bg-indigo-50 rounded-lg py-2">
-                    <p className="text-base font-black text-indigo-700">{aiCount.total * 12}</p>
-                    <p className="text-[9px] text-indigo-400 font-medium">flashcards</p>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               {/* Boutons */}
               <div className="grid grid-cols-3 gap-1.5">
                 {[['quiz','🎯 Quiz seulement'],['flashcards','🃏 Flashcards seules'],['both','⚡ Les deux']].map(([mode, label]) => (

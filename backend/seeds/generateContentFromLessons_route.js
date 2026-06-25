@@ -217,8 +217,14 @@ module.exports = async (req, res) => {
       await new Promise(r => setTimeout(r, 1000));
     }
 
+    // Construire le résumé avec les détails de localisation
+    const generated = log.filter(l => l.startsWith('✓'));
+    const locationHint = generated.length
+      ? generated.map(l => l.replace('✓ ', '')).join(' | ')
+      : '';
+
     const summary = testMode
-      ? `TEST OK — ${quizInserted} quiz · ${flashInserted} flashcards générés sur 1 cours. Lance "Les deux" pour tout générer.`
+      ? `TEST OK — Généré sur : ${locationHint}. Va dans Quiz ou Flashcards et navigue vers ce semestre/UE pour vérifier.`
       : `${quizInserted} quiz · ${flashInserted} flashcards générés · ${skipped} doublons ignorés · ${errors} erreurs`;
 
     res.json({ ok: true, message: summary, quizInserted, flashInserted, skipped, errors, log });

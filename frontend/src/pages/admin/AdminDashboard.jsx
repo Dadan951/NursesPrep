@@ -586,6 +586,23 @@ const SEEDS = [
     ),
   },
   {
+    id: 'ifsi-zip',
+    label: 'Drive IFSI 💊 — Import ZIP (S1→S6)',
+    desc: 'Tous semestres · Structure semestre/UE · multi-fichiers',
+    count: '~590 PDFs détectés',
+    endpoint: '/admin/seed-ifsi-zip',
+    grad: 'linear-gradient(135deg,#059669,#10b981)',
+    zipField: 'zips',
+    multipleZip: true,
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+    ),
+  },
+  {
     id: 'gen-content',
     label: 'Générer Quiz + Flashcards (IA)',
     desc: 'Depuis les cours déjà importés · Anthropic Haiku',
@@ -667,16 +684,26 @@ function SeedPanel() {
       let res;
       if (seed.zipField) {
         const file = zipFiles[seed.id];
-        if (!file) {
+        if (!file && !seed.multipleZip) {
           setResults(r => ({ ...r, [seed.id]: { ok: false, msg: 'Sélectionne d\'abord le fichier ZIP' } }));
           setLoading(l => ({ ...l, [seed.id]: false }));
           return;
         }
+        if (seed.multipleZip && (!file || (Array.isArray(file) && file.length === 0))) {
+          setResults(r => ({ ...r, [seed.id]: { ok: false, msg: 'Sélectionne au moins un fichier ZIP' } }));
+          setLoading(l => ({ ...l, [seed.id]: false }));
+          return;
+        }
         const fd = new FormData();
-        fd.append(seed.zipField, file);
+        if (seed.multipleZip) {
+          const files = Array.isArray(file) ? file : [file];
+          files.forEach(f => fd.append(seed.zipField, f));
+        } else {
+          fd.append(seed.zipField, file);
+        }
         res = await axios.post(`${API_URL}${seed.endpoint}`, fd, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-          timeout: 300000,
+          timeout: 600000,
           onUploadProgress: () => {},
         });
       } else if (seed.aiMode) {
@@ -851,7 +878,7 @@ function SeedPanel() {
           {seed.zipField && (
             <div className="px-3 pb-2.5">
               <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed cursor-pointer transition text-[10px] font-medium ${
-                zipFiles[seed.id] ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-blue-200 hover:text-blue-500'
+                zipFiles[seed.id] ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-emerald-200 hover:text-emerald-500'
               }`}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -859,10 +886,18 @@ function SeedPanel() {
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 {zipFiles[seed.id]
-                  ? `${zipFiles[seed.id].name} (${(zipFiles[seed.id].size / 1024 / 1024).toFixed(0)} MB)`
-                  : 'Glisse ou clique pour sélectionner le ZIP (≤ 300 MB)'}
+                  ? seed.multipleZip
+                    ? `${Array.isArray(zipFiles[seed.id]) ? zipFiles[seed.id].length : 1} fichier(s) sélectionné(s)`
+                    : `${zipFiles[seed.id].name} (${(zipFiles[seed.id].size/1024/1024).toFixed(0)} MB)`
+                  : seed.multipleZip
+                    ? 'Sélectionne les ZIP (001 + 002) — multi-sélection OK'
+                    : 'Glisse ou clique pour sélectionner le ZIP (≤ 300 MB)'}
                 <input type="file" accept=".zip" className="hidden"
-                  onChange={e => setZipFiles(z => ({ ...z, [seed.id]: e.target.files[0] || null }))}/>
+                  multiple={!!seed.multipleZip}
+                  onChange={e => {
+                    const files = Array.from(e.target.files);
+                    setZipFiles(z => ({ ...z, [seed.id]: seed.multipleZip ? files : (files[0] || null) }));
+                  }}/>
               </label>
             </div>
           )}

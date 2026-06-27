@@ -1,22 +1,52 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * Dashboard — Clay 3D Light
+ * Design System: Claymorphism × Linear sophistication
+ * Audience: 18-25 ans, étudiants IFSI
+ * Fonts: Nunito (headings) + DM Sans (body)
+ * Colors: Indigo #4F46E5 · Violet #7C3AED · Teal #0891b2 · Pink #EC4899
+ */
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import {
-  motion, useMotionValue, useTransform, useSpring, AnimatePresence,
-} from 'framer-motion';
+import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
-/* ─── Animated counter (triggers on mount) ───────────────────────────────── */
+/* ─── Design tokens ───────────────────────────────────────────────────────── */
+const C = {
+  bg:       '#EEF2FF',
+  card:     '#FFFFFF',
+  text:     '#1e1b4b',
+  muted:    '#6b7280',
+  border:   '#e0e7ff',
+  indigo:   '#4F46E5',
+  violet:   '#7C3AED',
+  teal:     '#0891b2',
+  pink:     '#EC4899',
+  amber:    '#F59E0B',
+  green:    '#10B981',
+  red:      '#DC2626',
+  orange:   '#EA580C',
+};
+
+/* Clay shadows */
+const clay = {
+  card: `inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(0,0,0,0.03), 0 4px 0 rgba(0,0,0,0.06), 0 12px 28px rgba(79,70,229,0.08), 0 24px 48px rgba(0,0,0,0.04)`,
+  sm:   `inset 0 1px 0 rgba(255,255,255,0.9), 0 3px 0 rgba(0,0,0,0.07), 0 8px 16px rgba(0,0,0,0.07)`,
+  btn:  (hex) => `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.18), 0 4px 0 ${hex}cc, 0 8px 20px ${hex}44`,
+  pressed: `inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 0 rgba(0,0,0,0.08)`,
+};
+
+/* ─── Animated counter ────────────────────────────────────────────────────── */
 function useCounter(target, delay = 0) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     if (!target) return;
     const t = setTimeout(() => {
       let cur = 0;
-      const step = target / 55;
       const id = setInterval(() => {
-        cur = Math.min(cur + step, target);
+        cur = Math.min(cur + target / 50, target);
         setVal(Math.round(cur));
         if (cur >= target) clearInterval(id);
       }, 18);
@@ -27,29 +57,28 @@ function useCounter(target, delay = 0) {
   return val;
 }
 
-/* ─── 3D Tilt card ───────────────────────────────────────────────────────── */
-function TiltCard({ children, className }) {
+/* ─── 3D Tilt ─────────────────────────────────────────────────────────────── */
+function Tilt3D({ children, style = {}, className = '', scale = 1.02, depth = 8 }) {
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const rx = useTransform(my, [-0.5, 0.5], [7, -7]);
-  const ry = useTransform(mx, [-0.5, 0.5], [-7, 7]);
-  const sx = useSpring(rx, { stiffness: 300, damping: 22 });
-  const sy = useSpring(ry, { stiffness: 300, damping: 22 });
-
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - r.left) / r.width - 0.5);
-    my.set((e.clientY - r.top) / r.height - 0.5);
-  };
-  const onLeave = () => { mx.set(0); my.set(0); };
+  const rotX = useTransform(my, [-0.5, 0.5], [depth, -depth]);
+  const rotY = useTransform(mx, [-0.5, 0.5], [-depth, depth]);
+  const sX = useSpring(rotX, { stiffness: 280, damping: 24 });
+  const sY = useSpring(rotY, { stiffness: 280, damping: 24 });
 
   return (
-    <div style={{ perspective: 900 }}>
+    <div style={{ perspective: 1000 }}>
       <motion.div
-        style={{ rotateX: sx, rotateY: sy }}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
+        style={{ rotateX: sX, rotateY: sY, ...style }}
         className={className}
+        whileHover={{ scale }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        onMouseMove={e => {
+          const r = e.currentTarget.getBoundingClientRect();
+          mx.set((e.clientX - r.left) / r.width - 0.5);
+          my.set((e.clientY - r.top) / r.height - 0.5);
+        }}
+        onMouseLeave={() => { mx.set(0); my.set(0); }}
       >
         {children}
       </motion.div>
@@ -57,832 +86,512 @@ function TiltCard({ children, className }) {
   );
 }
 
-/* ─── Animated SVG progress ring ─────────────────────────────────────────── */
-function ProgressRing({ value, max, color, glow, size = 88, sw = 8 }) {
-  const r   = (size - sw) / 2;
-  const c   = 2 * Math.PI * r;
-  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+/* ─── Clay Card ───────────────────────────────────────────────────────────── */
+function Card({ children, style = {}, className = '' }) {
   return (
-    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={sw}/>
-        <motion.circle
-          cx={size/2} cy={size/2} r={r}
-          fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
-          strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={{ strokeDashoffset: c * (1 - pct) }}
-          transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1], delay: 0.6 }}
-          style={{ filter: `drop-shadow(0 0 5px ${glow})` }}
+    <div
+      className={className}
+      style={{ background: C.card, borderRadius: 28, boxShadow: clay.card, border: `1px solid ${C.border}`, ...style }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─── Horizontal progress bar (clay inset) ────────────────────────────────── */
+function ProgressBar({ value, max, color, label, sublabel }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const done = value >= max && max > 0;
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: 'Nunito, sans-serif' }}>{label}</span>
+          {sublabel && <span style={{ fontSize: 11, color: C.muted, marginLeft: 6 }}>{sublabel}</span>}
+        </div>
+        <span style={{ fontSize: 12, fontWeight: 700, color: done ? C.green : color, fontVariantNumeric: 'tabular-nums' }}>
+          {done ? '✓' : `${value}/${max}`}
+        </span>
+      </div>
+      <div style={{ height: 10, borderRadius: 99, background: '#e0e7ff', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+          style={{ height: '100%', borderRadius: 99, background: done ? C.green : `linear-gradient(90deg, ${color}, ${color}bb)`, boxShadow: `0 2px 6px ${color}55` }}
         />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-base font-bold text-slate-800 leading-none">{value}</span>
-        <span className="text-[10px] text-slate-400">/{max}</span>
       </div>
     </div>
   );
 }
 
-/* ─── Skeleton loader ────────────────────────────────────────────────────── */
-function Skeleton({ className }) {
-  return (
-    <div className={`animate-pulse bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 rounded-xl ${className}`}
-      style={{ backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }}
-    />
-  );
-}
-
-/* ─── Stagger variants ───────────────────────────────────────────────────── */
-const container = {
-  hidden: {},
-  show:   { transition: { staggerChildren: 0.09, delayChildren: 0.15 } },
+/* ─── SVG Icons ───────────────────────────────────────────────────────────── */
+const Icon = {
+  quiz:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>,
+  flash:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
+  exo:     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>,
+  star:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  book:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+  annale:  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,
+  pill:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v2"/><circle cx="17" cy="17" r="5"/><path d="m14.5 19.5 5-5"/></svg>,
+  group:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  card:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+  fire:    <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2c0 0-4 5.5-4 9.5a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/><path d="M12 13c0 0-1.5 1.5-1.5 3a1.5 1.5 0 0 0 3 0C13.5 14.5 12 13 12 13z" fill="#fde68a"/></svg>,
+  bulb:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 0 1 7-7z"/></svg>,
+  edit:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  close:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  arrow:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
 };
-const item = {
-  hidden: { opacity: 0, y: 22, scale: 0.97 },
-  show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
-};
 
-/* ─── Tips rotation ──────────────────────────────────────────────────────── */
 const TIPS = [
   "La répétition espacée augmente la mémorisation de 200 %. Révise tes flashcards chaque jour, même 5 minutes.",
   "Avant une garde, relis les valeurs normales des constantes vitales : elles reviennent souvent aux examens.",
-  "Les cas cliniques IFSI testent ton raisonnement clinique, pas uniquement tes connaissances. Explique toujours ton pourquoi.",
-  "Groupe tes révisions par UE : la cohérence thématique ancre mieux les notions dans ta mémoire à long terme.",
+  "Les cas cliniques IFSI testent ton raisonnement clinique. Explique toujours ton pourquoi.",
+  "Groupe tes révisions par UE : la cohérence thématique ancre mieux les notions dans ta mémoire.",
 ];
 
+const spring = { type: 'spring', stiffness: 300, damping: 24 };
+const fade = (delay = 0) => ({ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1], delay } });
+
 /* ════════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   MAIN
    ════════════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
   const { user, token, refreshUser } = useAuth();
   const p = user?.progress || {};
 
-  const [tipIdx,        setTipIdx]        = useState(0);
   const [greeting,      setGreeting]      = useState('');
   const [streak,        setStreak]        = useState(p.streak || 0);
   const [weeklyData,    setWeeklyData]    = useState([0,0,0,0,0,0,0]);
-  const [showDetail,    setShowDetail]    = useState(false);
-  const [detailPeriod,  setDetailPeriod]  = useState('semaine');
-  const [customRange,   setCustomRange]   = useState({ from: '', to: '' });
+  const [tipIdx,        setTipIdx]        = useState(0);
   const [dailyGoals,    setDailyGoals]    = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
   const [dailyProgress, setDailyProgress] = useState({ quiz: 0, flashcards: 0, exercises: 0 });
-  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [showModal,     setShowModal]     = useState(false);
   const [editGoals,     setEditGoals]     = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
-  const [savingGoals,   setSavingGoals]   = useState(false);
+  const [saving,        setSaving]        = useState(false);
 
-  /* Time-based greeting */
   useEffect(() => {
     const h = new Date().getHours();
     setGreeting(h < 6 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir');
   }, []);
 
-  /* Ping backend — met à jour streak + activité hebdo */
   useEffect(() => {
-    console.log('[Ping] token=', token ? 'OK' : 'MISSING', '| API_URL=', API_URL);
     if (!token) return;
-    axios.post(`${API_URL}/auth/ping`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => {
-      console.log('[Ping] success:', res.data);
-      if (typeof res.data.streak === 'number') setStreak(res.data.streak);
-      if (Array.isArray(res.data.weeklyActivity)) setWeeklyData(res.data.weeklyActivity);
-      refreshUser();
-    }).catch(err => {
-      console.error('[Ping] FAILED:', err?.response?.status, err?.response?.data || err.message);
-    });
+    axios.post(`${API_URL}/auth/ping`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        if (typeof res.data.streak === 'number') setStreak(res.data.streak);
+        if (Array.isArray(res.data.weeklyActivity)) setWeeklyData(res.data.weeklyActivity);
+        refreshUser();
+      }).catch(() => {});
   }, []); // eslint-disable-line
 
-  /* Fetch daily goals + progress */
   useEffect(() => {
     if (!token) return;
-    axios.get(`${API_URL}/auth/daily`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(res => {
-      setDailyGoals(res.data.goals);
-      setDailyProgress(res.data.daily);
-      setEditGoals(res.data.goals);
-    }).catch(console.error);
+    axios.get(`${API_URL}/auth/daily`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => { setDailyGoals(res.data.goals); setDailyProgress(res.data.daily); setEditGoals(res.data.goals); })
+      .catch(() => {});
   }, [token]); // eslint-disable-line
 
-  /* Rotate tips */
   useEffect(() => {
     const id = setInterval(() => setTipIdx(i => (i + 1) % TIPS.length), 8000);
     return () => clearInterval(id);
   }, []);
 
-  /* Animated counters */
-  const quizVal  = useCounter(p.quizCompleted  || 0,  80);
-  const flashVal = useCounter(p.flashcardsReviewed || 0, 180);
-  const exercVal = useCounter(p.exercisesCompleted || 0, 280);
-  const scoreVal = useCounter(p.totalScore    || 0,  380);
+  const quizVal  = useCounter(p.quizCompleted      || 0,  60);
+  const flashVal = useCounter(p.flashcardsReviewed || 0, 120);
+  const exercVal = useCounter(p.exercisesCompleted || 0, 180);
+  const scoreVal = useCounter(p.totalScore         || 0, 240);
 
-  /* Subscription label */
-  const subLabel = { free: 'Gratuit', pro: 'Pro', premium: 'Elite' };
-  const subStyle = {
-    free:    { bg: 'bg-slate-100',  text: 'text-slate-500' },
-    pro:     { bg: 'bg-blue-500',   text: 'text-white' },
-    premium: { bg: 'bg-gradient-to-r from-amber-400 to-orange-500', text: 'text-white' },
-  }[user?.subscription] || { bg: 'bg-slate-100', text: 'text-slate-500' };
+  const SUB = {
+    free:    { label: 'Gratuit', bg: '#f1f5f9', color: C.muted },
+    pro:     { label: 'Pro',     bg: C.indigo,  color: '#fff'  },
+    premium: { label: 'Elite',   bg: `linear-gradient(135deg,${C.amber},${C.orange})`, color: '#fff' },
+  };
+  const sub = SUB[user?.subscription] || SUB.free;
 
-  const stats = [
-    {
-      label: 'Quiz complétés', val: quizVal,
-      grad: 'from-blue-500 to-cyan-500', glow: 'shadow-blue-200', textC: 'text-blue-600',
-      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-    },
-    {
-      label: 'Flashcards', val: flashVal,
-      grad: 'from-indigo-500 to-violet-500', glow: 'shadow-indigo-200', textC: 'text-indigo-600',
-      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
-    },
-    {
-      label: 'Exercices', val: exercVal,
-      grad: 'from-teal-500 to-emerald-500', glow: 'shadow-teal-200', textC: 'text-teal-600',
-      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>,
-    },
-    {
-      label: 'Points gagnés', val: scoreVal,
-      grad: 'from-amber-400 to-orange-500', glow: 'shadow-amber-200', textC: 'text-amber-600',
-      icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-    },
+  const todayStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const today = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
+
+  const STATS = [
+    { label: 'Quiz complétés',   val: quizVal,  color: C.indigo, bg: '#eef2ff', icon: Icon.quiz  },
+    { label: 'Flashcards',       val: flashVal, color: C.violet, bg: '#f5f3ff', icon: Icon.flash },
+    { label: 'Exercices',        val: exercVal, color: C.teal,   bg: '#ecfeff', icon: Icon.exo   },
+    { label: 'Points gagnés',    val: scoreVal, color: C.amber,  bg: '#fffbeb', icon: Icon.star  },
   ];
 
-  const quickActions = [
-    {
-      to: '/dashboard/quiz', label: 'Commencer un Quiz',
-      desc: 'Tester tes connaissances',
-      grad: 'from-blue-500 to-blue-700', shadow: 'shadow-blue-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-    },
-    {
-      to: '/dashboard/flashcards', label: 'Réviser Flashcards',
-      desc: 'Mémoriser les notions clés',
-      grad: 'from-violet-500 to-purple-700', shadow: 'shadow-violet-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
-    },
-    {
-      to: '/dashboard/exercises', label: 'Faire des Exercices',
-      desc: 'Cas cliniques & QCM',
-      grad: 'from-teal-500 to-cyan-600', shadow: 'shadow-teal-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-    },
-    {
-      to: '/dashboard/cours', label: 'Cours & Fiches',
-      desc: 'Consulter les leçons',
-      grad: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-    },
-    {
-      to: '/dashboard/annales', label: 'Annales',
-      desc: 'Sujets des années passées',
-      grad: 'from-indigo-600 to-indigo-800', shadow: 'shadow-indigo-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,
-    },
-    {
-      to: '/dashboard/medicaments', label: 'Médicaments',
-      desc: 'Base de données des drogues',
-      grad: 'from-rose-500 to-red-600', shadow: 'shadow-rose-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>,
-    },
-    {
-      to: '/dashboard/groups', label: 'Groupes',
-      desc: 'Réviser en équipe',
-      grad: 'from-amber-400 to-orange-500', shadow: 'shadow-amber-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-    },
-    {
-      to: '/dashboard/subscription', label: 'Abonnement',
-      desc: 'Gérer mon offre',
-      grad: 'from-fuchsia-500 to-pink-600', shadow: 'shadow-fuchsia-400/40',
-      icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-    },
+  const GOALS = [
+    { label: 'Quiz',       sublabel: `objectif ${dailyGoals.quizPerDay}`,       value: Math.min(dailyProgress.quiz, dailyGoals.quizPerDay),             max: dailyGoals.quizPerDay,       color: C.indigo },
+    { label: 'Flashcards', sublabel: `objectif ${dailyGoals.flashcardsPerDay}`,  value: Math.min(dailyProgress.flashcards, dailyGoals.flashcardsPerDay), max: dailyGoals.flashcardsPerDay, color: C.violet },
+    { label: 'Exercices',  sublabel: `objectif ${dailyGoals.exercisesPerDay}`,   value: Math.min(dailyProgress.exercises, dailyGoals.exercisesPerDay),   max: dailyGoals.exercisesPerDay,  color: C.teal   },
   ];
 
-  const rings = [
-    { label: 'Quiz',       subLabel: `objectif ${dailyGoals.quizPerDay}`,       value: Math.min(dailyProgress.quiz,       dailyGoals.quizPerDay),       max: dailyGoals.quizPerDay,       color: '#3b82f6', glow: '#3b82f688' },
-    { label: 'Flashcards', subLabel: `objectif ${dailyGoals.flashcardsPerDay}`,  value: Math.min(dailyProgress.flashcards, dailyGoals.flashcardsPerDay), max: dailyGoals.flashcardsPerDay, color: '#6366f1', glow: '#6366f188' },
-    { label: 'Exercices',  subLabel: `objectif ${dailyGoals.exercisesPerDay}`,   value: Math.min(dailyProgress.exercises,  dailyGoals.exercisesPerDay),  max: dailyGoals.exercisesPerDay,  color: '#14b8a6', glow: '#14b8a688' },
+  const ACTIONS = [
+    { to: '/dashboard/quiz',         label: 'Quiz',        desc: 'QCM & questions',       icon: Icon.quiz,   grad: `135deg, #4338ca, ${C.indigo}`, color: C.indigo  },
+    { to: '/dashboard/flashcards',   label: 'Flashcards',  desc: 'Mémorisation rapide',   icon: Icon.flash,  grad: `135deg, #6d28d9, ${C.violet}`, color: C.violet  },
+    { to: '/dashboard/exercises',    label: 'Exercices',   desc: 'Cas cliniques',         icon: Icon.exo,    grad: `135deg, #0e7490, ${C.teal}`,   color: C.teal    },
+    { to: '/dashboard/cours',        label: 'Cours',       desc: 'Leçons & fiches',       icon: Icon.book,   grad: `135deg, #15803d, #10b981`,     color: '#10b981' },
+    { to: '/dashboard/annales',      label: 'Annales',     desc: 'Sujets passés',         icon: Icon.annale, grad: `135deg, #1d4ed8, #3b82f6`,     color: '#3b82f6' },
+    { to: '/dashboard/medicaments',  label: 'Médicaments', desc: 'Base pharma',           icon: Icon.pill,   grad: `135deg, #b91c1c, ${C.red}`,    color: C.red     },
+    { to: '/dashboard/groups',       label: 'Groupes',     desc: 'Réviser ensemble',      icon: Icon.group,  grad: `135deg, #c2410c, ${C.orange}`, color: C.orange  },
+    { to: '/dashboard/subscription', label: 'Abonnement',  desc: 'Gérer mon offre',       icon: Icon.card,   grad: `135deg, #be185d, ${C.pink}`,   color: C.pink    },
   ];
 
   async function saveGoals() {
-    setSavingGoals(true);
+    setSaving(true);
     try {
-      await axios.put(`${API_URL}/auth/goals`, editGoals, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(`${API_URL}/auth/goals`, editGoals, { headers: { Authorization: `Bearer ${token}` } });
       setDailyGoals({ ...editGoals });
-      setShowGoalsModal(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingGoals(false);
-    }
+      setShowModal(false);
+    } catch { /* silent */ }
+    finally { setSaving(false); }
   }
 
   return (
     <DashboardLayout>
-      {/* ── Animated CSS keyframes ────────────────────────────────────── */}
+
+      {/* Google Fonts */}
       <style>{`
-        @keyframes blob-drift-1 {
-          0%,100% { transform:translate(0,0) scale(1); }
-          33%      { transform:translate(-30px,20px) scale(1.08); }
-          66%      { transform:translate(20px,-25px) scale(0.94); }
-        }
-        @keyframes blob-drift-2 {
-          0%,100% { transform:translate(0,0) scale(1); }
-          50%      { transform:translate(25px,-18px) scale(1.06); }
-        }
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes pulse-dot {
-          0%,100% { opacity:1; }
-          50%      { opacity:0.4; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+        @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-20px,14px) scale(1.05)} 70%{transform:translate(14px,-18px) scale(0.97)} }
+        @keyframes floatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,-12px)} }
+        @keyframes floatC { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-10px,20px) scale(1.04)} 66%{transform:translate(16px,6px)} }
+        * { font-family: 'DM Sans', system-ui, sans-serif; }
+        h1,h2,h3,.nunito { font-family: 'Nunito', sans-serif !important; }
       `}</style>
 
-      <main className="flex-1 overflow-auto relative bg-slate-50/60">
+      <main style={{ flex: 1, overflowY: 'auto', background: C.bg, position: 'relative' }}>
 
-        {/* ── Ambient background orbs ───────────────────────────────── */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden>
-          <div style={{ width:420, height:420, top:-60, right:-80, position:'absolute',
-            borderRadius:'50%', opacity:0.05, filter:'blur(60px)',
-            background:'radial-gradient(circle,#0891b2,transparent)',
-            animation:'blob-drift-1 14s ease-in-out infinite' }}/>
-          <div style={{ width:320, height:320, bottom:100, left:-60, position:'absolute',
-            borderRadius:'50%', opacity:0.04, filter:'blur(50px)',
-            background:'radial-gradient(circle,#6366f1,transparent)',
-            animation:'blob-drift-2 18s ease-in-out infinite' }}/>
+        {/* ── Ambient blobs ───────────────────────────────────────────────── */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }} aria-hidden>
+          <div style={{ position:'absolute', width:500, height:500, top:-100, right:-80, borderRadius:'50%', background:'radial-gradient(circle,rgba(79,70,229,0.10),transparent 70%)', filter:'blur(30px)', animation:'floatA 20s ease-in-out infinite' }}/>
+          <div style={{ position:'absolute', width:350, height:350, bottom:80, left:-60, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.08),transparent 70%)', filter:'blur(30px)', animation:'floatB 24s ease-in-out infinite' }}/>
+          <div style={{ position:'absolute', width:280, height:280, top:'45%', left:'40%', borderRadius:'50%', background:'radial-gradient(circle,rgba(124,58,237,0.06),transparent 70%)', filter:'blur(40px)', animation:'floatC 28s ease-in-out infinite' }}/>
         </div>
 
-        <div className="relative z-10 p-4 lg:p-8 max-w-6xl mx-auto space-y-8">
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1152, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          {/* ── Greeting ──────────────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: -18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-start justify-between"
-          >
-            <div>
-              <p className="text-sm text-slate-400 mb-0.5">{greeting},</p>
-              <h1 className="text-2xl md:text-3xl font-bold leading-tight"
-                style={{ background:'linear-gradient(135deg,#164e8a,#0891b2)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-                {user?.name?.split(' ')[0] || 'Étudiant'}
-              </h1>
-              <p className="text-sm text-slate-400 mt-1">Voici ton espace de révision personnel</p>
-            </div>
+          {/* ── HERO ──────────────────────────────────────────────────────── */}
+          <motion.div {...fade(0)}>
+            <Card style={{ padding: '32px 36px', background: 'linear-gradient(135deg, #4338ca 0%, #7C3AED 50%, #EC4899 100%)', border: 'none', boxShadow: `inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 0 rgba(67,56,202,0.4), 0 20px 40px rgba(79,70,229,0.35)`, position: 'relative', overflow: 'hidden' }}>
+              {/* Shine overlay */}
+              <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.15), transparent 60%)', pointerEvents:'none' }} aria-hidden/>
+              {/* Grid texture */}
+              <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
 
-            <motion.span
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3, type: 'spring', stiffness: 250 }}
-              className={`text-xs font-bold px-3.5 py-1.5 rounded-full shadow-sm ${subStyle.bg} ${subStyle.text}`}
-            >
-              {subLabel[user?.subscription] || 'Gratuit'}
-            </motion.span>
+              <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:16 }}>
+                <div>
+                  <p style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.65)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>{today}</p>
+                  <h1 className="nunito" style={{ fontSize:36, fontWeight:900, color:'#fff', lineHeight:1.1, marginBottom:6 }}>
+                    {greeting}, {user?.name?.split(' ')[0] || 'Étudiant'} 👋
+                  </h1>
+                  <p style={{ fontSize:14, color:'rgba(255,255,255,0.72)', marginBottom:16 }}>Prêt à décrocher ton concours IFSI ?</p>
+
+                  {/* Stats pills row */}
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                    {/* Streak pill */}
+                    <motion.div
+                      initial={{ scale:0, opacity:0 }} animate={{ scale:1, opacity:1 }}
+                      transition={{ delay:0.4, ...spring }}
+                      style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:999, padding:'7px 16px' }}
+                    >
+                      {Icon.fire}
+                      <span style={{ fontSize:14, fontWeight:800, color:'#fff', fontFamily:'Nunito,sans-serif' }}>{streak}</span>
+                      <span style={{ fontSize:12, color:'rgba(255,255,255,0.75)' }}>jours de suite</span>
+                    </motion.div>
+                    {/* Sub badge */}
+                    <motion.div
+                      initial={{ scale:0, opacity:0 }} animate={{ scale:1, opacity:1 }}
+                      transition={{ delay:0.5, ...spring }}
+                      style={{ display:'inline-flex', alignItems:'center', background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:999, padding:'7px 16px', fontSize:12, fontWeight:700, color:'#fff' }}
+                    >
+                      {sub.label}
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Weekly activity */}
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:600, textAlign:'right' }}>Cette semaine</p>
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:48 }}>
+                    {['L','M','M','J','V','S','D'].map((day, i) => {
+                      const maxV = Math.max(...weeklyData, 1);
+                      const h = Math.round((weeklyData[i] / maxV) * 100);
+                      const isToday = i === (new Date().getDay() + 6) % 7;
+                      return (
+                        <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                          <motion.div
+                            initial={{ height:0 }} animate={{ height:`${Math.max(h,8)}%` }}
+                            transition={{ delay:0.3 + i*0.05, duration:0.6, ease:[0.16,1,0.3,1] }}
+                            style={{ width:isToday?10:7, borderRadius:4, minHeight:4, background:isToday?'#fff':'rgba(255,255,255,0.3)' }}
+                            title={`${weeklyData[i]}`}
+                          />
+                          <span style={{ fontSize:9, color:isToday?'#fff':'rgba(255,255,255,0.45)', fontWeight:isToday?700:400 }}>{day}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </Card>
           </motion.div>
 
-          {/* ── Stats cards ───────────────────────────────────────────── */}
+          {/* ── STAT CARDS ────────────────────────────────────────────────── */}
           <motion.div
-            variants={container} initial="hidden" animate="show"
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            initial="hidden" animate="show"
+            variants={{ hidden:{}, show:{ transition:{ staggerChildren:0.08, delayChildren:0.1 } } }}
+            style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:14 }}
           >
-            {stats.map((s, i) => (
-              <motion.div key={i} variants={item}>
-                <TiltCard className={`rounded-2xl p-5 bg-white border border-slate-100 shadow-md ${s.glow} hover:shadow-xl transition-shadow cursor-default`}>
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.grad} flex items-center justify-center mb-3 shadow-lg`}>
-                    <span className="text-white">{s.icon}</span>
-                  </div>
-                  <p className="text-2xl font-bold text-slate-800 tabular-nums">{s.val}</p>
-                  <p className={`text-xs font-medium mt-0.5 ${s.textC}`}>{s.label}</p>
-                </TiltCard>
+            {STATS.map((s, i) => (
+              <motion.div key={i} variants={{ hidden:{ opacity:0, y:20, scale:0.96 }, show:{ opacity:1, y:0, scale:1, transition:{ duration:0.45, ease:[0.16,1,0.3,1] } } }}>
+                <Tilt3D depth={6}>
+                  <Card style={{ padding:'22px 24px', cursor:'default' }}>
+                    {/* Colored top bar */}
+                    <div style={{ height:4, borderRadius:99, background:`linear-gradient(90deg, ${s.color}, ${s.color}88)`, marginBottom:16 }}/>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                      <div style={{ width:42, height:42, borderRadius:14, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, boxShadow:clay.sm }}>
+                        {s.icon}
+                      </div>
+                      <motion.div
+                        initial={{ scale:0 }} animate={{ scale:1 }}
+                        transition={{ delay:0.3+i*0.07, ...spring }}
+                        style={{ width:10, height:10, borderRadius:'50%', background:s.color, boxShadow:`0 0 12px ${s.color}` }}
+                      />
+                    </div>
+                    <p className="nunito" style={{ fontSize:34, fontWeight:900, color:C.text, lineHeight:1, fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{s.val}</p>
+                    <p style={{ fontSize:12, color:C.muted, fontWeight:500 }}>{s.label}</p>
+                  </Card>
+                </Tilt3D>
               </motion.div>
             ))}
           </motion.div>
 
-          {/* ── Main grid ─────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* ── MAIN GRID ─────────────────────────────────────────────────── */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:20 }} className="dashboard-grid">
+            <style>{`.dashboard-grid { @media(max-width:900px){ grid-template-columns:1fr !important; } }`}</style>
 
-            {/* ── Left col (2/3) ──────────────────────────────────────── */}
-            <div className="lg:col-span-2 space-y-6">
+            {/* LEFT */}
+            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
 
-              {/* Progress rings + En détail */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-5">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-semibold text-slate-700">Objectif du jour</h2>
-                    <button
-                      onClick={() => { setEditGoals({ ...dailyGoals }); setShowGoalsModal(true); }}
-                      className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-100"
-                      title="Modifier les objectifs"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowDetail(v => !v)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-                    style={showDetail
-                      ? { background: 'linear-gradient(135deg,#164e8a,#0891b2)', color: '#fff' }
-                      : { background: '#f1f5f9', color: '#475569' }}
-                  >
-                    En détail
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                      style={{ transform: showDetail ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .25s' }}>
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Rings résumé */}
-                <div className="grid grid-cols-3 gap-4 px-6 pb-6">
-                  {rings.map((rg, i) => {
-                    const pct = rg.max > 0 ? Math.round((rg.value / rg.max) * 100) : 0;
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-3">
-                        <ProgressRing {...rg} />
-                        <div className="text-center">
-                          <p className="text-xs font-semibold text-slate-700">{rg.label}</p>
-                          <p className="text-[10px] text-slate-400">{pct}% — {rg.subLabel}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* ── Panneau détaillé ── */}
-                <AnimatePresence>
-                {showDetail && (
-                  <motion.div
-                    key="detail-panel"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    <div className="border-t border-slate-100 px-6 pt-5 pb-6 space-y-5"
-                      style={{ background: 'linear-gradient(180deg,#f8fafc,#fff)' }}>
-
-                      {/* Sélecteur de période */}
-                      <div className="flex flex-wrap gap-2 items-center">
-                        {[
-                          { key: 'jour',    label: "Aujourd'hui" },
-                          { key: 'semaine', label: 'Cette semaine' },
-                          { key: 'mois',    label: 'Ce mois' },
-                          { key: 'custom',  label: 'Personnalisé' },
-                        ].map(p => (
-                          <button key={p.key}
-                            onClick={() => setDetailPeriod(p.key)}
-                            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-                            style={detailPeriod === p.key
-                              ? { background:'linear-gradient(135deg,#164e8a,#0891b2)', color:'#fff', boxShadow:'0 2px 8px rgba(8,145,178,.35)' }
-                              : { background:'#f1f5f9', color:'#64748b' }}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Plage personnalisée */}
-                      <AnimatePresence>
-                      {detailPeriod === 'custom' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                          className="flex gap-3 items-center flex-wrap"
-                        >
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[10px] text-slate-400 font-medium">Du</span>
-                            <input type="date" value={customRange.from}
-                              onChange={e => setCustomRange(r => ({ ...r, from: e.target.value }))}
-                              className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[10px] text-slate-400 font-medium">Au</span>
-                            <input type="date" value={customRange.to}
-                              onChange={e => setCustomRange(r => ({ ...r, to: e.target.value }))}
-                              className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                      </AnimatePresence>
-
-                      {/* Cartes détaillées par catégorie */}
-                      {(() => {
-                        const pr = user?.progress || {};
-                        const wSum = weeklyData.reduce((a, b) => a + b, 0);
-                        const todayAct = weeklyData[6] || 0;
-
-                        // Coefficients pour estimer la part par période
-                        const coeff = detailPeriod === 'jour'
-                          ? (wSum > 0 ? todayAct / wSum : 0)
-                          : detailPeriod === 'semaine'
-                          ? (wSum > 0 ? Math.min(wSum / Math.max(pr.quizCompleted + pr.flashcardsReviewed + pr.exercisesCompleted || 1, 1), 1) : 0)
-                          : 1; // mois / custom → totaux
-
-                        const qTotal  = Math.round((pr.quizCompleted || 0) * coeff);
-                        const fTotal  = Math.round((pr.flashcardsReviewed || 0) * coeff);
-                        const eTotal  = Math.round((pr.exercisesCompleted || 0) * coeff);
-
-                        // Score moyen en % : totalScore = cumul des bonnes réponses, chaque quiz = 10 questions
-                        const QUESTIONS_PAR_QUIZ = 10;
-                        const avgScore = pr.quizCompleted > 0
-                          ? Math.min(Math.round(((pr.totalScore || 0) / (pr.quizCompleted * QUESTIONS_PAR_QUIZ)) * 100), 100)
-                          : 0;
-                        // Erreurs estimées sur la période : nb questions ratées
-                        const erreurs = pr.quizCompleted > 0
-                          ? Math.round(qTotal * QUESTIONS_PAR_QUIZ * (1 - avgScore / 100))
-                          : null;
-
-                        const detailCards = [
-                          {
-                            label: 'Quiz',
-                            color: '#3b82f6',
-                            bg: 'from-blue-50 to-blue-100/60',
-                            border: 'border-blue-100',
-                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-                            rows: [
-                              { label: 'Réalisés',     val: qTotal,                                     unit: 'quiz'      },
-                              { label: 'Score moyen',  val: avgScore > 0 ? `${avgScore}%` : '—',        unit: ''          },
-                              { label: 'Erreurs est.', val: erreurs !== null ? `~${erreurs}` : '—',     unit: erreurs !== null ? 'questions' : '' },
-                              { label: 'Objectif',     val: '50',                                       unit: 'quiz'      },
-                            ],
-                            pct: Math.min(Math.round(((pr.quizCompleted || 0) / 50) * 100), 100),
-                          },
-                          {
-                            label: 'Flashcards',
-                            color: '#6366f1',
-                            bg: 'from-indigo-50 to-indigo-100/60',
-                            border: 'border-indigo-100',
-                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
-                            rows: (() => {
-                              const known   = Math.round((pr.flashcardsReviewed || 0) * coeff);
-                              const unknown = Math.round((pr.flashcardsUnknown  || 0) * coeff);
-                              const total   = known + unknown;
-                              const tauxMemo = total > 0 ? Math.round((known / total) * 100) : null;
-                              return [
-                                { label: 'Maîtrisées', val: known,                                                        unit: 'cartes' },
-                                { label: 'À revoir',   val: unknown > 0 ? unknown : (pr.flashcardsUnknown === 0 && pr.flashcardsReviewed > 0 ? '0' : '—'), unit: unknown > 0 ? 'cartes' : '' },
-                                { label: 'Taux mémo',  val: tauxMemo !== null ? `${tauxMemo}%` : '—',                     unit: ''       },
-                                { label: 'Objectif',   val: '100',                                                        unit: 'cartes' },
-                              ];
-                            })(),
-                            pct: (() => {
-                              const known   = pr.flashcardsReviewed || 0;
-                              const unknown = pr.flashcardsUnknown  || 0;
-                              const total   = known + unknown;
-                              return total > 0 ? Math.min(Math.round((known / total) * 100), 100) : 0;
-                            })(),
-                          },
-                          {
-                            label: 'Exercices',
-                            color: '#14b8a6',
-                            bg: 'from-teal-50 to-teal-100/60',
-                            border: 'border-teal-100',
-                            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>,
-                            rows: [
-                              { label: 'Complétés', val: eTotal, unit: 'exercices'  },
-                              { label: 'Réussis',   val: '—',    unit: ''           },
-                              { label: 'Erreurs',   val: '—',    unit: ''           },
-                              { label: 'Objectif',  val: '30',   unit: 'exercices'  },
-                            ],
-                            pct: Math.min(Math.round(((pr.exercisesCompleted || 0) / 30) * 100), 100),
-                          },
-                        ];
-
-                        return (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {detailCards.map((dc, i) => (
-                              <motion.div
-                                key={dc.label}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.07 }}
-                                className={`rounded-xl border ${dc.border} bg-gradient-to-br ${dc.bg} p-4`}
-                              >
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center">
-                                    {dc.icon}
-                                  </div>
-                                  <span className="text-xs font-bold text-slate-700">{dc.label}</span>
-                                </div>
-                                <div className="space-y-1.5 mb-3">
-                                  {dc.rows.map((r, j) => (
-                                    <div key={j} className="flex items-center justify-between">
-                                      <span className="text-[10px] text-slate-500">{r.label}</span>
-                                      <span className="text-[11px] font-bold text-slate-700 tabular-nums">
-                                        {r.val}{r.unit ? <span className="text-[9px] font-normal text-slate-400 ml-0.5">{r.unit}</span> : null}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                                {/* Barre de progression */}
-                                <div className="mt-2">
-                                  <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[10px] text-slate-400">Progression</span>
-                                    <span className="text-[10px] font-bold" style={{ color: dc.color }}>{dc.pct}%</span>
-                                  </div>
-                                  <div className="h-1.5 bg-white/70 rounded-full overflow-hidden">
-                                    <motion.div
-                                      className="h-full rounded-full"
-                                      style={{ background: dc.color }}
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${dc.pct}%` }}
-                                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                                    />
-                                  </div>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-
-                      <p className="text-[10px] text-slate-300 text-center">
-                        Données basées sur ta progression enregistrée · Le suivi d'erreurs détaillé arrive prochainement
-                      </p>
+              {/* Daily goals */}
+              <motion.div {...fade(0.2)}>
+                <Card style={{ padding:'26px 28px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+                    <div>
+                      <h2 className="nunito" style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:2 }}>Objectifs du jour</h2>
+                      <p style={{ fontSize:12, color:C.muted }}>Tes cibles quotidiennes</p>
                     </div>
-                  </motion.div>
-                )}
-                </AnimatePresence>
+                    <motion.button
+                      whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
+                      onClick={() => { setEditGoals({ ...dailyGoals }); setShowModal(true); }}
+                      style={{ display:'flex', alignItems:'center', gap:5, background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:'8px 14px', cursor:'pointer', color:C.muted, fontSize:12, fontWeight:600, boxShadow:clay.sm }}
+                      aria-label="Modifier les objectifs"
+                    >
+                      {Icon.edit} Modifier
+                    </motion.button>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+                    {GOALS.map((g, i) => <ProgressBar key={i} {...g} />)}
+                  </div>
+                </Card>
               </motion.div>
 
               {/* Quick actions */}
-              <div>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-4"
-                >
-                  Accès rapide
-                </motion.p>
+              <motion.div {...fade(0.3)}>
+                <h2 className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:14, paddingLeft:4 }}>Accès rapide</h2>
                 <motion.div
-                  variants={container} initial="hidden" animate="show"
-                  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
+                  initial="hidden" animate="show"
+                  variants={{ hidden:{}, show:{ transition:{ staggerChildren:0.06, delayChildren:0.25 } } }}
+                  style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}
+                  className="actions-grid"
                 >
-                  {quickActions.map((a, i) => (
-                    <motion.div key={i} variants={item} className="h-full">
-                      <TiltCard>
-                        <Link to={a.to} className="block rounded-2xl overflow-hidden focus:outline-none h-full">
-                          <motion.div
-                            className={`bg-gradient-to-br ${a.grad} p-5 shadow-xl ${a.shadow} flex flex-col`}
-                            style={{ height: '190px' }}
-                            whileHover={{ scale: 1.04, boxShadow: '0 20px 40px -8px rgba(0,0,0,0.25)' }}
-                            whileTap={{ scale: 0.97 }}
-                            transition={{ type: 'spring', stiffness: 350, damping: 22 }}
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 flex-shrink-0">
-                              {a.icon}
-                            </div>
-                            <p className="text-sm font-bold text-white leading-tight h-10 flex items-start">{a.label}</p>
-                            <p className="text-xs text-white/65 mt-0.5 mb-3">{a.desc}</p>
-                            <div className="flex items-center gap-1 text-white/80 mt-auto">
-                              <span className="text-xs font-semibold">Commencer</span>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                            </div>
-                          </motion.div>
-                        </Link>
-                      </TiltCard>
+                  <style>{`.actions-grid { @media(max-width:600px){ grid-template-columns:repeat(2,1fr) !important; } }`}</style>
+                  {ACTIONS.map((a, i) => (
+                    <motion.div key={i} variants={{ hidden:{ opacity:0, y:16, scale:0.94 }, show:{ opacity:1, y:0, scale:1, transition:{ duration:0.4, ease:[0.16,1,0.3,1] } } }}>
+                      <Link to={a.to} style={{ textDecoration:'none', display:'block' }}>
+                        <motion.div
+                          whileHover={{ scale:1.04, y:-3 }}
+                          whileTap={{ scale:0.93, boxShadow:clay.pressed }}
+                          transition={spring}
+                          style={{ background:`linear-gradient(${a.grad})`, borderRadius:22, padding:'20px 16px', boxShadow:clay.btn(a.color), cursor:'pointer', position:'relative', overflow:'hidden', minHeight:130 }}
+                        >
+                          {/* Shine */}
+                          <div style={{ position:'absolute', top:0, left:0, right:0, height:'50%', background:'linear-gradient(180deg,rgba(255,255,255,0.18),transparent)', borderRadius:'22px 22px 0 0', pointerEvents:'none' }} aria-hidden/>
+                          <div style={{ color:'#fff', marginBottom:12 }}>{a.icon}</div>
+                          <p style={{ fontSize:13, fontWeight:800, color:'#fff', marginBottom:4, fontFamily:'Nunito,sans-serif', lineHeight:1.2 }}>{a.label}</p>
+                          <p style={{ fontSize:10, color:'rgba(255,255,255,0.7)', marginBottom:10 }}>{a.desc}</p>
+                          <div style={{ display:'flex', alignItems:'center', gap:2, color:'rgba(255,255,255,0.85)', fontSize:11, fontWeight:600 }}>
+                            Ouvrir {Icon.arrow}
+                          </div>
+                        </motion.div>
+                      </Link>
                     </motion.div>
                   ))}
                 </motion.div>
-              </div>
-
+              </motion.div>
             </div>
 
-            {/* ── Right col (1/3) ─────────────────────────────────────── */}
-            <motion.div
-              initial={{ opacity: 0, x: 22 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-              className="space-y-4"
-            >
+            {/* RIGHT SIDEBAR */}
+            <motion.div {...fade(0.25)} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
               {/* Streak card */}
-              <div className="rounded-2xl p-5 text-white relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#0891b2 100%)' }}>
-                {/* Glow orb */}
-                <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none"
-                  style={{ background:'radial-gradient(circle,#38bdf8,transparent)', opacity:0.25, filter:'blur(16px)' }}/>
-
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#fb923c" stroke="none">
-                        <path d="M12 2c0 0-4 5.5-4 9.5a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/>
-                        <path d="M12 13c0 0-1.5 1.5-1.5 3a1.5 1.5 0 0 0 3 0C13.5 14.5 12 13 12 13z" fill="#fde68a"/>
-                      </svg>
-                    </div>
-                    <p className="text-xs font-medium text-blue-200">Série en cours</p>
-                  </div>
-
-                  <motion.p
-                    className="text-5xl font-bold tabular-nums"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.65, type: 'spring', stiffness: 260, damping: 18 }}
-                  >
-                    {streak}
-                  </motion.p>
-                  <p className="text-xs text-blue-300 mt-1">
-                    {streak === 0 ? 'connecte-toi demain pour commencer !' : `jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''}`}
-                  </p>
-
-                  {/* Barre de progression streak */}
-                  <div className="mt-4 flex gap-1.5">
-                    {[...Array(7)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{ delay: 0.75 + i * 0.06, type: 'spring' }}
-                        className={`flex-1 h-1.5 rounded-full origin-bottom ${
-                          i < streak ? 'bg-cyan-400 shadow-sm shadow-cyan-400/50' : 'bg-white/15'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-blue-400/60 mt-2">objectif 7 jours</p>
+              <Card style={{ padding:'24px', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'radial-gradient(circle,rgba(249,115,22,0.18),transparent)', pointerEvents:'none' }} aria-hidden/>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+                  {Icon.fire}
+                  <span className="nunito" style={{ fontSize:13, fontWeight:800, color:C.orange }}>Série active</span>
                 </div>
-              </div>
-
-              {/* Upgrade nudge — free users */}
-              {user?.subscription === 'free' && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="bg-white rounded-2xl border border-blue-100 p-5 shadow-sm relative overflow-hidden"
+                <motion.p
+                  className="nunito"
+                  initial={{ scale:0.4, opacity:0 }}
+                  animate={{ scale:1, opacity:1 }}
+                  transition={{ delay:0.5, ...spring }}
+                  style={{ fontSize:60, fontWeight:900, color:C.text, lineHeight:1, fontVariantNumeric:'tabular-nums', marginBottom:4 }}
                 >
-                  <div className="absolute top-0 right-0 w-20 h-20 rounded-full pointer-events-none"
-                    style={{ background:'radial-gradient(circle,#bfdbfe,transparent)', opacity:0.5, filter:'blur(14px)', transform:'translate(8px,-8px)' }}/>
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                      style={{ background:'linear-gradient(135deg,#164e8a,#0891b2)' }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
-                    <p className="text-sm font-bold text-slate-800 mb-1">Passe en Pro</p>
-                    <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                      Quiz illimités, toutes les fiches, flashcards sans limite et fiches IA.
-                    </p>
-                    <Link to="/dashboard/subscription">
-                      <motion.div
-                        className="w-full py-2.5 rounded-xl text-xs font-bold text-white text-center cursor-pointer"
-                        style={{ background:'linear-gradient(135deg,#164e8a,#0891b2)' }}
-                        whileHover={{ scale: 1.02, boxShadow:'0 8px 24px rgba(8,145,178,0.4)' }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Voir les offres →
-                      </motion.div>
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
+                  {streak}
+                </motion.p>
+                <p style={{ fontSize:12, color:C.muted, marginBottom:16 }}>
+                  {streak === 0 ? 'Reviens demain pour démarrer !' : `jour${streak > 1?'s':''} consécutif${streak > 1?'s':''}`}
+                </p>
+                <div style={{ display:'flex', gap:6 }}>
+                  {Array.from({ length:7 }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ scaleY:0 }} animate={{ scaleY:1 }}
+                      transition={{ delay:0.55 + i*0.06, ...spring }}
+                      style={{ flex:1, height:6, borderRadius:99, transformOrigin:'bottom', background:i < streak ? `linear-gradient(135deg,${C.orange},${C.amber})` : '#e0e7ff', boxShadow:i < streak ? `0 2px 6px rgba(234,88,12,0.4)` : 'none' }}
+                    />
+                  ))}
+                </div>
+                <p style={{ fontSize:10, color:C.muted, marginTop:6 }}>Objectif : 7 jours</p>
+              </Card>
 
-              {/* Tip of the day */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="12" y1="8" x2="12" y2="12"/>
-                      <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
+              {/* Tip card */}
+              <Card style={{ padding:'22px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                  <div style={{ width:30, height:30, borderRadius:10, background:'#fffbeb', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:clay.sm }}>
+                    {Icon.bulb}
                   </div>
-                  <p className="text-xs font-semibold text-slate-700">Conseil du jour</p>
-                  <span className="ml-auto text-[10px] text-slate-300">{tipIdx + 1}/{TIPS.length}</span>
+                  <span className="nunito" style={{ fontSize:13, fontWeight:800, color:C.text }}>Conseil du jour</span>
+                  <span style={{ marginLeft:'auto', fontSize:10, color:C.muted, fontVariantNumeric:'tabular-nums' }}>{tipIdx+1}/{TIPS.length}</span>
                 </div>
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={tipIdx}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35 }}
-                    className="text-xs text-slate-500 leading-relaxed"
+                    initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
+                    transition={{ duration:0.25 }}
+                    style={{ fontSize:12, color:C.muted, lineHeight:1.75 }}
                   >
                     {TIPS[tipIdx]}
                   </motion.p>
                 </AnimatePresence>
-                <div className="flex gap-1 mt-3">
+                <div style={{ display:'flex', gap:5, marginTop:14 }}>
                   {TIPS.map((_, i) => (
-                    <button key={i} onClick={() => setTipIdx(i)}
-                      className={`h-1 rounded-full transition-all ${i === tipIdx ? 'w-5 bg-amber-400' : 'w-1.5 bg-slate-200'}`}/>
+                    <button key={i} onClick={() => setTipIdx(i)} aria-label={`Conseil ${i+1}`}
+                      style={{ height:4, borderRadius:99, border:'none', cursor:'pointer', transition:'all 0.2s', background:i===tipIdx?C.amber:'#e0e7ff', width:i===tipIdx?20:6, boxShadow:i===tipIdx?`0 2px 6px ${C.amber}66`:'none' }}
+                    />
                   ))}
                 </div>
-              </motion.div>
+              </Card>
+
+              {/* Upgrade card — free only */}
+              {user?.subscription === 'free' && (
+                <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.45 }}>
+                  <Card style={{ padding:'24px', background:`linear-gradient(135deg,#4338ca,${C.indigo})`, border:'none', boxShadow:clay.btn(C.indigo), position:'relative', overflow:'hidden' }}>
+                    <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 10% 10%,rgba(255,255,255,0.15),transparent 60%)', pointerEvents:'none' }} aria-hidden/>
+                    <div style={{ position:'relative' }}>
+                      <div style={{ width:40, height:40, borderRadius:14, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14, color:'#fff', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+                        {Icon.star}
+                      </div>
+                      <p className="nunito" style={{ fontSize:15, fontWeight:900, color:'#fff', marginBottom:6 }}>Passe en Pro</p>
+                      <p style={{ fontSize:12, color:'rgba(255,255,255,0.75)', lineHeight:1.6, marginBottom:16 }}>
+                        Quiz illimités, fiches IA, flashcards sans limite.
+                      </p>
+                      <Link to="/dashboard/subscription" style={{ textDecoration:'none' }}>
+                        <motion.div
+                          whileHover={{ scale:1.03 }} whileTap={{ scale:0.96 }}
+                          style={{ background:'#fff', borderRadius:14, padding:'11px 0', textAlign:'center', fontSize:13, fontWeight:800, color:C.indigo, cursor:'pointer', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 0 rgba(0,0,0,0.08)', fontFamily:'Nunito,sans-serif' }}
+                        >
+                          Voir les offres →
+                        </motion.div>
+                      </Link>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
 
             </motion.div>
           </div>
         </div>
       </main>
 
-      {/* ── Goals edit modal ──────────────────────────────────────────── */}
+      {/* ── Goals Modal ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
-      {showGoalsModal && (
-        <motion.div
-          key="goals-modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setShowGoalsModal(false)}
-        >
+        {showModal && (
           <motion.div
-            key="goals-modal"
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-            onClick={e => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+            key="backdrop"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            onClick={() => setShowModal(false)}
+            style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:16, background:'rgba(30,27,75,0.45)', backdropFilter:'blur(8px)' }}
           >
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-sm font-bold text-slate-800">Modifier mes objectifs</h3>
-              <button onClick={() => setShowGoalsModal(false)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
+            <motion.div
+              key="modal"
+              initial={{ opacity:0, scale:0.92, y:20 }}
+              animate={{ opacity:1, scale:1, y:0 }}
+              exit={{ opacity:0, scale:0.92, y:20 }}
+              transition={{ ...spring }}
+              onClick={e => e.stopPropagation()}
+              style={{ background:C.card, borderRadius:28, padding:28, width:'100%', maxWidth:380, boxShadow:clay.card }}
+            >
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+                <p className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text }}>Modifier mes objectifs</p>
+                <motion.button whileTap={{ scale:0.9 }} onClick={() => setShowModal(false)}
+                  style={{ width:34, height:34, borderRadius:12, background:C.bg, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:clay.sm }}
+                  aria-label="Fermer"
+                >
+                  {Icon.close}
+                </motion.button>
+              </div>
 
-            <div className="space-y-3">
-              {[
-                { key: 'quizPerDay',       label: 'Quiz par jour',       icon: '🧠', color: '#3b82f6', min: 1, max: 500 },
-                { key: 'flashcardsPerDay', label: 'Flashcards par jour', icon: '🃏', color: '#6366f1', min: 1, max: 999 },
-                { key: 'exercisesPerDay',  label: 'Exercices par jour',  icon: '✏️', color: '#14b8a6', min: 1, max: 200 },
-              ].map(({ key, label, icon, color, min, max }) => (
-                <div key={key} className="flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3">
-                  <span className="text-xl flex-shrink-0">{icon}</span>
-                  <label className="text-sm font-semibold text-slate-700 flex-1">{label}</label>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditGoals(g => ({ ...g, [key]: Math.max(min, g[key] - 1) }))}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all font-bold text-base"
-                    >−</button>
-                    <input
-                      type="number"
-                      min={min}
-                      max={max}
-                      value={editGoals[key]}
-                      onChange={e => {
-                        const v = Math.max(min, Math.min(max, parseInt(e.target.value) || min));
-                        setEditGoals(g => ({ ...g, [key]: v }));
-                      }}
-                      className="w-16 text-center text-base font-bold rounded-xl border-2 py-1 outline-none transition-all"
-                      style={{ borderColor: color + '60', color }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setEditGoals(g => ({ ...g, [key]: Math.min(max, g[key] + 1) }))}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all font-bold text-base"
-                    >+</button>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {[
+                  { key:'quizPerDay',       label:'Quiz par jour',       icon:Icon.quiz,  color:C.indigo, min:1, max:500 },
+                  { key:'flashcardsPerDay', label:'Flashcards par jour', icon:Icon.flash, color:C.violet, min:1, max:999 },
+                  { key:'exercisesPerDay',  label:'Exercices par jour',  icon:Icon.exo,   color:C.teal,   min:1, max:200 },
+                ].map(({ key, label, icon, color, min, max }) => (
+                  <div key={key} style={{ display:'flex', alignItems:'center', gap:12, background:C.bg, border:`1px solid ${C.border}`, borderRadius:16, padding:'12px 16px' }}>
+                    <div style={{ width:34, height:34, borderRadius:11, background:C.card, display:'flex', alignItems:'center', justifyContent:'center', color, flexShrink:0, boxShadow:clay.sm }}>{icon}</div>
+                    <span style={{ fontSize:12, fontWeight:600, color:C.text, flex:1 }}>{label}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      {[-1, null, 1].map((delta, j) => delta === null
+                        ? <input key="inp" type="number" min={min} max={max} value={editGoals[key]}
+                            onChange={e => { const v=Math.max(min,Math.min(max,parseInt(e.target.value)||min)); setEditGoals(g=>({...g,[key]:v})); }}
+                            style={{ width:52, textAlign:'center', fontSize:14, fontWeight:800, color, background:C.card, border:`2px solid ${color}40`, borderRadius:10, padding:'5px 0', outline:'none', fontFamily:'Nunito,sans-serif' }}
+                            aria-label={label}
+                          />
+                        : <motion.button key={j} whileTap={{ scale:0.88 }} type="button"
+                            onClick={() => setEditGoals(g=>({...g,[key]:Math.max(min,Math.min(max,g[key]+delta))}))}
+                            style={{ width:32, height:32, borderRadius:10, background:C.card, border:`1px solid ${C.border}`, color:C.muted, fontSize:18, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:clay.sm }}
+                            aria-label={delta === -1 ? 'Diminuer' : 'Augmenter'}
+                          >{delta === -1 ? '−' : '+'}</motion.button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowGoalsModal(false)}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={saveGoals}
-                disabled={savingGoals}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#164e8a,#0891b2)' }}
-              >
-                {savingGoals ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
-            </div>
+              <div style={{ display:'flex', gap:10, marginTop:22 }}>
+                <motion.button whileTap={{ scale:0.96 }} onClick={() => setShowModal(false)}
+                  style={{ flex:1, padding:'13px 0', borderRadius:16, background:C.bg, border:`1px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
+                  Annuler
+                </motion.button>
+                <motion.button whileTap={{ scale:0.96 }} onClick={saveGoals} disabled={saving}
+                  style={{ flex:1, padding:'13px 0', borderRadius:16, background:`linear-gradient(135deg,#4338ca,${C.indigo})`, border:'none', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', opacity:saving?0.6:1, boxShadow:clay.btn(C.indigo), fontFamily:'Nunito,sans-serif' }}>
+                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                </motion.button>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
       </AnimatePresence>
 
     </DashboardLayout>

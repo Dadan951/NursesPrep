@@ -3,3 +3,5 @@ node_modules/
 *.log
 frontend/build/
 .claude/
+graphify-out/
+extract-ifsi-metadata.ps1

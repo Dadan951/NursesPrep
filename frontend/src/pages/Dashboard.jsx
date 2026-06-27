@@ -223,22 +223,94 @@ function ProgressBar({ value, max, color, label, sublabel }) {
   );
 }
 
-/* ─── SVG Icons ───────────────────────────────────────────────────────────── */
+/* ─── SVG Icons — suite sur-mesure NursesPrep ────────────────────────────── */
 const Icon = {
-  quiz:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>,
-  flash:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="14" height="11" rx="2"/><rect x="8" y="9" width="14" height="11" rx="2"/></svg>,
-  exo:     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>,
-  star:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-  book:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
-  annale:  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>,
-  pill:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v2"/><circle cx="17" cy="17" r="5"/><path d="m14.5 19.5 5-5"/></svg>,
-  group:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  card:    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
-  fire:    <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2c0 0-4 5.5-4 9.5a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/><path d="M12 13c0 0-1.5 1.5-1.5 3a1.5 1.5 0 0 0 3 0C13.5 14.5 12 13 12 13z" fill="#fde68a"/></svg>,
-  bulb:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 0 1 7-7z"/></svg>,
-  edit:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  close:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  arrow:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+
+  // Quiz → Clipboard MCQ avec checkmark et lignes de réponses
+  quiz: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+    <path d="M9 3h6a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/>
+    <circle cx="8.5" cy="11.5" r=".85" fill="currentColor" stroke="none"/>
+    <line x1="11.5" y1="11.5" x2="16" y2="11.5"/>
+    <path d="m8 15.5 1.5 1.5 3.5-3.5"/>
+    <line x1="14" y1="15.5" x2="16" y2="15.5"/>
+  </svg>,
+
+  // Flashcards → Deux cartes empilées avec flèche de flip
+  flash: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="9" width="13" height="10" rx="2"/>
+    <rect x="9" y="5" width="13" height="10" rx="2"/>
+    <path d="M18.5 7.5V5.5l2.5 2-2.5 2"/>
+  </svg>,
+
+  // Exercices → Ligne ECG / électrocardiogramme (médical)
+  exo: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="2 12 5 12 7.5 5.5 10 18.5 12.5 10 14.5 14 16.5 12 22 12"/>
+  </svg>,
+
+  // Points → Trophée avec poignées et socle
+  star: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 3v8.5a6 6 0 0 0 12 0V3"/>
+    <path d="M6 6.5H4M20 6.5h-2"/>
+    <path d="M12 15.5v3.5"/>
+    <path d="M8 19h8"/>
+  </svg>,
+
+  // Cours → Livre ouvert avec spine central et lignes de texte
+  book: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 4a2 2 0 0 1 2-2h7v18H4a2 2 0 0 1-2-2V4z"/>
+    <path d="M22 4a2 2 0 0 0-2-2h-7v18h7a2 2 0 0 0 2-2V4z"/>
+    <line x1="12" y1="2" x2="12" y2="20"/>
+    <line x1="5" y1="8" x2="9" y2="8"/>
+    <line x1="5" y1="11" x2="8" y2="11"/>
+    <line x1="15" y1="8" x2="19" y2="8"/>
+    <line x1="15" y1="11" x2="18" y2="11"/>
+  </svg>,
+
+  // Annales → Document avec horloge superposée (sujets passés)
+  annale: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <circle cx="18" cy="17" r="4"/>
+    <polyline points="18 14.5 18 17 20 17"/>
+  </svg>,
+
+  // Médicaments → Capsule pilule en diagonale avec séparation
+  pill: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"/>
+    <line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/>
+  </svg>,
+
+  // Groupes → Deux personnes avec contour de la deuxième
+  group: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="7" r="3"/>
+    <path d="M3 21v-1a6 6 0 0 1 12 0v1"/>
+    <circle cx="18.5" cy="8" r="2.5"/>
+    <path d="M15 21a5 5 0 0 1 7 0"/>
+  </svg>,
+
+  // Abonnement → Couronne 5 pointes avec gemme centrale
+  card: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 19h18"/>
+    <path d="M3 19V13L6 9.5 9 15l3-9.5 3 9.5 3-5.5 3 3.5v6"/>
+    <circle cx="12" cy="9.5" r="1.2" fill="currentColor" stroke="none"/>
+  </svg>,
+
+  // Trophée (alias pour les cartes de stats si besoin)
+  trophy: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 3v8.5a6 6 0 0 0 12 0V3"/>
+    <path d="M6 6.5H4M20 6.5h-2"/>
+    <path d="M12 15.5v3.5"/>
+    <path d="M8 19h8"/>
+  </svg>,
+
+  // ─── UI icons (inchangés) ──────────────────────────────────────────────
+  fire:  <svg width="20" height="20" viewBox="0 0 24 24" fill="#f97316"><path d="M12 2c0 0-4 5.5-4 9.5a4 4 0 0 0 8 0C16 7.5 12 2 12 2z"/><path d="M12 13c0 0-1.5 1.5-1.5 3a1.5 1.5 0 0 0 3 0C13.5 14.5 12 13 12 13z" fill="#fde68a"/></svg>,
+  bulb:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 0 1 7-7z"/></svg>,
+  edit:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  close: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  arrow: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  star2: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17.3l-6.2 4L8.2 14 2 9.4h7.6L12 2z"/></svg>,
 };
 
 const TIPS = [
@@ -646,7 +718,7 @@ export default function Dashboard() {
                     <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 10% 10%,rgba(255,255,255,0.15),transparent 60%)', pointerEvents:'none' }} aria-hidden/>
                     <div style={{ position:'relative' }}>
                       <div style={{ width:40, height:40, borderRadius:14, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14, color:'#fff', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)' }}>
-                        {Icon.star}
+                        {Icon.star2}
                       </div>
                       <p className="nunito" style={{ fontSize:15, fontWeight:900, color:'#fff', marginBottom:6 }}>Passe en Pro</p>
                       <p style={{ fontSize:12, color:'rgba(255,255,255,0.75)', lineHeight:1.6, marginBottom:16 }}>

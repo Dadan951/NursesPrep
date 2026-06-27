@@ -10,13 +10,14 @@ const MIN_CONTENT = 100;
 /* ─── Durée estimée ──────────────────────────────────────────────────────── */
 function quizDuration(n) {
   if (n <= 8)  return 7;
-  if (n <= 10) return 10;
-  return 13;
+  if (n <= 12) return 10;
+  if (n <= 16) return 14;
+  return 18;
 }
 
 function difficultyLabel(n) {
   if (n <= 8)  return 'easy';
-  if (n <= 10) return 'medium';
+  if (n <= 12) return 'medium';
   return 'hard';
 }
 
@@ -29,7 +30,7 @@ UE : ${ueLabel}
 Semestre : ${semester}
 
 Décompose ce cours en chapitres/thèmes distincts tels qu'ils sont réellement enseignés dans les IFSI en France.
-Attribue à chaque chapitre un nombre de questions QCM adapté à sa richesse (entre 8 et 15).
+Pour chaque chapitre, détermine librement le nombre de questions QCM selon la richesse réelle du sujet.
 
 Règles de décomposition :
 - Cours court ou introduction → 1 chapitre
@@ -38,11 +39,18 @@ Règles de décomposition :
 - Cours très complet (ex: pharmacologie, infectiologie) → 4 chapitres maximum
 - Chaque chapitre doit pouvoir générer des questions DISTINCTES des autres chapitres
 
+Règles sur le nombre de questions :
+- Minimum : 8 questions par chapitre
+- Maximum absolu : 20 questions par chapitre
+- Adapte librement selon la richesse du contenu (pas de quota imposé entre 8 et 20)
+- Un sujet riche en définitions, valeurs, médicaments, signes cliniques → 15 à 20 questions
+- Un sujet introductif ou court → 8 à 10 questions
+
 Réponds UNIQUEMENT en JSON valide :
 {
   "chapters": [
-    { "title": "Titre précis du chapitre 1", "questions": 10 },
-    { "title": "Titre précis du chapitre 2", "questions": 8 }
+    { "title": "Titre précis du chapitre 1", "questions": 15 },
+    { "title": "Titre précis du chapitre 2", "questions": 20 }
   ]
 }`;
 }
@@ -56,9 +64,11 @@ function promptQCM(courseTitle, chapterTitle, ueLabel, semester, content, nbQues
 
   const niveauLabel = nbQuestions <= 8
     ? 'Niveau accessible — définitions et reconnaissances'
-    : nbQuestions <= 10
+    : nbQuestions <= 12
     ? 'Niveau standard — mécanismes et application clinique'
-    : 'Niveau complet — raisonnement clinique, valeurs précises, gestes infirmiers';
+    : nbQuestions <= 16
+    ? 'Niveau complet — raisonnement clinique, valeurs précises, gestes infirmiers'
+    : 'Niveau expert — cas cliniques, associations, surveillance infirmière approfondie';
 
   return `Tu es un formateur IFSI expert en France. Génère exactement ${nbQuestions} questions QCM.
 
@@ -187,7 +197,7 @@ module.exports = async (req, res) => {
           // Sécurité : max 4 chapitres, questions entre 8 et 15
           chapters = chapters.slice(0, 4).map(c => ({
             title:     c.title,
-            questions: Math.min(15, Math.max(8, parseInt(c.questions) || 10)),
+            questions: Math.min(20, Math.max(8, parseInt(c.questions) || 10)),
           }));
           console.log(`[GenContent]   → ${chapters.length} chapitre(s) détecté(s)`);
         } catch (e) {

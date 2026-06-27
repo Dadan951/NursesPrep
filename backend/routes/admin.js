@@ -63,6 +63,7 @@ router.post('/seed-cours-files', require('../seeds/seedCours_route'));
 router.post('/seed-cours-zip',   uploadZip.single('zip'), require('../seeds/seedCoursZip_route'));
 router.post('/seed-annales-zip',          uploadZip.single('zip'), require('../seeds/seedAnnalesZip_route'));
 router.post('/seed-ifsi-zip',             uploadZip.array('zips', 5), require('../seeds/seedIFSIZip_route'));
+router.post('/seed-ifsi-metadata',        require('../seeds/seedIFSIMetadata_route'));
 router.post('/generate-content-lessons', require('../seeds/generateContentFromLessons_route'));
 router.get('/lessons-inventory', async (req, res) => {
   try {

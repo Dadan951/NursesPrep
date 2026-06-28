@@ -291,7 +291,7 @@ function PersonalQuizList({ quizzes, onDelete, onPlay }) {
                 {new Date(quiz.createdAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })}
               </p>
               <motion.button onClick={() => onPlay(quiz._id)} whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
-                style={{ width:'100%', padding:'10px 0', borderRadius:14, border:'none', background:`linear-gradient(135deg,#4338ca,${C.indigo})`, color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn(C.indigo,'#312e81') }}>
+                style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', background:`linear-gradient(135deg,#4338ca,${C.indigo})`, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn(C.indigo,'#312e81') }}>
                 Commencer →
               </motion.button>
             </div>

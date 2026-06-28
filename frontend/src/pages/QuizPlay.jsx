@@ -316,7 +316,7 @@ export default function QuizPlay() {
                 ▶ Reprendre où je me suis arrêté
               </motion.button>
               <motion.button onClick={handleRestart} whileTap={{ scale:0.97 }}
-                style={{ width:'100%', padding:'11px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
+                style={{ width:'100%', padding:'12px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
                 Recommencer depuis le début
               </motion.button>
               <button onClick={() => navigate('/dashboard/quiz')}
@@ -514,18 +514,18 @@ export default function QuizPlay() {
               )}
               <motion.button whileTap={{ scale:0.96 }}
                 onClick={() => { setReviewIdx(0); setReviewMode(true); }}
-                style={{ width:'100%', padding:'11px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.indigo, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                style={{ width:'100%', padding:'12px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.indigo, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
                 Revoir toutes les questions
               </motion.button>
               <div style={{ display:'flex', gap:10 }}>
                 <motion.button onClick={() => navigate('/dashboard/quiz')} whileTap={{ scale:0.96 }}
-                  style={{ flex:1, padding:'11px 0', borderRadius:14, border:`1.5px solid ${C.border}`, background:C.bg, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
+                  style={{ flex:1, padding:'12px 0', borderRadius:14, border:`1.5px solid ${C.border}`, background:C.bg, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
                   ← Retour
                 </motion.button>
                 <motion.button whileTap={{ scale:0.96 }} whileHover={{ scale:1.01 }}
                   onClick={() => { setCurrent(0); setSelected(null); setAnswered(false); setScore(0); setDone(false); setAnswers([]); setReviewMode(false); setTimeLeft(quiz.duration*60); setShuffledQuestions(shuffleOptions(quiz.questions)); setReady(true); }}
-                  style={{ flex:1, padding:'11px 0', borderRadius:14, border:'none', background:`linear-gradient(135deg,#1e293b,#334155)`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.btn('#334155','#0f172a') }}>
+                  style={{ flex:1, padding:'12px 0', borderRadius:14, border:'none', background:`linear-gradient(135deg,#1e293b,#334155)`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.btn('#334155','#0f172a') }}>
                   Recommencer
                 </motion.button>
               </div>
@@ -641,7 +641,7 @@ export default function QuizPlay() {
 
                     {/* Bouton Question suivante */}
                     <motion.button onClick={handleNext} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
-                      style={{ width:'100%', padding:'16px 0', borderRadius:18, border:'none', background:`linear-gradient(135deg,#4338ca,${C.indigo})`, color:'#fff', fontSize:15, fontWeight:900, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn(C.indigo,'#312e81'), display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                      style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', background:`linear-gradient(135deg,#4338ca,${C.indigo})`, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn(C.indigo,'#312e81'), display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                       {current + 1 >= total
                         ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>Voir les résultats</>
                         : <>Question suivante <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg></>

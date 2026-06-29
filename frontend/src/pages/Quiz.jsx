@@ -426,24 +426,21 @@ export default function Quiz() {
           {/* Shine */}
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.18), transparent 60%)', pointerEvents:'none' }} aria-hidden/>
 
-          <div style={{ position:'relative', maxWidth:1152, margin:'0 auto', padding:'28px 24px 0' }}>
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:22 }}>
-              <div>
-                <p style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.55)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4 }}>NursesPrep · IFSI</p>
-                <h1 className="nunito" style={{ fontSize:28, fontWeight:900, color:'#fff', lineHeight:1.15, marginBottom:4 }}>Quiz</h1>
-                <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)' }}>Testez vos connaissances par unité d'enseignement</p>
+          <div style={{ position:'relative', padding:'28px 24px 0' }}>
+            <p style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.55)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4 }}>NursesPrep · IFSI</p>
+            <h1 className="nunito" style={{ fontSize:28, fontWeight:900, color:'#fff', lineHeight:1.15, marginBottom:4 }}>Quiz</h1>
+            <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)', marginBottom:16 }}>Testez vos connaissances par unité d'enseignement</p>
+
+            {tab === 'catalogue' && (
+              <div style={{ display:'flex', gap:20, marginBottom:20 }}>
+                {[{ n:totalQuizzes, l:'Quiz', c:'#fff' }, { n:semesters.length, l:'Semestres', c:'#c4b5fd' }].map(s => (
+                  <div key={s.l}>
+                    <p className="nunito" style={{ fontSize:22, fontWeight:900, color:s.c, lineHeight:1 }}>{s.n}</p>
+                    <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:2 }}>{s.l}</p>
+                  </div>
+                ))}
               </div>
-              {tab === 'catalogue' && (
-                <div style={{ display:'flex', gap:16, paddingBottom:4 }}>
-                  {[{ n:totalQuizzes, l:'Quiz' }, { n:semesters.length, l:'Semestres' }].map(s => (
-                    <div key={s.l} style={{ textAlign:'center' }}>
-                      <p className="nunito" style={{ fontSize:22, fontWeight:900, color:'#fff', lineHeight:1 }}>{s.n}</p>
-                      <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:2 }}>{s.l}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Tab bar */}
             <div style={{ display:'flex', gap:2 }}>
@@ -458,7 +455,7 @@ export default function Quiz() {
         </div>
 
         {/* ── CONTENT ──────────────────────────────────────────────────── */}
-        <div style={{ maxWidth:1152, margin:'0 auto', padding:'24px' }}>
+        <div style={{ padding:'24px 16px' }}>
 
           {/* ── CATALOGUE ── */}
           {tab === 'catalogue' && (

@@ -214,7 +214,8 @@ function SectionLabel({ children, isDark }) {
       fontWeight: 700,
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
-      color: isDark ? '#334155' : '#a5b4fc',
+      color: isDark ? '#334155' : 'var(--theme-primary)',
+      opacity: isDark ? 1 : 0.55,
       userSelect: 'none',
     }}>
       {children}
@@ -255,14 +256,14 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
       <div style={{
         position: 'absolute', top: -24, right: -24, width: 120, height: 120,
         borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(circle,#a5b4fc,transparent)',
-        opacity: isDark ? 0.08 : 0.35, filter: 'blur(24px)',
+        background: 'radial-gradient(circle,var(--theme-primary),transparent)',
+        opacity: isDark ? 0.08 : 0.25, filter: 'blur(24px)',
       }}/>
       <div style={{
         position: 'absolute', bottom: 80, left: -32, width: 100, height: 100,
         borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(circle,#c4b5fd,transparent)',
-        opacity: isDark ? 0.06 : 0.2, filter: 'blur(30px)',
+        background: 'radial-gradient(circle,var(--theme-secondary),transparent)',
+        opacity: isDark ? 0.06 : 0.15, filter: 'blur(30px)',
       }}/>
 
       {/* ── Logo ──────────────────────────────────────────────────────── */}
@@ -279,8 +280,8 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
           {isAdmin && (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-              background: `${C.indigo}18`, color: C.indigo,
-              border: `1px solid ${C.indigo}30`,
+              background: 'rgba(var(--theme-primary-rgb),0.10)', color: 'var(--theme-primary)',
+              border: '1px solid rgba(var(--theme-primary-rgb),0.25)',
             }}>Admin</span>
           )}
           {onClose && (
@@ -293,7 +294,7 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
                 background: isDark ? '#1e2d50' : C.hover, border: `1px solid ${border}`, cursor: 'pointer',
               }}
               aria-label="Fermer le menu">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={C.indigo} strokeWidth="2.5">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" strokeWidth="2.5">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </motion.button>
@@ -313,13 +314,13 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
               border: `1.5px solid ${border}`,
               transition: 'all 0.18s',
             }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <span style={{ fontSize: 12, color: isDark ? '#4a5568' : '#a5b4fc', flex: 1 }}>Rechercher…</span>
+            <span style={{ fontSize: 12, color: isDark ? '#4a5568' : 'var(--theme-primary)', opacity: 0.6, flex: 1 }}>Rechercher…</span>
             <kbd style={{
               display: 'flex', alignItems: 'center', gap: 2, fontSize: 9,
-              color: isDark ? '#334155' : '#a5b4fc',
+              color: isDark ? '#334155' : 'var(--theme-primary)',
               border: `1px solid ${border}`, borderRadius: 5, padding: '2px 5px', lineHeight: 1,
             }}>⌘K</kbd>
           </button>
@@ -356,8 +357,8 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
                       layoutId={isAdmin ? 'admin-pill' : 'student-pill'}
                       style={{
                         position: 'absolute', inset: 0, borderRadius: 12,
-                        background: 'linear-gradient(135deg,#4F46E5,#7C3AED)',
-                        boxShadow: '0 4px 12px rgba(79,70,229,0.35), 0 1px 0 rgba(255,255,255,0.15) inset',
+                        background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))',
+                        boxShadow: '0 4px 12px rgba(var(--theme-primary-rgb),0.35), 0 1px 0 rgba(255,255,255,0.15) inset',
                       }}
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
@@ -369,14 +370,14 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
                       whileHover={{ opacity: 1 }}
                       style={{
                         position: 'absolute', inset: 0, borderRadius: 12,
-                        background: isDark ? C.hoverDark : C.hover,
+                        background: isDark ? C.hoverDark : 'rgba(var(--theme-primary-rgb),0.08)',
                       }}
                     />
                   )}
                   {/* Icon */}
                   <span style={{
                     position: 'relative', zIndex: 1, flexShrink: 0,
-                    color: isActive ? '#fff' : isDark ? '#4a6080' : C.sub,
+                    color: isActive ? '#fff' : isDark ? '#4a6080' : 'var(--theme-primary)',
                     transition: 'color 0.18s',
                     display: 'flex', alignItems: 'center',
                   }}>
@@ -432,13 +433,13 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
                           whileHover={{ opacity: 1 }}
                           style={{
                             position: 'absolute', inset: 0, borderRadius: 12,
-                            background: isDark ? C.hoverDark : C.hover,
+                            background: isDark ? C.hoverDark : 'rgba(var(--theme-primary-rgb),0.08)',
                           }}
                         />
                       )}
                       <span style={{
                         position: 'relative', zIndex: 1, flexShrink: 0,
-                        color: isActive ? '#fff' : isDark ? '#4a6080' : C.sub,
+                        color: isActive ? '#fff' : isDark ? '#4a6080' : 'var(--theme-primary)',
                         display: 'flex', alignItems: 'center',
                       }}>
                         {link.icon}
@@ -487,7 +488,7 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
                 <p style={{ fontSize: 10, color: C.muted,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{user?.email}</p>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" style={{ flexShrink: 0 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--theme-primary)" strokeWidth="2" style={{ flexShrink: 0 }}>
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>

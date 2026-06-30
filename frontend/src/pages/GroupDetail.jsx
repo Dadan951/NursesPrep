@@ -43,15 +43,23 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
   const [showComments, setShowComments] = useState(false);
   const [comment,      setComment]      = useState('');
   const [loading,      setLoading]      = useState(false);
+  const [liked,        setLiked]        = useState(() => post.likes.some(l => (l?._id || l) === currentUserId));
+  const [likeCount,    setLikeCount]    = useState(post.likes.length);
 
-  const liked = post.likes.some(l => (l._id || l) === currentUserId);
-  const tc    = TYPE_CONFIG[post.type] || TYPE_CONFIG.text;
+  const tc = TYPE_CONFIG[post.type] || TYPE_CONFIG.text;
 
   const handleLike = async () => {
+    const next = !liked;
+    setLiked(next);
+    setLikeCount(c => next ? c + 1 : c - 1);
     try {
       const { data } = await axios.post(`${API_URL}/groups/${groupId}/posts/${post._id}/like`);
-      onUpdate(post._id, { likes:Array(data.likes).fill(null), _liked:data.liked });
-    } catch {}
+      setLiked(data.liked);
+      setLikeCount(data.likes);
+    } catch {
+      setLiked(!next);
+      setLikeCount(c => next ? c - 1 : c + 1);
+    }
   };
 
   const handleComment = async (e) => {
@@ -92,7 +100,7 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill={liked?'currentColor':'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
-          {post.likes.length > 0 && <span>{post.likes.length}</span>}
+          {likeCount > 0 && <span>{likeCount}</span>}
           J'aime
         </motion.button>
         <motion.button onClick={() => setShowComments(v => !v)} whileTap={{scale:0.92}}
@@ -250,7 +258,7 @@ export default function GroupDetail() {
 
   if (!group) return null;
 
-  const isCreator = group.creator?._id === user?._id || group.creator === user?._id;
+  const isCreator = group.isCreator ?? (group.creator?._id?.toString() === user?._id?.toString());
   const isMember  = group.isMember;
 
   return (

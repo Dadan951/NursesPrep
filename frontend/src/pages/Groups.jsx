@@ -27,6 +27,7 @@ const fade = (delay = 0) => ({ initial:{opacity:0,y:16}, animate:{opacity:1,y:0}
 
 /* ─── CreateGroupModal ───────────────────────────────────────────────────── */
 function CreateGroupModal({ onClose, onCreate }) {
+  const navigate  = useNavigate();
   const [form,    setForm]    = useState({ name:'', description:'', category:'Général', isPrivate:false });
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(null);
@@ -38,7 +39,7 @@ function CreateGroupModal({ onClose, onCreate }) {
     try {
       const { data } = await axios.post(`${API_URL}/groups`, form);
       onCreate(data);
-      setCreated({ name:data.name, joinCode:data.joinCode, isPrivate:data.isPrivate });
+      setCreated({ name:data.name, joinCode:data.joinCode, isPrivate:data.isPrivate, _id:data._id });
     } catch (err) {
       alert(err.response?.data?.message || 'Erreur');
     } finally {
@@ -157,7 +158,7 @@ function CreateGroupModal({ onClose, onCreate }) {
               )}
             </div>
             <p style={{ fontSize:11, color:C.sub, marginBottom:16 }}>Vous pourrez retrouver cette clé à tout moment dans la page du groupe.</p>
-            <motion.button onClick={onClose} whileTap={{scale:0.97}}
+            <motion.button onClick={() => { onClose(); navigate(`/dashboard/groups/${created._id}`); }} whileTap={{scale:0.97}}
               style={{ width:'100%', padding:'13px 0', borderRadius:14, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:clay.btn() }}>
               Accéder au groupe
             </motion.button>
@@ -454,7 +455,14 @@ export default function Groups() {
         {showCreate && (
           <CreateGroupModal
             onClose={() => setShowCreate(false)}
-            onCreate={g => setGroups(prev => [{ ...g, isMember:true, isPending:false }, ...prev])}
+            onCreate={g => {
+              const newGroup = { ...g, isMember:true, isPending:false };
+              setGroups(prev => {
+                const next = [newGroup, ...prev];
+                setCache('groups_list', next);
+                return next;
+              });
+            }}
           />
         )}
         {showJoinByCode && (

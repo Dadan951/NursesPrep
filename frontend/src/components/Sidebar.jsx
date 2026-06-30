@@ -1,26 +1,20 @@
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import UserAvatar from './UserAvatar';
 import NursesLogo from './NursesLogo';
 
-/* ─── Design tokens ─────────────────────────────────────────────────────────── */
-const C = {
-  bg:     '#f8f9ff',
-  bgDark: '#090f1e',
-  indigo: '#4F46E5',
-  violet: '#7C3AED',
-  text:   '#1e1b4b',
-  sub:    '#6366f1',
-  muted:  '#94a3b8',
-  border: '#e0e7ff',
-  borderDark: '#1e2d50',
-  hover:  '#EEF2FF',
-  hoverDark: '#131f38',
+/* ─── Couleurs sur fond hero (dark gradient) ─────────────────────────────── */
+const W = {
+  text:   'rgba(255,255,255,0.92)',
+  sub:    'rgba(255,255,255,0.55)',
+  muted:  'rgba(255,255,255,0.38)',
+  border: 'rgba(255,255,255,0.12)',
+  hover:  'rgba(255,255,255,0.08)',
+  active: 'rgba(255,255,255,0.16)',
 };
 
-/* ─── Nav link definitions ───────────────────────────────────────────────── */
+/* ─── Nav links ──────────────────────────────────────────────────────────── */
 const studentLinks = [
   {
     to: '/dashboard', label: 'Tableau de bord', exact: true,
@@ -205,27 +199,78 @@ const adminLinks = [
   },
 ];
 
-/* ─── Section label ──────────────────────────────────────────────────────── */
-function SectionLabel({ children, isDark }) {
+function SectionLabel({ children }) {
   return (
     <p style={{
       padding: '18px 12px 6px',
-      fontSize: 9,
-      fontWeight: 700,
-      letterSpacing: '0.12em',
-      textTransform: 'uppercase',
-      color: isDark ? '#334155' : '#a5b4fc',
-      userSelect: 'none',
+      fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+      textTransform: 'uppercase', color: W.muted, userSelect: 'none',
     }}>
       {children}
     </p>
   );
 }
 
+/* ─── NavItem ──────────────────────────────────────────────────────────── */
+function NavItem({ link, pillId, delay, onClose }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -14 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+      <NavLink
+        to={link.to} end={link.exact} onClick={onClose}
+        style={{ textDecoration: 'none', display: 'block', marginBottom: 2 }}>
+        {({ isActive }) => (
+          <div style={{
+            position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 10px', borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+          }}>
+            {/* Active pill — frosted glass blanc */}
+            {isActive && (
+              <motion.div
+                layoutId={pillId}
+                style={{
+                  position: 'absolute', inset: 0, borderRadius: 12,
+                  background: W.active,
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.18) inset',
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            {/* Hover shimmer */}
+            {!isActive && (
+              <motion.div
+                initial={{ opacity: 0 }} whileHover={{ opacity: 1 }}
+                style={{ position: 'absolute', inset: 0, borderRadius: 12, background: W.hover }}
+              />
+            )}
+            {/* Icon */}
+            <span style={{
+              position: 'relative', zIndex: 1, flexShrink: 0, display: 'flex', alignItems: 'center',
+              color: isActive ? W.text : W.sub, transition: 'color 0.18s',
+            }}>
+              {link.icon}
+            </span>
+            {/* Label */}
+            <span style={{
+              position: 'relative', zIndex: 1, fontSize: 13,
+              fontWeight: isActive ? 700 : 500, lineHeight: 1,
+              color: isActive ? W.text : W.sub, transition: 'color 0.18s',
+            }}>
+              {link.label}
+            </span>
+          </div>
+        )}
+      </NavLink>
+    </motion.div>
+  );
+}
+
 /* ─── Sidebar ────────────────────────────────────────────────────────────── */
 export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
   const { user, logout } = useAuth();
-  const { isDark } = useTheme();
   const navigate = useNavigate();
   const links = isAdmin ? adminLinks : studentLinks;
 
@@ -234,53 +279,52 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
   const mainLinks  = !isAdmin ? links.slice(0, 8) : links;
   const extraLinks = !isAdmin ? links.slice(8) : [];
 
-  const bg     = isDark ? C.bgDark : C.bg;
-  const border = isDark ? C.borderDark : C.border;
-
   return (
     <aside style={{
-      width: 232,
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-      overflow: 'hidden',
-      background: isDark
-        ? 'linear-gradient(180deg,#090f1e 0%,#0d1525 100%)'
-        : 'linear-gradient(180deg,#ffffff 0%,#f4f6ff 100%)',
-      borderRight: `1px solid ${border}`,
+      width: 232, height: '100%',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative', overflow: 'hidden',
+      background: 'var(--theme-hero)',
+      borderRight: `1px solid ${W.border}`,
+      transition: 'background 0.4s ease',
     }}>
 
-      {/* Orb de fond */}
+      {/* Orbs décoratifs blancs */}
       <div style={{
-        position: 'absolute', top: -24, right: -24, width: 120, height: 120,
+        position: 'absolute', top: -24, right: -24, width: 130, height: 130,
         borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(circle,#a5b4fc,transparent)',
-        opacity: isDark ? 0.08 : 0.35, filter: 'blur(24px)',
+        background: 'radial-gradient(circle,rgba(255,255,255,0.14),transparent)',
+        filter: 'blur(28px)',
       }}/>
       <div style={{
-        position: 'absolute', bottom: 80, left: -32, width: 100, height: 100,
+        position: 'absolute', bottom: 80, left: -32, width: 110, height: 110,
         borderRadius: '50%', pointerEvents: 'none',
-        background: 'radial-gradient(circle,#c4b5fd,transparent)',
-        opacity: isDark ? 0.06 : 0.2, filter: 'blur(30px)',
+        background: 'radial-gradient(circle,rgba(255,255,255,0.08),transparent)',
+        filter: 'blur(32px)',
+      }}/>
+      <div style={{
+        position: 'absolute', top: '45%', right: -16, width: 80, height: 80,
+        borderRadius: '50%', pointerEvents: 'none',
+        background: 'radial-gradient(circle,rgba(255,255,255,0.06),transparent)',
+        filter: 'blur(20px)',
       }}/>
 
       {/* ── Logo ──────────────────────────────────────────────────────── */}
       <div style={{
         padding: '14px 16px',
-        borderBottom: `1px solid ${border}`,
+        borderBottom: `1px solid ${W.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'relative', zIndex: 10,
       }}>
         <Link to="/" style={{ textDecoration: 'none' }} onClick={onClose}>
-          <NursesLogo size="sm" />
+          <NursesLogo size="sm" light />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {isAdmin && (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-              background: `${C.indigo}18`, color: C.indigo,
-              border: `1px solid ${C.indigo}30`,
+              background: 'rgba(255,255,255,0.15)', color: '#fff',
+              border: '1px solid rgba(255,255,255,0.25)',
             }}>Admin</span>
           )}
           {onClose && (
@@ -289,11 +333,12 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
               onClick={onClose}
               className="lg:hidden"
               style={{
-                width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: isDark ? '#1e2d50' : C.hover, border: `1px solid ${border}`, cursor: 'pointer',
+                width: 28, height: 28, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.12)', border: `1px solid ${W.border}`, cursor: 'pointer',
               }}
               aria-label="Fermer le menu">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={C.indigo} strokeWidth="2.5">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </motion.button>
@@ -309,18 +354,20 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 12px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-              background: isDark ? '#131f38' : C.hover,
-              border: `1.5px solid ${border}`,
-              transition: 'all 0.18s',
-            }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+              background: 'rgba(255,255,255,0.08)',
+              border: `1.5px solid ${W.border}`,
+              transition: 'background 0.18s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.13)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={W.sub} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <span style={{ fontSize: 12, color: isDark ? '#4a5568' : '#a5b4fc', flex: 1 }}>Rechercher…</span>
+            <span style={{ fontSize: 12, color: W.muted, flex: 1 }}>Rechercher…</span>
             <kbd style={{
               display: 'flex', alignItems: 'center', gap: 2, fontSize: 9,
-              color: isDark ? '#334155' : '#a5b4fc',
-              border: `1px solid ${border}`, borderRadius: 5, padding: '2px 5px', lineHeight: 1,
+              color: W.muted, border: `1px solid ${W.border}`,
+              borderRadius: 5, padding: '2px 5px', lineHeight: 1,
             }}>⌘K</kbd>
           </button>
         </div>
@@ -329,130 +376,25 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
       {/* ── Nav ───────────────────────────────────────────────────────── */}
       <nav style={{ flex: 1, padding: '4px 8px', overflowY: 'auto', position: 'relative', zIndex: 10 }}>
 
-        {!isAdmin && <SectionLabel isDark={isDark}>Menu principal</SectionLabel>}
+        {!isAdmin && <SectionLabel>Menu principal</SectionLabel>}
 
         {(isAdmin ? links : mainLinks).map((link, i) => (
-          <motion.div key={link.to}
-            initial={{ opacity: 0, x: -14 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.035, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
-            <NavLink
-              to={link.to}
-              end={link.exact}
-              onClick={onClose}
-              style={{ textDecoration: 'none', display: 'block', marginBottom: 2 }}>
-              {({ isActive }) => (
-                <div style={{
-                  position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 10px', borderRadius: 12, overflow: 'hidden',
-                  cursor: 'pointer', transition: 'background 0.18s',
-                  background: isActive
-                    ? 'transparent'
-                    : 'transparent',
-                }}>
-                  {/* Active pill */}
-                  {isActive && (
-                    <motion.div
-                      layoutId={isAdmin ? 'admin-pill' : 'student-pill'}
-                      style={{
-                        position: 'absolute', inset: 0, borderRadius: 12,
-                        background: 'linear-gradient(135deg,#4F46E5,#7C3AED)',
-                        boxShadow: '0 4px 12px rgba(79,70,229,0.35), 0 1px 0 rgba(255,255,255,0.15) inset',
-                      }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  {/* Hover shimmer */}
-                  {!isActive && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      whileHover={{ opacity: 1 }}
-                      style={{
-                        position: 'absolute', inset: 0, borderRadius: 12,
-                        background: isDark ? C.hoverDark : C.hover,
-                      }}
-                    />
-                  )}
-                  {/* Icon */}
-                  <span style={{
-                    position: 'relative', zIndex: 1, flexShrink: 0,
-                    color: isActive ? '#fff' : isDark ? '#4a6080' : C.sub,
-                    transition: 'color 0.18s',
-                    display: 'flex', alignItems: 'center',
-                  }}>
-                    {link.icon}
-                  </span>
-                  {/* Label */}
-                  <span style={{
-                    position: 'relative', zIndex: 1, fontSize: 13, fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#fff' : isDark ? '#64748b' : C.text,
-                    transition: 'color 0.18s, font-weight 0.18s',
-                    lineHeight: 1,
-                  }}>
-                    {link.label}
-                  </span>
-                </div>
-              )}
-            </NavLink>
-          </motion.div>
+          <NavItem
+            key={link.to} link={link}
+            pillId={isAdmin ? 'admin-pill' : 'student-pill'}
+            delay={i * 0.035} onClose={onClose}
+          />
         ))}
 
         {!isAdmin && extraLinks.length > 0 && (
           <>
-            <SectionLabel isDark={isDark}>Compte</SectionLabel>
+            <SectionLabel>Compte</SectionLabel>
             {extraLinks.map((link, i) => (
-              <motion.div key={link.to}
-                initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: (mainLinks.length + i) * 0.035, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
-                <NavLink
-                  to={link.to}
-                  end={link.exact}
-                  onClick={onClose}
-                  style={{ textDecoration: 'none', display: 'block', marginBottom: 2 }}>
-                  {({ isActive }) => (
-                    <div style={{
-                      position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 10px', borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
-                    }}>
-                      {isActive && (
-                        <motion.div
-                          layoutId="student-pill"
-                          style={{
-                            position: 'absolute', inset: 0, borderRadius: 12,
-                            background: 'linear-gradient(135deg,#4F46E5,#7C3AED)',
-                            boxShadow: '0 4px 12px rgba(79,70,229,0.35), 0 1px 0 rgba(255,255,255,0.15) inset',
-                          }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      {!isActive && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          whileHover={{ opacity: 1 }}
-                          style={{
-                            position: 'absolute', inset: 0, borderRadius: 12,
-                            background: isDark ? C.hoverDark : C.hover,
-                          }}
-                        />
-                      )}
-                      <span style={{
-                        position: 'relative', zIndex: 1, flexShrink: 0,
-                        color: isActive ? '#fff' : isDark ? '#4a6080' : C.sub,
-                        display: 'flex', alignItems: 'center',
-                      }}>
-                        {link.icon}
-                      </span>
-                      <span style={{
-                        position: 'relative', zIndex: 1, fontSize: 13, fontWeight: isActive ? 700 : 500,
-                        color: isActive ? '#fff' : isDark ? '#64748b' : C.text,
-                      }}>
-                        {link.label}
-                      </span>
-                    </div>
-                  )}
-                </NavLink>
-              </motion.div>
+              <NavItem
+                key={link.to} link={link}
+                pillId="student-pill"
+                delay={(mainLinks.length + i) * 0.035} onClose={onClose}
+              />
             ))}
           </>
         )}
@@ -460,34 +402,37 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
 
       {/* ── User section ─────────────────────────────────────────────── */}
       <div style={{
-        padding: '10px 10px',
-        borderTop: `1px solid ${border}`,
+        padding: '10px',
+        borderTop: `1px solid ${W.border}`,
         position: 'relative', zIndex: 10,
-        background: isDark ? 'rgba(9,15,30,0.9)' : 'rgba(255,255,255,0.92)',
+        background: 'rgba(0,0,0,0.15)',
         backdropFilter: 'blur(8px)',
       }}>
         <NavLink
-          to="/dashboard/profile"
-          onClick={onClose}
+          to="/dashboard/profile" onClick={onClose}
           style={{ textDecoration: 'none', display: 'block', marginBottom: 4 }}>
           {({ isActive }) => (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12,
-              background: isActive
-                ? (isDark ? '#131f38' : C.hover)
-                : 'transparent',
-              cursor: 'pointer', transition: 'background 0.18s',
-            }}
-            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = isDark ? C.hoverDark : C.hover; }}
-            onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12,
+                background: isActive ? W.active : 'transparent',
+                border: isActive ? `1px solid rgba(255,255,255,0.2)` : '1px solid transparent',
+                cursor: 'pointer', transition: 'background 0.18s',
+              }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = W.hover; }}
+              onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
               <UserAvatar name={user?.name} avatar={user?.avatar} size="sm" />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#e2e8f0' : C.text,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</p>
-                <p style={{ fontSize: 10, color: C.muted,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{user?.email}</p>
+                <p style={{
+                  fontSize: 12, fontWeight: 700, color: W.text,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{user?.name}</p>
+                <p style={{
+                  fontSize: 10, color: W.muted, marginTop: 1,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{user?.email}</p>
               </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" style={{ flexShrink: 0 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={W.sub} strokeWidth="2" style={{ flexShrink: 0 }}>
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
@@ -496,17 +441,16 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
         </NavLink>
 
         <motion.button
-          whileHover={{ x: 2 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
           onClick={handleLogout}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 10,
             padding: '8px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
             background: 'transparent', fontSize: 13, fontWeight: 500,
-            color: '#f87171', transition: 'background 0.18s, color 0.18s',
+            color: 'rgba(248,113,113,0.85)', transition: 'background 0.18s, color 0.18s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#ef4444'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#f87171'; }}>
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#fca5a5'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(248,113,113,0.85)'; }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>

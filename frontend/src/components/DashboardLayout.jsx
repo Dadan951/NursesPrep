@@ -29,12 +29,11 @@ export default function DashboardLayout({ children, isAdmin = false }) {
   useEffect(() => { setOpen(false); }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--theme-bg)' }}>
+    <div className="flex h-screen overflow-hidden bg-blue-50/50 dark:bg-slate-950">
       {/* Mobile overlay */}
       {open && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }}
-          className="lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
@@ -50,52 +49,34 @@ export default function DashboardLayout({ children, isAdmin = false }) {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile top bar — thémée */}
-        <header
-          className="lg:hidden sticky top-0 z-30"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '10px 16px',
-            background: 'var(--theme-hero)',
-            borderBottom: '1px solid rgba(255,255,255,0.12)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-          }}>
+        {/* Mobile top bar */}
+        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-blue-100 shadow-sm dark:bg-slate-900 dark:border-slate-700">
           <button
             onClick={() => setOpen(true)}
-            style={{
-              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-              cursor: 'pointer',
-            }}
-            aria-label="Ouvrir le menu">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+            className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition flex-shrink-0"
+            aria-label="Ouvrir le menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5">
               <line x1="3" y1="6" x2="21" y2="6"/>
               <line x1="3" y1="12" x2="21" y2="12"/>
               <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <NursesLogo size="xs" light />
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <NursesLogo size="xs" />
           </Link>
+          {/* Mobile search button */}
           <button
             onClick={() => setSearchOpen(true)}
-            style={{
-              marginLeft: 'auto', width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.18)',
-              cursor: 'pointer',
-            }}
-            aria-label="Rechercher">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round">
+            className="ml-auto w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0"
+            aria-label="Rechercher"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
           {isAdmin && (
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-              background: 'rgba(255,255,255,0.18)', color: '#fff',
-            }}>Admin</span>
+            <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full">Admin</span>
           )}
         </header>
 

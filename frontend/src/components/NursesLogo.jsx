@@ -10,22 +10,25 @@ export default function NursesLogo({ size = 'md', light = false }) {
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1, userSelect: 'none', fontFamily: "'Dancing Script', cursive" }}
+      className="flex flex-col items-start leading-none select-none"
+      style={{ fontFamily: "'Dancing Script', cursive" }}
     >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
 
-      <span style={{
-        fontSize: s.script,
-        fontWeight: 700,
-        background: light
-          ? 'linear-gradient(135deg,#ffffff,rgba(255,255,255,0.75))'
-          : 'linear-gradient(135deg, var(--theme-secondary,#7C3AED), var(--theme-primary,#4F46E5))',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        letterSpacing: '-0.5px',
-        lineHeight: 1.1,
-      }}>
+      <span
+        style={{
+          fontSize: s.script,
+          fontWeight: 700,
+          background: light
+            ? 'linear-gradient(135deg,#7dd3fc,#38bdf8,#bae6fd)'
+            : 'linear-gradient(135deg,#164e8a,#1d6fba,#0891b2)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          letterSpacing: '-0.5px',
+          lineHeight: 1.1,
+        }}
+      >
         Nurses Prép
       </span>
 
@@ -37,7 +40,7 @@ export default function NursesLogo({ size = 'md', light = false }) {
       >
         <polyline
           points="0,7 20,7 28,2 34,12 40,7 54,7 58,1 63,13 68,7 80,7 84,4 88,10 92,7 120,7"
-          stroke={light ? 'rgba(255,255,255,0.65)' : 'var(--theme-primary,#4F46E5)'}
+          stroke={light ? '#38bdf8' : '#0891b2'}
           strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"

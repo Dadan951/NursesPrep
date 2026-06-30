@@ -361,6 +361,13 @@ export default function Profile() {
         @keyframes spin   { to{transform:rotate(360deg)} }
         @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-18px,12px) scale(1.05)} 66%{transform:translate(14px,-18px) scale(0.96)} }
         @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(16px,-12px) scale(1.04)} }
+        @media (max-width: 700px) {
+          .profile-main-grid  { grid-template-columns: 1fr !important; }
+          .profile-stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .profile-pw-grid    { grid-template-columns: 1fr !important; }
+          .profile-hero-row   { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+          .profile-hero-row .profile-badges { justify-content: center !important; }
+        }
       `}</style>
 
       <AnimatePresence>{toast.msg && <Toast key="toast" msg={toast.msg} type={toast.type}/>}</AnimatePresence>
@@ -384,7 +391,7 @@ export default function Profile() {
             style={{ position:'relative', padding:'28px 24px' }}>
 
             {/* Avatar + identity */}
-            <div style={{ display:'flex', alignItems:'center', gap:20, marginBottom:24 }}>
+            <div className="profile-hero-row" style={{ display:'flex', alignItems:'center', gap:20, marginBottom:24 }}>
               <div style={{ position:'relative', flexShrink:0 }}>
                 <UserAvatar name={user?.name} avatar={user?.avatar} size="xl" shape="circle" fit="cover"/>
 
@@ -418,7 +425,7 @@ export default function Profile() {
               <div style={{ flex:1, minWidth:0 }}>
                 <h1 style={{ fontSize:22, fontWeight:900, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:4 }}>{user?.name}</h1>
                 <p style={{ fontSize:13, color:'rgba(196,181,253,0.7)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:10 }}>{user?.email}</p>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                <div className="profile-badges" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   <span style={{ fontSize:11, fontWeight:700, padding:'4px 12px', borderRadius:20, color:'#fff',
                     background:sub.gradient, boxShadow:`0 2px 0 ${sub.dark}` }}>
                     {sub.label}
@@ -434,7 +441,7 @@ export default function Profile() {
             </div>
 
             {/* Stats grid */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+            <div className="profile-stats-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
               {stats.map((s, i) => (
                 <motion.div key={s.label}
                   initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
@@ -453,7 +460,7 @@ export default function Profile() {
 
         {/* ── CONTENT ── */}
         <div style={{ padding:'24px 16px' }}>
-          <div style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 2fr', gap:16, alignItems:'start' }}>
+          <div className="profile-main-grid" style={{ maxWidth:900, margin:'0 auto', display:'grid', gridTemplateColumns:'1fr 2fr', gap:16, alignItems:'start' }}>
 
             {/* ── Left column ── */}
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -643,7 +650,7 @@ export default function Profile() {
                     </div>
 
                     {/* Nouveau + confirmation */}
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+                    <div className="profile-pw-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                       {[
                         { key:'newPassword', label:'Nouveau mot de passe', show:'next',    placeholder:'Minimum 6 caractères' },
                         { key:'confirm',     label:'Confirmer le nouveau', show:'confirm', placeholder:'••••••••' },

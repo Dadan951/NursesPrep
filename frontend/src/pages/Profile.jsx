@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -465,45 +464,8 @@ export default function Profile() {
             {/* ── Left column ── */}
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
-              {/* Subscription */}
-              <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.18 }}>
-                <SCard>
-                  <div style={{ padding:'16px 20px', background:sub.gradient, position:'relative', overflow:'hidden' }}>
-                    <div style={{ position:'absolute', top:-20, right:-20, width:60, height:60, borderRadius:'50%', background:'rgba(255,255,255,0.1)', pointerEvents:'none' }}/>
-                    <p style={{ fontSize:10, color:'rgba(255,255,255,0.7)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Abonnement actuel</p>
-                    <p style={{ fontSize:16, fontWeight:900, color:'#fff' }}>{sub.label}</p>
-                  </div>
-                  <div style={{ padding:'16px 20px' }}>
-                    {user?.subscription === 'free' ? (
-                      <>
-                        <p style={{ fontSize:11, color:C.sub, lineHeight:1.65, marginBottom:12 }}>
-                          Passez à Pro pour accéder aux exercices, à la génération IA et bien plus.
-                        </p>
-                        <Link to="/dashboard/subscription" style={{ textDecoration:'none' }}>
-                          <motion.div whileHover={{ y:-2, boxShadow:clay.btn() }} whileTap={{ scale:0.97 }}
-                            style={{ textAlign:'center', padding:'9px', borderRadius:14, fontSize:12, fontWeight:700, color:'#fff', cursor:'pointer',
-                              background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow:clay.btn() }}>
-                            Passer au Pro →
-                          </motion.div>
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ fontSize:11, color:C.sub, lineHeight:1.65, marginBottom:12 }}>
-                          Vous bénéficiez de toutes les fonctionnalités de votre plan.
-                        </p>
-                        <motion.button whileHover={{ y:-2 }} whileTap={{ scale:0.97 }}
-                          style={{ width:'100%', padding:'9px', borderRadius:14, border:'1.5px solid #fecaca', background:'#fff', fontSize:12, fontWeight:600, color:'#ef4444', cursor:'pointer', boxShadow:clay.sm }}>
-                          Résilier l'abonnement
-                        </motion.button>
-                      </>
-                    )}
-                  </div>
-                </SCard>
-              </motion.div>
-
               {/* Account info */}
-              <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.24 }}>
+              <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.18 }}>
                 <SCard>
                   <SCardHeader
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>}
@@ -529,38 +491,9 @@ export default function Profile() {
                 </SCard>
               </motion.div>
 
-              {/* Activity detail */}
-              <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.30 }}>
-                <SCard>
-                  <SCardHeader
-                    icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>}
-                    title="Activité" sub="Progression détaillée" gradFrom="#0891b2" gradTo="var(--theme-primary)"/>
-                  <div style={{ padding:'16px 20px', display:'flex', flexDirection:'column', gap:14 }}>
-                    {stats.map(s => (
-                      <div key={s.label}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                          <span style={{ fontSize:11, color:C.sub, display:'flex', alignItems:'center', gap:5 }}>
-                            <span style={{ width:6, height:6, borderRadius:'50%', background:s.color, flexShrink:0 }}/>
-                            {s.label}
-                          </span>
-                          <span style={{ fontSize:12, fontWeight:700, color:s.color }}>{s.value}</span>
-                        </div>
-                        <div style={{ height:6, background:C.bg, borderRadius:99, overflow:'hidden', boxShadow:`inset 0 1px 0 ${C.border}` }}>
-                          <motion.div
-                            initial={{ width:0 }}
-                            animate={{ width:`${Math.min((s.value/maxStat)*100,100)}%` }}
-                            transition={{ delay:0.5, duration:0.9, ease:'easeOut' }}
-                            style={{ height:'100%', borderRadius:99, background:s.color }}/>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SCard>
-              </motion.div>
-
               {/* Notifications */}
               {push.supported && (
-                <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.36 }}>
+                <motion.div initial={{ opacity:0, x:-12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.24 }}>
                   <SCard>
                     <SCardHeader
                       icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}

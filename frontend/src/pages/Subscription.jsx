@@ -322,16 +322,13 @@ export default function Subscription() {
                 <motion.h1
                   initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 }}
-                  style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.2 }}>
-                  Passez au niveau<br/>
-                  <span style={{ background: 'linear-gradient(90deg,rgba(255,255,255,0.9),rgba(255,255,255,0.5))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    supérieur
-                  </span>
+                  style={{ fontSize: 24, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.1 }}>
+                  Passez au niveau supérieur
                 </motion.h1>
                 <motion.p
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}
-                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', maxWidth: 320, margin: 0 }}>
-                  Quiz illimités, exercices, génération IA et tout le catalogue IFSI.
+                  style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+                  Quiz illimités, IA et tout le catalogue IFSI.
                 </motion.p>
               </div>
 

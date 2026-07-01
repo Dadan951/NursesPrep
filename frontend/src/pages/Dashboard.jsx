@@ -241,6 +241,9 @@ const Icon = {
   edit:    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   close:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   arrow:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  target:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  minus:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  plus:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
 };
 
 const TIPS = [
@@ -671,70 +674,119 @@ export default function Dashboard() {
       {/* ── Goals Modal ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showModal && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-            onClick={() => setShowModal(false)}
-            style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:16, background:'rgba(30,27,75,0.45)', backdropFilter:'blur(8px)' }}
-          >
+          <>
+            {/* Backdrop */}
             <motion.div
-              key="modal"
-              initial={{ opacity:0, scale:0.92, y:20 }}
-              animate={{ opacity:1, scale:1, y:0 }}
-              exit={{ opacity:0, scale:0.92, y:20 }}
-              transition={{ ...spring }}
-              onClick={e => e.stopPropagation()}
-              style={{ background:C.card, borderRadius:28, padding:28, width:'100%', maxWidth:380, boxShadow:clay.card }}
-            >
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
-                <p className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text }}>Modifier mes objectifs</p>
-                <motion.button whileTap={{ scale:0.9 }} onClick={() => setShowModal(false)}
-                  style={{ width:34, height:34, borderRadius:12, background:C.bg, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:clay.sm }}
-                  aria-label="Fermer"
-                >
-                  {Icon.close}
-                </motion.button>
-              </div>
+              key="backdrop"
+              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              transition={{ duration:0.15, ease:'linear' }}
+              onClick={() => setShowModal(false)}
+              style={{ position:'fixed', inset:0, zIndex:50, background:'rgba(15,23,42,0.55)' }}
+            />
 
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {[
-                  { key:'quizPerDay',       label:'Quiz par jour',       icon:Icon.quiz,  color:C.indigo, min:1, max:500 },
-                  { key:'flashcardsPerDay', label:'Flashcards par jour', icon:Icon.flash, color:C.violet, min:1, max:999 },
-                  { key:'exercisesPerDay',  label:'Exercices par jour',  icon:Icon.exo,   color:C.teal,   min:1, max:200 },
-                ].map(({ key, label, icon, color, min, max }) => (
-                  <div key={key} style={{ display:'flex', alignItems:'center', gap:12, background:C.bg, border:`1px solid ${C.border}`, borderRadius:16, padding:'12px 16px' }}>
-                    <div style={{ width:34, height:34, borderRadius:11, background:C.card, display:'flex', alignItems:'center', justifyContent:'center', color, flexShrink:0, boxShadow:clay.sm }}>{icon}</div>
-                    <span style={{ fontSize:12, fontWeight:600, color:C.text, flex:1 }}>{label}</span>
-                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                      {[-1, null, 1].map((delta, j) => delta === null
-                        ? <input key="inp" type="number" min={min} max={max} value={editGoals[key]}
-                            onChange={e => { const v=Math.max(min,Math.min(max,parseInt(e.target.value)||min)); setEditGoals(g=>({...g,[key]:v})); }}
-                            style={{ width:52, textAlign:'center', fontSize:14, fontWeight:800, color, background:C.card, border:`2px solid ${color}40`, borderRadius:10, padding:'5px 0', outline:'none', fontFamily:'Nunito,sans-serif' }}
-                            aria-label={label}
-                          />
-                        : <motion.button key={j} whileTap={{ scale:0.88 }} type="button"
-                            onClick={() => setEditGoals(g=>({...g,[key]:Math.max(min,Math.min(max,g[key]+delta))}))}
-                            style={{ width:32, height:32, borderRadius:10, background:C.card, border:`1px solid ${C.border}`, color:C.muted, fontSize:18, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:clay.sm }}
-                            aria-label={delta === -1 ? 'Diminuer' : 'Augmenter'}
-                          >{delta === -1 ? '−' : '+'}</motion.button>
-                      )}
+            {/* Modal container — bottom sheet on mobile, centered on desktop */}
+            <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:isMobile?'flex-end':'center', justifyContent:'center', padding:isMobile?0:16, pointerEvents:'none' }}>
+              <motion.div
+                key="modal"
+                initial={{ opacity:0, y:isMobile?80:20, scale:isMobile?1:0.97 }}
+                animate={{ opacity:1, y:0, scale:1 }}
+                exit={{ opacity:0, y:isMobile?80:20, scale:isMobile?1:0.97 }}
+                transition={{ duration:0.22, ease:[0.16,1,0.3,1] }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  width:'100%', maxWidth:400, pointerEvents:'auto',
+                  background:C.card,
+                  borderRadius:isMobile?'28px 28px 0 0':28,
+                  boxShadow:clay.card,
+                  overflow:'hidden',
+                }}
+              >
+                {/* Drag handle (mobile only) */}
+                {isMobile && (
+                  <div style={{ display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4 }}>
+                    <div style={{ width:40, height:4, borderRadius:99, background:C.border }}/>
+                  </div>
+                )}
+
+                {/* Header */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px 16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <div style={{ width:40, height:40, borderRadius:13, background:'linear-gradient(135deg,var(--theme-dark),var(--theme-secondary))', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', flexShrink:0, boxShadow:clay.sm }}>
+                      {Icon.target}
+                    </div>
+                    <div>
+                      <p className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text, lineHeight:1.2 }}>Mes objectifs</p>
+                      <p style={{ fontSize:11, color:C.muted, marginTop:1 }}>Cibles quotidiennes</p>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <motion.button whileTap={{ scale:0.88 }} onClick={() => setShowModal(false)}
+                    style={{ width:36, height:36, borderRadius:12, background:C.bg, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:clay.sm }}
+                    aria-label="Fermer"
+                  >
+                    {Icon.close}
+                  </motion.button>
+                </div>
 
-              <div style={{ display:'flex', gap:10, marginTop:22 }}>
-                <motion.button whileTap={{ scale:0.96 }} onClick={() => setShowModal(false)}
-                  style={{ flex:1, padding:'13px 0', borderRadius:16, background:C.bg, border:`1px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
-                  Annuler
-                </motion.button>
-                <motion.button whileTap={{ scale:0.96 }} onClick={saveGoals} disabled={saving}
-                  style={{ flex:1, padding:'13px 0', borderRadius:16, background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', border:'none', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', opacity:saving?0.6:1, boxShadow:clay.btn(), fontFamily:'Nunito,sans-serif' }}>
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
+                {/* Divider */}
+                <div style={{ height:1, background:C.border, margin:'0 24px' }}/>
+
+                {/* Goal rows */}
+                <div style={{ display:'flex', flexDirection:'column', gap:12, padding:20 }}>
+                  {[
+                    { key:'quizPerDay',       label:'Quiz par jour',       icon:Icon.quiz,  color:C.indigo, min:1, max:500 },
+                    { key:'flashcardsPerDay', label:'Flashcards par jour', icon:Icon.flash, color:C.violet, min:1, max:999 },
+                    { key:'exercisesPerDay',  label:'Exercices par jour',  icon:Icon.exo,   color:C.teal,   min:1, max:200 },
+                  ].map(({ key, label, icon, color, min, max }) => (
+                    <div key={key} style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:18, padding:16 }}>
+                      {/* Label row */}
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                        <div style={{ width:28, height:28, borderRadius:9, background:`${color}1a`, display:'flex', alignItems:'center', justifyContent:'center', color, flexShrink:0 }}>
+                          {icon}
+                        </div>
+                        <span style={{ fontSize:12, fontWeight:600, color:C.muted }}>{label}</span>
+                      </div>
+                      {/* Stepper */}
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <motion.button whileTap={{ scale:0.86 }} type="button"
+                          onClick={() => setEditGoals(g=>({...g,[key]:Math.max(min,g[key]-1)}))}
+                          style={{ width:44, height:44, borderRadius:13, background:C.card, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color, flexShrink:0, boxShadow:clay.sm }}
+                          aria-label="Diminuer"
+                        >
+                          {Icon.minus}
+                        </motion.button>
+                        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:13, padding:'10px 0', background:`${color}12`, border:`2px solid ${color}30` }}>
+                          <span className="nunito" style={{ fontSize:28, fontWeight:900, lineHeight:1, color, fontVariantNumeric:'tabular-nums' }}>
+                            {editGoals[key]}
+                          </span>
+                        </div>
+                        <motion.button whileTap={{ scale:0.86 }} type="button"
+                          onClick={() => setEditGoals(g=>({...g,[key]:Math.min(max,g[key]+1)}))}
+                          style={{ width:44, height:44, borderRadius:13, background:C.card, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color, flexShrink:0, boxShadow:clay.sm }}
+                          aria-label="Augmenter"
+                        >
+                          {Icon.plus}
+                        </motion.button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer buttons */}
+                <div style={{ display:'flex', gap:10, padding:'0 20px 24px' }}>
+                  <motion.button whileTap={{ scale:0.96 }} onClick={() => setShowModal(false)}
+                    style={{ flex:1, padding:'14px 0', borderRadius:18, background:C.bg, border:`1px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
+                    Annuler
+                  </motion.button>
+                  <motion.button whileTap={{ scale:0.96 }} onClick={saveGoals} disabled={saving}
+                    style={{ flex:1, padding:'14px 0', borderRadius:18, background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', border:'none', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', opacity:saving?0.6:1, boxShadow:clay.btn(), fontFamily:'Nunito,sans-serif' }}>
+                    {saving ? 'Enregistrement...' : 'Enregistrer ✓'}
+                  </motion.button>
+                </div>
+
+                {isMobile && <div style={{ height:12 }}/>}
+              </motion.div>
+            </div>
+          </>
         )}
       </AnimatePresence>
 

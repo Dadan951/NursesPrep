@@ -295,7 +295,7 @@ export default function Annales() {
       <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
 
         {/* ── HERO ── */}
-        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden' }}>
+        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px' }}>
           {/* Orbs */}
           <div style={{ position:'absolute', top:-40, right:-30, width:200, height:200, borderRadius:'50%', background:'radial-gradient(circle,#a5b4fc,transparent)', opacity:0.2, filter:'blur(48px)', animation:'drift1 20s ease-in-out infinite', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', bottom:-16, left:80, width:150, height:150, borderRadius:'50%', background:'radial-gradient(circle,#fbbf24,transparent)', opacity:0.12, filter:'blur(38px)', animation:'drift2 24s ease-in-out infinite', pointerEvents:'none' }} aria-hidden/>

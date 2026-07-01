@@ -222,7 +222,7 @@ export default function Support() {
       <main style={{ flex: 1, overflowY: 'auto', background: C.bg }}>
 
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)' }}>
+        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)', minHeight: '200px' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
           <div style={{
             position: 'absolute', top: -40, right: -20, width: 240, height: 240,

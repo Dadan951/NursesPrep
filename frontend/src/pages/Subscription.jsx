@@ -297,7 +297,7 @@ export default function Subscription() {
         </AnimatePresence>
 
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)' }}>
+        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)', minHeight: '200px' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position: 'absolute', top: -50, right: -30, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,0.12),transparent)', filter: 'blur(40px)', pointerEvents: 'none' }}/>
           <div style={{ position: 'absolute', bottom: -40, left: -20, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,0.08),transparent)', filter: 'blur(32px)', pointerEvents: 'none' }}/>

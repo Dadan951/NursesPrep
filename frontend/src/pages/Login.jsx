@@ -143,32 +143,32 @@ export default function Login() {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
-        style={{ background: 'linear-gradient(145deg, #0f172a 0%, #1e3a5f 55%, #0c4a6e 100%)' }}
+        style={{ background: 'linear-gradient(160deg, #f0f6ff 0%, #e7f0fe 45%, #e6f7fb 100%)' }}
       >
         <Toast msg={toast} />
 
         {/* Background orbs */}
-        <div className="absolute top-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-8%] w-[350px] h-[350px] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-300/25 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-8%] w-[350px] h-[350px] rounded-full bg-indigo-300/20 blur-3xl pointer-events-none" />
 
         {/* Grid */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px)',
-          backgroundSize: '44px 44px',
+        <div className="absolute inset-0 opacity-[0.5]" style={{
+          backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.14) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
         }} />
 
         <div className="relative z-10 w-full max-w-sm">
           <motion.div className="mb-6 flex justify-center"
             initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-            <NursesLogo size="md" light />
+            <NursesLogo size="md" />
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
-            className="bg-white rounded-3xl p-8"
-            style={{ boxShadow: '0 32px 64px rgba(0,0,0,0.4)' }}
+            className="bg-white rounded-3xl p-8 border border-slate-100"
+            style={{ boxShadow: '0 24px 60px rgba(30,58,95,0.14)' }}
           >
             <div className="flex justify-center mb-6">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
@@ -298,35 +298,35 @@ export default function Login() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: 'linear-gradient(145deg, #0f172a 0%, #1e3a5f 55%, #0c4a6e 100%)' }}
+      style={{ background: 'linear-gradient(160deg, #f0f6ff 0%, #e7f0fe 45%, #e6f7fb 100%)' }}
       onMouseMove={handleMouseMove}
     >
       <Toast msg={toast} />
 
       {/* ── Orbes parallaxe ── */}
       <motion.div
-        className="absolute rounded-full bg-cyan-400/10 blur-3xl pointer-events-none"
+        className="absolute rounded-full bg-cyan-300/30 blur-3xl pointer-events-none"
         style={{ width: 640, height: 640, x: o1x, y: o1y, top: '-20%', left: '-18%' }}
       />
       <motion.div
-        className="absolute rounded-full bg-blue-500/10 blur-3xl pointer-events-none"
+        className="absolute rounded-full bg-indigo-300/25 blur-3xl pointer-events-none"
         style={{ width: 420, height: 420, x: o2x, y: o2y, bottom: '-12%', right: '-10%' }}
       />
-      <div className="absolute w-64 h-64 rounded-full bg-teal-400/6 blur-3xl pointer-events-none"
+      <div className="absolute w-64 h-64 rounded-full bg-sky-300/20 blur-3xl pointer-events-none"
         style={{ top: '40%', left: '65%' }} />
 
-      {/* ── Texture grille ── */}
-      <div className="absolute inset-0 opacity-[0.035]" style={{
-        backgroundImage: 'linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px)',
-        backgroundSize: '44px 44px',
+      {/* ── Texture points ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.14) 1px, transparent 1px)',
+        backgroundSize: '30px 30px',
       }} />
 
       {/* ── ECG décoratif bas de page ── */}
-      <div className="absolute bottom-[8%] left-0 right-0 opacity-[0.12] pointer-events-none">
+      <div className="absolute bottom-[8%] left-0 right-0 opacity-[0.25] pointer-events-none">
         <svg viewBox="0 0 320 60" className="w-full" fill="none">
           <motion.polyline
             points="0,30 40,30 55,10 65,50 75,20 85,40 95,30 320,30"
-            stroke="#67e8f9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            stroke="#0891b2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ duration: 2.5, delay: 1, ease: 'easeInOut' }}
@@ -335,21 +335,21 @@ export default function Login() {
       </div>
 
       {/* ── Croix médicale déco (coin haut droite) ── */}
-      <div className="absolute top-8 right-10 opacity-[0.06] pointer-events-none">
-        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1">
+      <div className="absolute top-8 right-10 opacity-[0.10] pointer-events-none">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#164e8a" strokeWidth="1">
           <path d="M12 2v20M2 12h20"/>
         </svg>
       </div>
       {/* ── Croix médicale déco (coin bas gauche) ── */}
-      <div className="absolute bottom-12 left-8 opacity-[0.05] pointer-events-none">
-        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1">
+      <div className="absolute bottom-12 left-8 opacity-[0.08] pointer-events-none">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#164e8a" strokeWidth="1">
           <path d="M12 2v20M2 12h20"/>
         </svg>
       </div>
 
       {/* ── Lien retour ── */}
       <div className="absolute top-5 left-5 z-20">
-        <Link to="/" className="flex items-center gap-1.5 text-xs text-blue-300/60 hover:text-blue-200 transition-colors">
+        <Link to="/" className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Accueil
         </Link>
@@ -365,7 +365,7 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="mb-7"
         >
-          <NursesLogo size="md" light />
+          <NursesLogo size="md" />
         </motion.div>
 
         {/* ── Carte formulaire ── */}
@@ -373,8 +373,8 @@ export default function Login() {
           initial={{ opacity: 0, y: 28, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="w-full bg-white rounded-3xl p-7"
-          style={{ boxShadow: '0 40px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06)' }}
+          className="w-full bg-white rounded-3xl p-7 border border-slate-100"
+          style={{ boxShadow: '0 28px 70px rgba(30,58,95,0.16)' }}
         >
           <h1 className="text-[22px] font-bold text-slate-800 text-center mb-0.5">Bon retour !</h1>
           <p className="text-xs text-slate-400 text-center mb-6">Connecte-toi pour continuer tes révisions</p>

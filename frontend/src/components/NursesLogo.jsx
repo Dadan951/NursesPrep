@@ -19,7 +19,10 @@ export default function NursesLogo({ size = 'md', light = false }) {
         style={{
           fontSize: s.script,
           fontWeight: 700,
-          background: light
+          /* backgroundImage (pas le shorthand background) : le shorthand
+             réinitialise backgroundClip lors des re-rendus React, ce qui
+             affichait un bloc de couleur à la place du texte. */
+          backgroundImage: light
             ? 'linear-gradient(135deg,#7dd3fc,#38bdf8,#bae6fd)'
             : 'linear-gradient(135deg,#164e8a,#1d6fba,#0891b2)',
           WebkitBackgroundClip: 'text',

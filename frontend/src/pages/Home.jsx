@@ -375,7 +375,7 @@ function Phone({ active, glow }) {
       />
       {/* Cadre */}
       <div className="relative rounded-[2.6rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl overflow-hidden"
-        style={{ aspectRatio: '9/19', boxShadow: '0 30px 80px rgba(2,6,23,0.5), inset 0 0 0 2px #1e293b' }}>
+        style={{ aspectRatio: '9/19', boxShadow: '0 26px 60px rgba(15,23,42,0.28), inset 0 0 0 2px #1e293b' }}>
         {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-900 rounded-b-2xl z-20" />
         {/* Écran avec transition entre stations */}
@@ -427,14 +427,14 @@ function ScrollStory() {
   /* Mode réduit : rendu statique empilé, pas de sticky ni d'animations */
   if (reduced) {
     return (
-      <section id="fonctionnalites" className="py-20 bg-slate-950">
+      <section id="fonctionnalites" className="py-20" style={{ background: 'linear-gradient(180deg,#f1f5fd,#eef2ff,#f8fafc)' }}>
         <div className="max-w-5xl mx-auto px-4 space-y-16">
           {STATIONS.map((s, i) => (
             <div key={s.id} className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <span className="text-xs font-black uppercase tracking-widest" style={{ color: s.color }}>{s.kicker}</span>
-                <h3 className="text-2xl font-black text-white mt-2 mb-3">{s.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{s.desc}</p>
+                <h3 className="text-2xl font-black text-slate-900 mt-2 mb-3">{s.title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{s.desc}</p>
               </div>
               <div className="flex justify-center"><Phone active={i} glow={s.glow} /></div>
             </div>
@@ -445,14 +445,18 @@ function ScrollStory() {
   }
 
   return (
-    <section id="fonctionnalites" ref={ref} className="relative bg-slate-950" style={{ height: `${N * 108}vh` }}>
+    <section id="fonctionnalites" ref={ref} className="relative" style={{ height: `${N * 108}vh`, background: '#f1f5fd' }}>
       {/* Fond : points + orbes */}
-      <div className="sticky top-0 h-screen overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.09) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+      <div className="sticky top-0 h-screen overflow-hidden" style={{ background: 'linear-gradient(160deg,#f1f5fd 0%,#eef2ff 45%,#f0f9ff 100%)' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.13) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
         <motion.div className="absolute w-[500px] h-[500px] rounded-full pointer-events-none hidden md:block"
           animate={{ background: `radial-gradient(circle, ${station.glow}, transparent 65%)` }}
           transition={{ duration: 0.8 }}
-          style={{ top: '-15%', right: '-10%', filter: 'blur(40px)', opacity: 0.5 }} />
+          style={{ top: '-15%', right: '-10%', filter: 'blur(50px)', opacity: 0.3 }} />
+        <motion.div className="absolute w-[380px] h-[380px] rounded-full pointer-events-none"
+          animate={{ background: `radial-gradient(circle, ${station.glow}, transparent 65%)` }}
+          transition={{ duration: 0.8 }}
+          style={{ bottom: '-14%', left: '-8%', filter: 'blur(56px)', opacity: 0.22 }} />
 
         <div className="relative h-full max-w-6xl mx-auto px-4 md:px-8 flex flex-col md:grid md:grid-cols-2 md:gap-12 items-center justify-center">
 
@@ -478,11 +482,11 @@ function ScrollStory() {
                   style={{ color: station.color, borderColor: `${station.color}55`, background: `${station.color}14` }}>
                   {station.kicker}
                 </span>
-                <h3 className="text-2xl md:text-4xl font-black text-white mt-4 mb-3 leading-tight">{station.title}</h3>
-                <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-5">{station.desc}</p>
+                <h3 className="text-2xl md:text-4xl font-black text-slate-900 mt-4 mb-3 leading-tight">{station.title}</h3>
+                <p className="text-slate-600 text-sm md:text-base leading-relaxed mb-5">{station.desc}</p>
                 <ul className="space-y-2.5 hidden sm:block">
                   {station.bullets.map(b => (
-                    <li key={b} className="flex items-center gap-2.5 text-sm text-slate-300">
+                    <li key={b} className="flex items-center gap-2.5 text-sm text-slate-700">
                       <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${station.color}22` }}>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={station.color} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                       </span>
@@ -506,11 +510,11 @@ function ScrollStory() {
                   className="rounded-full transition-all duration-300"
                   style={{
                     width: i === active ? 26 : 8, height: 8,
-                    background: i === active ? station.color : 'rgba(148,163,184,0.3)',
+                    background: i === active ? station.color : 'rgba(100,116,139,0.28)',
                     cursor: 'pointer', border: 'none', padding: 0,
                   }} />
               ))}
-              <span className="text-[10px] text-slate-500 font-bold ml-2 tabular-nums">{String(active + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}</span>
+              <span className="text-[10px] text-slate-400 font-bold ml-2 tabular-nums">{String(active + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}</span>
             </div>
           </div>
         </div>
@@ -520,8 +524,8 @@ function ScrollStory() {
           className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none"
           animate={{ opacity: active === 0 ? 1 : 0 }}
           transition={{ duration: 0.3 }}>
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Continue de défiler</span>
-          <motion.svg animate={{ y: [0, 5, 0] }} transition={{ duration: 1.4, repeat: Infinity }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9" /></motion.svg>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Continue de défiler</span>
+          <motion.svg animate={{ y: [0, 5, 0] }} transition={{ duration: 1.4, repeat: Infinity }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9" /></motion.svg>
         </motion.div>
       </div>
     </section>
@@ -560,7 +564,7 @@ function Navbar() {
 
       <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/85 shadow-lg shadow-slate-900/5' : 'bg-transparent'}`}
         style={{ backdropFilter: scrolled ? 'blur(14px)' : 'none' }}>
-        <nav className={`max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-2.5' : 'py-4'}`}>
+        <nav className={`w-full px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-2.5' : 'py-4'}`}>
           <Link to="/" className="flex-shrink-0">
             <NursesLogo size="sm" light={!scrolled} />
           </Link>
@@ -672,7 +676,7 @@ export default function Home() {
   const heroOpacity = useTransform(heroProgress, [0, 0.75], [1, 0]);
 
   return (
-    <div className="bg-slate-950 antialiased" style={{ fontFamily: "'Nunito', 'DM Sans', system-ui, sans-serif" }}>
+    <div className="bg-white antialiased" style={{ fontFamily: "'Nunito', 'DM Sans', system-ui, sans-serif" }}>
       <style>{`
         html { scroll-behavior: smooth; }
         @keyframes float1 { 0%,100%{ transform:translate(0,0) } 50%{ transform:translate(-24px,18px) } }
@@ -760,23 +764,23 @@ export default function Home() {
       </section>
 
       {/* ══════════════ SCROLLYTELLING ══════════════ */}
-      <div className="bg-slate-950 pt-16 pb-4 text-center px-4">
+      <div className="pt-16 pb-4 text-center px-4" style={{ background: 'linear-gradient(180deg,#ffffff,#f1f5fd)' }}>
         <Reveal>
-          <span className="text-xs font-black text-cyan-400 uppercase tracking-[0.2em]">Visite guidée</span>
-          <h2 className="text-3xl md:text-4xl font-black text-white mt-3">Tout ce qu'il te faut,<br className="sm:hidden" /> dans une seule app</h2>
-          <p className="text-slate-400 text-sm md:text-base mt-3 max-w-lg mx-auto">Défile — le téléphone te montre chaque outil, comme si tu y étais.</p>
+          <span className="text-xs font-black text-cyan-600 uppercase tracking-[0.2em]">Visite guidée</span>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-3">Tout ce qu'il te faut,<br className="sm:hidden" /> dans une seule app</h2>
+          <p className="text-slate-500 text-sm md:text-base mt-3 max-w-lg mx-auto">Défile — le téléphone te montre chaque outil, comme si tu y étais.</p>
         </Reveal>
       </div>
 
       <ScrollStory />
 
       {/* ══════════════ TOUT-EN-UN (bento) ══════════════ */}
-      <section id="atouts" className="relative bg-slate-950 py-20 md:py-28 overflow-hidden">
-        <div className="absolute w-[400px] h-[400px] rounded-full pointer-events-none" style={{ top: '10%', left: '-12%', background: 'radial-gradient(circle,rgba(8,145,178,0.18),transparent 65%)', filter: 'blur(48px)' }} />
+      <section id="atouts" className="relative bg-white py-20 md:py-28 overflow-hidden">
+        <div className="absolute w-[400px] h-[400px] rounded-full pointer-events-none" style={{ top: '10%', left: '-12%', background: 'radial-gradient(circle,rgba(8,145,178,0.10),transparent 65%)', filter: 'blur(48px)' }} />
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <Reveal className="text-center mb-14">
-            <span className="text-xs font-black text-cyan-400 uppercase tracking-[0.2em]">Et bien plus</span>
-            <h2 className="text-3xl md:text-4xl font-black text-white mt-3">Pensée pour ta réussite,<br className="sm:hidden" /> du premier jour au diplôme</h2>
+            <span className="text-xs font-black text-cyan-600 uppercase tracking-[0.2em]">Et bien plus</span>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-3">Pensée pour ta réussite,<br className="sm:hidden" /> du premier jour au diplôme</h2>
           </Reveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -807,13 +811,13 @@ export default function Home() {
               },
             ].map((f, i) => (
               <Reveal key={f.t} delay={i * 0.07}>
-                <div className="group h-full rounded-3xl border border-slate-800 bg-slate-900/60 p-6 hover:border-slate-700 hover:-translate-y-1 transition-all duration-300">
+                <div className="group h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-xl hover:border-slate-300 hover:-translate-y-1 transition-all duration-300">
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
-                    style={{ background: `${f.c}1a`, color: f.c }}>
+                    style={{ background: `${f.c}16`, color: f.c }}>
                     {f.icon}
                   </div>
-                  <h3 className="text-base font-black text-white mb-2">{f.t}</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">{f.d}</p>
+                  <h3 className="text-base font-black text-slate-900 mb-2">{f.t}</h3>
+                  <p className="text-sm text-slate-500 leading-relaxed">{f.d}</p>
                 </div>
               </Reveal>
             ))}
@@ -840,78 +844,129 @@ export default function Home() {
       </section>
 
       {/* ══════════════ TARIFS ══════════════ */}
-      <section id="pricing" className="py-20 md:py-28 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <Reveal className="text-center mb-14">
+      <section id="pricing" className="relative py-20 md:py-28 overflow-hidden" style={{ background: 'linear-gradient(180deg,#ffffff,#f1f5fd 40%,#ffffff)' }}>
+        {/* Blobs décoratifs */}
+        <div className="absolute w-[420px] h-[420px] rounded-full pointer-events-none" style={{ top: '4%', right: '-10%', background: 'radial-gradient(circle,rgba(6,182,212,0.13),transparent 65%)', filter: 'blur(52px)' }} />
+        <div className="absolute w-[360px] h-[360px] rounded-full pointer-events-none" style={{ bottom: '2%', left: '-8%', background: 'radial-gradient(circle,rgba(99,102,241,0.12),transparent 65%)', filter: 'blur(48px)' }} />
+
+        <div className="relative max-w-6xl mx-auto px-4 md:px-8">
+          <Reveal className="text-center mb-16">
             <span className="text-xs font-black text-cyan-600 uppercase tracking-[0.2em]">Tarifs</span>
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-3 mb-3">Choisis ton offre</h2>
             <p className="text-slate-500 text-sm md:text-base">Commence gratuitement, évolue quand tu veux. Sans engagement.</p>
           </Reveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-            {/* Starter */}
-            <Reveal>
-              <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="px-7 pt-7 pb-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-5 items-stretch">
+
+            {/* ── Starter ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ type: 'spring', stiffness: 210, damping: 24 }}
+              whileHover={{ y: -8 }}
+              className="flex flex-col rounded-[28px] border border-slate-200 bg-white shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-shadow duration-300 md:mt-6">
+              <div className="px-7 pt-7 pb-5 flex-1">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
+                  </div>
                   <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full uppercase tracking-wide">Gratuit</span>
-                  <h3 className="text-xl font-black text-slate-900 mt-5 mb-1">Starter</h3>
-                  <div className="flex items-end gap-1.5 mb-1">
-                    <span className="text-4xl font-black text-slate-900">0</span>
-                    <span className="text-2xl font-bold text-slate-900 mb-0.5">€</span>
-                    <span className="text-sm text-slate-400 mb-1">/ mois</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-6">Pour commencer sans risque</p>
-                  <div className="space-y-1 mb-6">
-                    {[
-                      { t: '20 quiz / mois', ok: true },
-                      { t: '30 flashcards / mois', ok: true },
-                      { t: '1 exercice théorique / mois', ok: true },
-                      { t: '1 fiche de cours / mois', ok: true },
-                      { t: 'Fiches illimitées', ok: false },
-                      { t: 'Exercices & Cas cliniques', ok: false },
-                      { t: 'Génération IA', ok: false },
-                      { t: 'Annales complètes', ok: false },
-                      { t: 'Support prioritaire', ok: false },
-                    ].map(({ t, ok }) => (
-                      <div key={t} className={`flex items-center gap-2.5 py-1.5 text-xs ${ok ? 'text-slate-700' : 'text-slate-300'}`}>
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${ok ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                          {ok
-                            ? <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                            : <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
-                        </span>
-                        {t}
-                      </div>
-                    ))}
-                  </div>
                 </div>
-                <div className="px-7 pb-7">
-                  <Link to="/register" className="block w-full py-3 border-2 border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:border-cyan-400 hover:text-cyan-700 transition text-center">
-                    Commencer gratuitement
-                  </Link>
+                <h3 className="text-xl font-black text-slate-900 mb-1">Starter</h3>
+                <div className="flex items-end gap-1.5 mb-1">
+                  <span className="text-4xl font-black text-slate-900">0</span>
+                  <span className="text-2xl font-bold text-slate-900 mb-0.5">€</span>
+                  <span className="text-sm text-slate-400 mb-1">/ mois</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-6">Pour commencer sans risque</p>
+                <div className="space-y-0.5">
+                  {[
+                    { t: '20 quiz / mois', ok: true },
+                    { t: '30 flashcards / mois', ok: true },
+                    { t: '1 exercice théorique / mois', ok: true },
+                    { t: '1 fiche de cours / mois', ok: true },
+                    { t: 'Fiches illimitées', ok: false },
+                    { t: 'Exercices & Cas cliniques', ok: false },
+                    { t: 'Génération IA', ok: false },
+                    { t: 'Annales complètes', ok: false },
+                    { t: 'Support prioritaire', ok: false },
+                  ].map(({ t, ok }, fi) => (
+                    <motion.div key={t}
+                      initial={{ opacity: 0, x: -12 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-40px' }}
+                      transition={{ delay: 0.15 + fi * 0.05, duration: 0.35 }}
+                      className={`flex items-center gap-2.5 py-1.5 text-xs ${ok ? 'text-slate-700' : 'text-slate-300'}`}>
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${ok ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                        {ok
+                          ? <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                          : <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                      </span>
+                      {t}
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            </Reveal>
+              <div className="px-7 pb-7">
+                <Link to="/register" className="block w-full py-3 border-2 border-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:border-cyan-400 hover:text-cyan-700 transition text-center">
+                  Commencer gratuitement
+                </Link>
+              </div>
+            </motion.div>
 
-            {/* Étudiant (featured) */}
-            <Reveal delay={0.1}>
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/30 md:scale-[1.03]"
-                style={{ background: 'linear-gradient(160deg,#0f172a 0%,#1e3a6e 50%,#164e8a 100%)' }}>
-                <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                  <div className="text-white text-[10px] font-black px-5 py-1.5 rounded-b-xl shadow-lg whitespace-nowrap"
+            {/* ── Étudiant (vedette, bordure animée) ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 48, scale: 0.94 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ type: 'spring', stiffness: 190, damping: 22, delay: 0.08 }}
+              whileHover={{ y: -8 }}
+              className="relative rounded-[30px] p-[2.5px] overflow-hidden shadow-2xl shadow-cyan-900/25">
+              {/* Bordure lumineuse rotative */}
+              <motion.div
+                className="absolute -inset-[120%] pointer-events-none"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
+                style={{ background: 'conic-gradient(from 0deg, #06b6d4, #6366f1 25%, #0e7490 50%, #22d3ee 75%, #06b6d4)' }} />
+
+              <div className="relative flex flex-col h-full rounded-[28px] overflow-hidden"
+                style={{ background: 'linear-gradient(165deg,#0c2f56 0%,#14508c 55%,#0e7490 100%)' }}>
+                {/* Shine interne */}
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 80% 0%,rgba(255,255,255,0.14),transparent 55%)' }} />
+
+                {/* Badge flottant */}
+                <motion.div
+                  animate={{ y: [0, -3, 0] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+                  <div className="text-white text-[10px] font-black px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap flex items-center gap-1.5"
                     style={{ background: 'linear-gradient(135deg,#0891b2,#06b6d4)' }}>
-                    ⭐ Le plus populaire
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#fde047"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    Le plus populaire
                   </div>
-                </div>
-                <div className="px-7 pt-9 pb-5">
-                  <span className="text-[10px] font-black text-cyan-400 bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-1 rounded-full uppercase tracking-wide">Recommandé</span>
-                  <h3 className="text-xl font-black text-white mt-5 mb-1">Étudiant</h3>
+                </motion.div>
+
+                <div className="relative px-7 pt-14 pb-5 flex-1">
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                    </div>
+                    <span className="text-[10px] font-black text-cyan-300 bg-cyan-400/15 border border-cyan-400/30 px-2.5 py-1 rounded-full uppercase tracking-wide">Recommandé</span>
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-1">Étudiant</h3>
                   <div className="flex items-end gap-1.5 mb-1">
-                    <span className="text-4xl font-black text-white">9,99</span>
+                    <motion.span
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.25 }}
+                      className="text-4xl font-black text-white">9,99</motion.span>
                     <span className="text-2xl font-bold text-white mb-0.5">€</span>
-                    <span className="text-sm text-blue-300 mb-1">/ mois</span>
+                    <span className="text-sm text-cyan-200/70 mb-1">/ mois</span>
                   </div>
-                  <p className="text-xs text-blue-400 mb-6">L'accès complet à la plateforme</p>
-                  <div className="space-y-1 mb-6">
+                  <p className="text-xs text-cyan-200/60 mb-6">L'accès complet à la plateforme</p>
+                  <div className="space-y-0.5">
                     {[
                       'Quiz illimités',
                       'Flashcards illimitées',
@@ -921,75 +976,98 @@ export default function Home() {
                       'Annales complètes',
                       'Base médicaments complète',
                       'Support prioritaire',
-                    ].map(f => (
-                      <div key={f} className="flex items-center gap-2.5 py-1.5 text-xs text-blue-100">
-                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 bg-cyan-500/30">
+                    ].map((f, fi) => (
+                      <motion.div key={f}
+                        initial={{ opacity: 0, x: -12 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, margin: '-40px' }}
+                        transition={{ delay: 0.2 + fi * 0.05, duration: 0.35 }}
+                        className="flex items-center gap-2.5 py-1.5 text-xs text-blue-50">
+                        <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 bg-cyan-400/25">
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                         </span>
                         {f}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
-                <div className="px-7 pb-7">
+                <div className="relative px-7 pb-7">
                   <Link to="/register"
-                    className="block w-full py-3.5 rounded-2xl text-sm font-black text-slate-900 text-center transition hover:opacity-90 shadow-lg shadow-cyan-400/30"
-                    style={{ background: 'linear-gradient(135deg,#06b6d4,#0891b2)' }}>
-                    Commencer maintenant
+                    className="relative block w-full py-3.5 rounded-2xl text-sm font-black text-slate-900 text-center overflow-hidden shadow-lg shadow-cyan-400/30 hover:opacity-95 transition"
+                    style={{ background: 'linear-gradient(135deg,#67e8f9,#06b6d4)' }}>
+                    <motion.span
+                      className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                      animate={{ x: ['-140%', '190%'] }}
+                      transition={{ duration: 2.6, repeat: Infinity, ease: 'linear', repeatDelay: 1.2 }} />
+                    <span className="relative">Commencer maintenant</span>
                   </Link>
-                  <p className="text-[10px] text-blue-400/70 text-center mt-3">Sans engagement · Résiliation en 1 clic</p>
+                  <p className="text-[10px] text-cyan-200/60 text-center mt-3">Sans engagement · Résiliation en 1 clic</p>
                 </div>
               </div>
-            </Reveal>
+            </motion.div>
 
-            {/* Étudiant Pro */}
-            <Reveal delay={0.2}>
-              <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg,#0f172a,#164e8a,#0891b2)' }} />
-                <div className="px-7 pt-6 pb-5">
+            {/* ── Étudiant Pro ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ type: 'spring', stiffness: 210, damping: 24, delay: 0.16 }}
+              whileHover={{ y: -8 }}
+              className="flex flex-col rounded-[28px] border border-slate-200 bg-white shadow-sm hover:shadow-2xl hover:shadow-indigo-100 transition-shadow duration-300 overflow-hidden md:mt-6">
+              <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg,#0f172a,#164e8a,#0891b2)' }} />
+              <div className="px-7 pt-6 pb-5 flex-1">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#eef2ff,#e0f2fe)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#164e8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.735H5.81a1 1 0 0 1-.957-.735L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" /><path d="M5 21h14" /></svg>
+                  </div>
                   <span className="text-[10px] font-black text-white px-2.5 py-1 rounded-full uppercase tracking-wide"
-                    style={{ background: 'linear-gradient(135deg,#0f172a,#164e8a)' }}>Étudiant Pro</span>
-                  <h3 className="text-xl font-black text-slate-900 mt-5 mb-1">Étudiant Pro</h3>
-                  <div className="flex items-end gap-1.5 mb-1">
-                    <span className="text-4xl font-black text-slate-900">14,99</span>
-                    <span className="text-2xl font-bold text-slate-900 mb-0.5">€</span>
-                    <span className="text-sm text-slate-400 mb-1">/ mois</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-6">Pour ceux qui visent l'excellence</p>
-                  <div className="bg-slate-50 rounded-xl px-3 py-2 mb-3 flex items-center gap-2">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891b2" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                    <p className="text-xs font-semibold text-slate-600">Tout le plan Étudiant, plus :</p>
-                  </div>
-                  <div className="space-y-1 mb-6">
-                    {[
-                      { t: 'Génération IA illimitée', highlight: true },
-                      { t: 'Quiz personnalisés par IA', highlight: true },
-                      { t: 'Groupes illimités', highlight: false },
-                      { t: 'Statistiques avancées', highlight: false },
-                      { t: 'Export PDF des fiches', highlight: false },
-                      { t: 'Support dédié 24h', highlight: true },
-                    ].map(({ t, highlight }) => (
-                      <div key={t} className="flex items-center gap-2.5 py-1.5 text-xs text-slate-700">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${highlight ? 'bg-blue-100' : 'bg-emerald-100'}`}>
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={highlight ? '#1d4ed8' : '#16a34a'} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                        </span>
-                        <span className={highlight ? 'font-semibold text-blue-800' : ''}>{t}</span>
-                      </div>
-                    ))}
-                  </div>
+                    style={{ background: 'linear-gradient(135deg,#0f172a,#164e8a)' }}>Pro</span>
                 </div>
-                <div className="px-7 pb-7">
-                  <Link to="/register"
-                    className="block w-full py-3 text-white rounded-2xl text-sm font-bold text-center transition hover:opacity-90"
-                    style={{ background: 'linear-gradient(135deg,#0f172a,#164e8a)' }}>
-                    Choisir Étudiant Pro
-                  </Link>
+                <h3 className="text-xl font-black text-slate-900 mb-1">Étudiant Pro</h3>
+                <div className="flex items-end gap-1.5 mb-1">
+                  <span className="text-4xl font-black text-slate-900">14,99</span>
+                  <span className="text-2xl font-bold text-slate-900 mb-0.5">€</span>
+                  <span className="text-sm text-slate-400 mb-1">/ mois</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-6">Pour ceux qui visent l'excellence</p>
+                <div className="bg-slate-50 rounded-xl px-3 py-2 mb-3 flex items-center gap-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891b2" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  <p className="text-xs font-semibold text-slate-600">Tout le plan Étudiant, plus :</p>
+                </div>
+                <div className="space-y-0.5">
+                  {[
+                    { t: 'Génération IA illimitée', highlight: true },
+                    { t: 'Quiz personnalisés par IA', highlight: true },
+                    { t: 'Groupes illimités', highlight: false },
+                    { t: 'Statistiques avancées', highlight: false },
+                    { t: 'Export PDF des fiches', highlight: false },
+                    { t: 'Support dédié 24h', highlight: true },
+                  ].map(({ t, highlight }, fi) => (
+                    <motion.div key={t}
+                      initial={{ opacity: 0, x: -12 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true, margin: '-40px' }}
+                      transition={{ delay: 0.15 + fi * 0.05, duration: 0.35 }}
+                      className="flex items-center gap-2.5 py-1.5 text-xs text-slate-700">
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${highlight ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={highlight ? '#1d4ed8' : '#16a34a'} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                      </span>
+                      <span className={highlight ? 'font-semibold text-blue-800' : ''}>{t}</span>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            </Reveal>
+              <div className="px-7 pb-7">
+                <Link to="/register"
+                  className="block w-full py-3 text-white rounded-2xl text-sm font-bold text-center transition hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg,#0f172a,#164e8a)' }}>
+                  Choisir Étudiant Pro
+                </Link>
+              </div>
+            </motion.div>
           </div>
 
-          <Reveal className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-9 text-xs text-slate-400">
+          <Reveal className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-10 text-xs text-slate-400">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
             <span>Paiement sécurisé par Stripe</span>
             <span className="w-1 h-1 rounded-full bg-slate-300" />

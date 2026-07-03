@@ -1417,16 +1417,13 @@ export default function Cours() {
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Cours & Fiches</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Consultez les cours, révisez et créez vos fiches</p>
               </div>
-              <div style={{ marginLeft:'auto' }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
             <p style={{ fontSize:13, color:'rgba(196,181,253,0.7)', marginBottom:20, maxWidth:480 }}>
               Consultez les cours, révisez avec les fiches officielles, créez vos fiches personnelles avec l'IA.
             </p>
 
             {/* Tabs */}
-            <div style={{ display:'flex', gap:6 }}>
+            <div style={{ display:'flex', gap:6, alignItems:'flex-end' }}>
               {tabs.map(t => (
                 <motion.button key={t.id} onClick={() => setTab(t.id)}
                   whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
@@ -1437,6 +1434,9 @@ export default function Cours() {
                   {t.label}
                 </motion.button>
               ))}
+              <div style={{ marginLeft:'auto', paddingBottom:6 }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
+              </div>
             </div>
           </motion.div>
         </div>

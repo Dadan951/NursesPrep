@@ -316,11 +316,8 @@ export default function Annales() {
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Annales</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Sujets d'examens classés par année et semestre</p>
               </div>
-              <div style={{ marginLeft:'auto' }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
-            <div style={{ display:'flex', gap:20 }}>
+            <div style={{ display:'flex', gap:20, alignItems:'flex-end' }}>
               {[
                 { val:annales.length, label:'Sujets', color:'#c4b5fd' },
                 { val:years.length,   label:'Années',  color:'#a5b4fc' },
@@ -330,6 +327,9 @@ export default function Annales() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginTop:2 }}>{s.label}</p>
                 </div>
               ))}
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
+              </div>
             </div>
           </motion.div>
         </div>

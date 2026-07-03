@@ -798,11 +798,8 @@ export default function Flashcards() {
                 <h1 style={{ fontSize:24, fontWeight:900, color:'#fff', fontFamily:'Nunito,sans-serif', lineHeight:1.1 }}>Flashcards</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Mémorisez les notions clés</p>
               </div>
-              <div style={{ marginLeft:'auto' }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
-            <div style={{ display:'flex', gap:20, marginTop:18 }}>
+            <div style={{ display:'flex', gap:20, marginTop:18, alignItems:'flex-end' }}>
               {[
                 { n: totalCards, l:'Cartes', c:'#fff' },
                 { n: semesters.length, l:'Semestres', c:'#c4b5fd' },
@@ -813,6 +810,9 @@ export default function Flashcards() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{s.l}</p>
                 </div>
               ))}
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
+              </div>
             </div>
           </div>
         </div>

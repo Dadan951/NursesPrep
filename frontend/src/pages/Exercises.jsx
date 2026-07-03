@@ -410,9 +410,6 @@ export default function Exercises() {
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Entraîne-toi</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>QCM, questions ouvertes et cas cliniques — comme aux examens IFSI</p>
               </div>
-              <div style={{ marginLeft:'auto' }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
 
             {/* Stats */}
@@ -429,11 +426,14 @@ export default function Exercises() {
                 </div>
               ))}
               {isFree && quota && (
-                <div style={{ marginLeft:'auto', textAlign:'right' }}>
+                <div style={{ textAlign:'right' }}>
                   <p style={{ fontSize:10, color:'rgba(186,230,253,0.55)', marginBottom:2 }}>Quota mensuel</p>
                   <p style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{quota.used} / {quota.limit} exercice{quota.limit > 1?'s':''}</p>
                 </div>
               )}
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
+              </div>
             </div>
           </motion.div>
         </div>

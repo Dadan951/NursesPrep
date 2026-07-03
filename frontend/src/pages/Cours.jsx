@@ -1423,7 +1423,7 @@ export default function Cours() {
             </p>
 
             {/* Tabs */}
-            <div style={{ display:'flex', gap:6, alignItems:'flex-end' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end' }}>
               {tabs.map(t => (
                 <motion.button key={t.id} onClick={() => setTab(t.id)}
                   whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
@@ -1434,7 +1434,7 @@ export default function Cours() {
                   {t.label}
                 </motion.button>
               ))}
-              <div style={{ marginLeft:'auto', paddingBottom:6 }}>
+              <div style={{ marginLeft:'auto', paddingBottom:6, flexShrink:0 }}>
                 <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>

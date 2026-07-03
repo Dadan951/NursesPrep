@@ -799,7 +799,7 @@ export default function Flashcards() {
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Mémorisez les notions clés</p>
               </div>
             </div>
-            <div style={{ display:'flex', gap:20, marginTop:18, alignItems:'flex-end' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:12, columnGap:20, marginTop:18, alignItems:'flex-end' }}>
               {[
                 { n: totalCards, l:'Cartes', c:'#fff' },
                 { n: semesters.length, l:'Semestres', c:'#c4b5fd' },
@@ -810,7 +810,7 @@ export default function Flashcards() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{s.l}</p>
                 </div>
               ))}
-              <div style={{ marginLeft:'auto' }}>
+              <div style={{ marginLeft:'auto', flexShrink:0 }}>
                 <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>

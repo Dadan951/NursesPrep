@@ -449,14 +449,14 @@ export default function Quiz() {
             </div>
 
             {/* Stats */}
-            <div style={{ display:'flex', gap:20, marginBottom:20, marginTop:6, alignItems:'flex-end' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:12, columnGap:20, marginBottom:20, marginTop:6, alignItems:'flex-end' }}>
               {[{ n:totalQuizzes, l:'Quiz', c:'#fff' }, { n:semesters.length, l:'Semestres', c:'#c4b5fd' }].map(s => (
                 <div key={s.l}>
                   <p className="nunito" style={{ fontSize:22, fontWeight:900, color:s.c, lineHeight:1 }}>{s.n}</p>
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:2 }}>{s.l}</p>
                 </div>
               ))}
-              <div style={{ marginLeft:'auto' }}>
+              <div style={{ marginLeft:'auto', flexShrink:0 }}>
                 <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>

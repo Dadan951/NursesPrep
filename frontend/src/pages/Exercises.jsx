@@ -413,7 +413,7 @@ export default function Exercises() {
             </div>
 
             {/* Stats */}
-            <div style={{ display:'flex', gap:20, flexWrap:'wrap', alignItems:'center' }}>
+            <div style={{ display:'flex', gap:20, rowGap:12, flexWrap:'wrap', alignItems:'center' }}>
               {[
                 { label:'Total',        val:exercises.length, color:'#93c5fd' },
                 { label:'QCM',          val:qcmCount,         color:'#c4b5fd' },
@@ -431,7 +431,7 @@ export default function Exercises() {
                   <p style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{quota.used} / {quota.limit} exercice{quota.limit > 1?'s':''}</p>
                 </div>
               )}
-              <div style={{ marginLeft:'auto' }}>
+              <div style={{ marginLeft:'auto', flexShrink:0 }}>
                 <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>

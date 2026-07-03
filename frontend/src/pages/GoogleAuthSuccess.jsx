@@ -9,6 +9,9 @@ export default function GoogleAuthSuccess() {
     const token = params.get('token');
     if (token) {
       localStorage.setItem('token', token);
+      if (params.get('isNew') === '1') {
+        localStorage.setItem('np-display-mode', 'detail');
+      }
       window.location.href = '/dashboard';
     } else {
       navigate('/login?error=google');

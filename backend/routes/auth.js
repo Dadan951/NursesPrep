@@ -20,6 +20,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     try {
       const email = profile.emails[0].value;
       let user = await User.findOne({ $or: [{ googleId: profile.id }, { email }] });
+      let isNew = false;
       if (!user) {
         user = await User.create({
           name:          profile.displayName,
@@ -28,12 +29,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           emailVerified: true,
           avatar:        profile.photos?.[0]?.value || '',
         });
+        isNew = true;
       } else if (!user.googleId) {
         user.googleId = profile.id;
         if (!user.avatar) user.avatar = profile.photos?.[0]?.value || '';
         await user.save();
       }
-      done(null, user);
+      done(null, user, { isNew });
     } catch (err) { done(err, null); }
   }));
 }
@@ -45,10 +47,11 @@ router.get('/google', (req, res, next) => {
 
 router.get('/google/callback', (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID) return res.redirect(`${FRONTEND_URL}/login?error=google`);
-  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google` }, (err, user) => {
+  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google` }, (err, user, info) => {
     if (err || !user) return res.redirect(`${FRONTEND_URL}/login?error=google`);
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    res.redirect(`${FRONTEND_URL}/auth/google/success?token=${token}`);
+    const newParam = info?.isNew ? '&isNew=1' : '';
+    res.redirect(`${FRONTEND_URL}/auth/google/success?token=${token}${newParam}`);
   })(req, res, next);
 });
 

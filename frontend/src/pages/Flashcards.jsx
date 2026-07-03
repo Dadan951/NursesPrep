@@ -5,6 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
+import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const C = {
@@ -521,6 +522,7 @@ export default function Flashcards() {
   const [cards,      setCards]      = useState([]);
   const [attempts,   setAttempts]   = useState([]);
   const [loading,    setLoading]    = useState(true);
+  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
   const [view,       setView]       = useState('semesters');
   const [quotaModal, setQuotaModal] = useState(false);
 
@@ -786,7 +788,7 @@ export default function Flashcards() {
           <div style={{ position:'absolute', bottom:-20, left:60, width:160, height:160, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,255,255,0.08),transparent)', filter:'blur(32px)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.15),transparent 55%)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'relative', padding:'28px 24px 28px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:6 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:6, flexWrap:'wrap' }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                   <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="m12 13-3-4.5 3-1.5 3 1.5-3 4.5Z"/>
@@ -795,6 +797,9 @@ export default function Flashcards() {
               <div>
                 <h1 style={{ fontSize:24, fontWeight:900, color:'#fff', fontFamily:'Nunito,sans-serif', lineHeight:1.1 }}>Flashcards</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Mémorisez les notions clés</p>
+              </div>
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>
             <div style={{ display:'flex', gap:20, marginTop:18 }}>
@@ -812,7 +817,103 @@ export default function Flashcards() {
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content — AFFICHAGE DÉTAILLÉ (listes) */}
+        {displayMode === 'detail' && (
+          <div style={{ padding:'24px 16px', maxWidth:760 }}>
+            <SlideLevel id={view} dir={dir.current}>
+              {view === 'semesters' && (
+                semesters.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:'60px 20px', color:C.muted }}>
+                    <p style={{ fontWeight:700, color:C.text }}>Aucune flashcard disponible</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ marginBottom:20 }}>
+                      <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif' }}>Semestres</h2>
+                      <p style={{ fontSize:13, color:C.muted, marginTop:2 }}>{semesters.length} semestre{semesters.length>1?'s':''}</p>
+                    </div>
+                    <DetailList
+                      items={semesters.map(sem => {
+                        const total = Object.values(structure[sem]).flatMap(u => Object.values(u)).flat().length;
+                        const done  = attempts.filter(a => a.semester === sem && a.status === 'completed').length;
+                        return {
+                          key: sem, label: sem,
+                          sub: `${Object.keys(structure[sem]).length} UE · ${total} carte${total>1?'s':''}`,
+                          right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done} terminé{done>1?'s':''}</DetailBadge> : null,
+                        };
+                      })}
+                      onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
+                    />
+                  </>
+                )
+              )}
+
+              {view === 'ues' && selectedSemester && (
+                <>
+                  <Breadcrumb items={[
+                    { label:'Flashcards', onClick:() => { setDir(-1); setSelectedSemester(null); setView('semesters'); } },
+                    { label:selectedSemester },
+                  ]}/>
+                  <div style={{ marginBottom:20 }}>
+                    <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif' }}>{selectedSemester}</h2>
+                    <p style={{ fontSize:13, color:C.muted, marginTop:2 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
+                  </div>
+                  <DetailList
+                    items={ues.map(ue => {
+                      const total   = Object.values(structure[selectedSemester][ue]).flat().length;
+                      const chCount = Object.keys(structure[selectedSemester][ue]).length;
+                      const done    = Object.keys(structure[selectedSemester][ue]).filter(ch =>
+                        attemptMap[`${selectedSemester}|${ue}|${ch}`]?.status === 'completed').length;
+                      return {
+                        key: ue, label: ue,
+                        sub: `${chCount} chapitre${chCount>1?'s':''} · ${total} carte${total>1?'s':''}`,
+                        right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{chCount}</DetailBadge> : null,
+                      };
+                    })}
+                    onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
+                  />
+                </>
+              )}
+
+              {view === 'chapters' && selectedSemester && selectedUE && (
+                <>
+                  <Breadcrumb items={[
+                    { label:'Flashcards', onClick:() => { setDir(-1); setSelectedSemester(null); setSelectedUE(null); setView('semesters'); } },
+                    { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setView('ues'); } },
+                    { label:selectedUE },
+                  ]}/>
+                  <div style={{ marginBottom:20 }}>
+                    <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif' }}>{selectedUE}</h2>
+                    <p style={{ fontSize:13, color:C.muted, marginTop:2 }}>{totalInUE} carte{totalInUE>1?'s':''} disponible{totalInUE>1?'s':''}</p>
+                  </div>
+                  <DetailList
+                    items={chapters.map(chap => {
+                      const count  = structure[selectedSemester][selectedUE][chap].length;
+                      const a      = attemptMap[`${selectedSemester}|${selectedUE}|${chap}`];
+                      const isDone = a?.status === 'completed';
+                      const isProg = a?.status === 'in_progress';
+                      const pct    = isDone && a.total ? Math.round((a.known / a.total) * 100) : null;
+                      return {
+                        key: chap, label: chap,
+                        sub: `${count} carte${count>1?'s':''}`,
+                        done: isDone,
+                        right: isDone
+                          ? <DetailBadge color={pct>=60?'#15803d':'#9a3412'} bg={pct>=60?'#dcfce7':'#ffedd5'}>{pct>=60?'✓':'△'} {a.known}/{a.total}</DetailBadge>
+                          : isProg
+                            ? <DetailBadge color="#92400e" bg="#fef9c3">● {a.currentIndex}/{count}</DetailBadge>
+                            : null,
+                      };
+                    })}
+                    onPick={chap => { setDir(1); handleChapterClick(chap); }}
+                  />
+                </>
+              )}
+            </SlideLevel>
+          </div>
+        )}
+
+        {/* Content — AFFICHAGE SIMPLIFIÉ (cartes) */}
+        {displayMode === 'simple' && (
         <div style={{ padding:'24px 16px' }}>
           <AnimatePresence mode="wait">
 
@@ -963,6 +1064,7 @@ export default function Flashcards() {
 
           </AnimatePresence>
         </div>
+        )}
       </div>
     </DashboardLayout>
   );

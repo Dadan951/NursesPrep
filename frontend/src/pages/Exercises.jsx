@@ -5,6 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { getCache, setCache } from '../utils/cache';
 import { API_URL, useAuth } from '../context/AuthContext';
+import { useDisplayMode, ViewToggle, SlideLevel, DetailList } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -334,6 +335,7 @@ export default function Exercises() {
   const [completedCount, setCompletedCount] = useState(0);
   const [quota,          setQuota]          = useState(null);
 
+  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
   const [view,             setView]             = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedCaseType, setSelectedCaseType] = useState(null);
@@ -400,13 +402,16 @@ export default function Exercises() {
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45 }}
             style={{ position:'relative', padding:'28px 24px 28px' }}>
 
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
               </div>
               <div>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Entraîne-toi</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>QCM, questions ouvertes et cas cliniques — comme aux examens IFSI</p>
+              </div>
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>
 
@@ -438,6 +443,74 @@ export default function Exercises() {
           {loading ? (
             <div style={{ display:'flex', justifyContent:'center', alignItems:'center', padding:'80px 0' }}>
               <div style={{ width:36, height:36, border:'4px solid var(--theme-shadow)', borderTopColor:'var(--theme-primary)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
+            </div>
+          ) : displayMode === 'detail' && view !== 'exercises' ? (
+            /* ── AFFICHAGE DÉTAILLÉ (listes) ── */
+            <div style={{ maxWidth:760 }}>
+              <SlideLevel id={view} dir={dir.current}>
+                {view === 'semesters' && (
+                  semesters.length === 0 ? (
+                    <div style={{ textAlign:'center', padding:'80px 0', color:C.sub }}>
+                      <p style={{ fontSize:15, fontWeight:600, color:C.text, marginBottom:6 }}>Aucun exercice disponible</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom:20 }}>
+                        <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>Semestres</h2>
+                        <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{semesters.length} semestre{semesters.length>1?'s':''}</p>
+                      </div>
+                      <DetailList
+                        items={semesters.map(sem => {
+                          const total = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat().length;
+                          return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} type${Object.keys(structure[sem]).length>1?'s':''} · ${total} exercice${total>1?'s':''}` };
+                        })}
+                        onPick={sem => { setDir(1); setSelectedSemester(sem); setView('casetypes'); }}
+                      />
+                    </>
+                  )
+                )}
+
+                {view === 'casetypes' && selectedSemester && (
+                  <>
+                    <ExBreadcrumb items={[
+                      { label:'Exercices', onClick:() => { setDir(-1); reset(); } },
+                      { label:selectedSemester }
+                    ]}/>
+                    <div style={{ marginBottom:20 }}>
+                      <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
+                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} type{caseTypes.length>1?'s':''} de cas</p>
+                    </div>
+                    <DetailList
+                      items={caseTypes.map(ct => {
+                        const total = Object.values(structure[selectedSemester][ct]).flat().length;
+                        return { key: ct, label: ct, sub: `${Object.keys(structure[selectedSemester][ct]).length} UE · ${total} exercice${total>1?'s':''}` };
+                      })}
+                      onPick={ct => { setDir(1); setSelectedCaseType(ct); setView('ues'); }}
+                    />
+                  </>
+                )}
+
+                {view === 'ues' && selectedSemester && selectedCaseType && (
+                  <>
+                    <ExBreadcrumb items={[
+                      { label:'Exercices', onClick:() => { setDir(-1); reset(); } },
+                      { label:selectedSemester, onClick:() => { setDir(-1); setSelectedCaseType(null); setView('casetypes'); } },
+                      { label:selectedCaseType },
+                    ]}/>
+                    <div style={{ marginBottom:20 }}>
+                      <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedCaseType}</h2>
+                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
+                    </div>
+                    <DetailList
+                      items={ues.map(ue => ({
+                        key: ue, label: ue,
+                        sub: `${structure[selectedSemester][selectedCaseType][ue].length} exercice${structure[selectedSemester][selectedCaseType][ue].length>1?'s':''}`,
+                      }))}
+                      onPick={ue => { setDir(1); setSelectedUE(ue); setView('exercises'); }}
+                    />
+                  </>
+                )}
+              </SlideLevel>
             </div>
           ) : (
             <AnimatePresence mode="wait">

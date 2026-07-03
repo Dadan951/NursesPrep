@@ -5,6 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
+import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -246,7 +247,7 @@ function QuotaModal({ type, onClose }) {
 }
 
 /* ─── CoursTab ───────────────────────────────────────────────────────────────── */
-function CoursTab() {
+function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
   const { user } = useAuth();
   const isFree   = (user?.subscription || 'free') === 'free';
   const [lessons, setLessons]   = useState([]);
@@ -330,6 +331,106 @@ function CoursTab() {
           </div>
         </div>
       </motion.div>
+    );
+  }
+
+  /* ── AFFICHAGE DÉTAILLÉ (listes) ── */
+  if (displayMode === 'detail') {
+    return (
+      <>
+        <AnimatePresence>{quotaModal && <QuotaModal type="cours" onClose={() => setQuotaModal(false)}/>}</AnimatePresence>
+        <div style={{ maxWidth:760 }}>
+          <SlideLevel id={view} dir={dir?.current ?? 1}>
+            {view === 'semesters' && (
+              semesters.length === 0 ? (
+                <div style={{ textAlign:'center', padding:'64px 0', color:C.sub }}><p style={{ fontWeight:600 }}>Aucun cours disponible</p></div>
+              ) : (
+                <>
+                  <div style={{ marginBottom:20 }}>
+                    <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>Semestres</h2>
+                    <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{semesters.length} semestre{semesters.length>1?'s':''}</p>
+                  </div>
+                  <DetailList
+                    items={semesters.map(sem => {
+                      const total = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat().length;
+                      return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} UE · ${total} cours` };
+                    })}
+                    onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
+                  />
+                </>
+              )
+            )}
+
+            {view === 'ues' && selectedSemester && (
+              <>
+                <CoursBreadcrumb items={[
+                  { label:'Cours', onClick:() => { setDir(-1); reset(); } },
+                  { label:selectedSemester }
+                ]}/>
+                <div style={{ marginBottom:20 }}>
+                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
+                  <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
+                </div>
+                <DetailList
+                  items={ues.map(ue => {
+                    const total   = Object.values(structure[selectedSemester][ue]).flat().length;
+                    const chCount = Object.keys(structure[selectedSemester][ue]).length;
+                    return { key: ue, label: ue, sub: `${chCount} chapitre${chCount>1?'s':''} · ${total} cours` };
+                  })}
+                  onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
+                />
+              </>
+            )}
+
+            {view === 'chapters' && selectedSemester && selectedUE && (
+              <>
+                <CoursBreadcrumb items={[
+                  { label:'Cours', onClick:() => { setDir(-1); reset(); } },
+                  { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setView('ues'); } },
+                  { label:selectedUE }
+                ]}/>
+                <div style={{ marginBottom:20 }}>
+                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedUE}</h2>
+                  <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{chapters.length} chapitre{chapters.length>1?'s':''}</p>
+                </div>
+                <DetailList
+                  items={chapters.map(chap => ({
+                    key: chap, label: chap,
+                    sub: `${structure[selectedSemester][selectedUE][chap].length} cours`,
+                  }))}
+                  onPick={chap => { setDir(1); setSelectedChapter(chap); setView('lessons'); }}
+                />
+              </>
+            )}
+
+            {view === 'lessons' && selectedSemester && selectedUE && selectedChapter && (
+              <>
+                <CoursBreadcrumb items={[
+                  { label:'Cours', onClick:() => { setDir(-1); reset(); } },
+                  { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
+                  { label:selectedUE, onClick:() => { setDir(-1); setSelectedChapter(null); setView('chapters'); } },
+                  { label:selectedChapter }
+                ]}/>
+                <div style={{ marginBottom:20 }}>
+                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedChapter}</h2>
+                  <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{currentLessons.length} cours</p>
+                </div>
+                <DetailList
+                  items={currentLessons.map(lesson => ({
+                    key: lesson._id,
+                    label: lesson.title,
+                    sub: lesson.summary || (DIFF_LABEL[lesson.difficulty] || ''),
+                    right: lesson.hasFile
+                      ? <DetailBadge color={FILE_ICON_COLOR[lesson.fileMimeType]||'#3b82f6'} bg={(FILE_ICON_COLOR[lesson.fileMimeType]||'#3b82f6')+'20'}>{FILE_TYPE_LABEL[lesson.fileMimeType]||'Fichier'}</DetailBadge>
+                      : null,
+                  }))}
+                  onPick={(id) => { const lesson = currentLessons.find(l => l._id === id); if (lesson) openLesson(lesson); }}
+                />
+              </>
+            )}
+          </SlideLevel>
+        </div>
+      </>
     );
   }
 
@@ -643,7 +744,7 @@ function FicheFileCard({ fiche, index }) {
 }
 
 /* ─── FichesTab ──────────────────────────────────────────────────────────────── */
-function FichesTab() {
+function FichesTab({ displayMode = 'simple', dir, setDir = () => {} }) {
   const [fiches, setFiches]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView]                           = useState('semesters');
@@ -675,6 +776,95 @@ function FichesTab() {
   const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedUE(null); setSelectedChapter(null); };
 
   if (loading) return <Spinner/>;
+
+  /* ── AFFICHAGE DÉTAILLÉ (listes) ── */
+  if (displayMode === 'detail') {
+    return (
+      <div style={{ maxWidth:760 }}>
+        <SlideLevel id={view} dir={dir?.current ?? 1}>
+          {view === 'semesters' && (
+            semesters.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'64px 0', color:C.sub }}><p style={{ fontWeight:600 }}>Aucune fiche disponible</p></div>
+            ) : (
+              <>
+                <div style={{ marginBottom:20 }}>
+                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>Semestres</h2>
+                  <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{semesters.length} semestre{semesters.length>1?'s':''}</p>
+                </div>
+                <DetailList
+                  items={semesters.map(sem => {
+                    const total = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat().length;
+                    return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} UE · ${total} fiche${total>1?'s':''}` };
+                  })}
+                  onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
+                />
+              </>
+            )
+          )}
+
+          {view === 'ues' && selectedSemester && (
+            <>
+              <CoursBreadcrumb items={[
+                { label:'Fiches', onClick:() => { setDir(-1); reset(); } },
+                { label:selectedSemester }
+              ]}/>
+              <div style={{ marginBottom:20 }}>
+                <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
+                <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
+              </div>
+              <DetailList
+                items={ues.map(ue => {
+                  const total   = Object.values(structure[selectedSemester][ue]).flat().length;
+                  const chCount = Object.keys(structure[selectedSemester][ue]).length;
+                  return { key: ue, label: ue, sub: `${chCount} chapitre${chCount>1?'s':''} · ${total} fiche${total>1?'s':''}` };
+                })}
+                onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
+              />
+            </>
+          )}
+
+          {view === 'chapters' && selectedSemester && selectedUE && (
+            <>
+              <CoursBreadcrumb items={[
+                { label:'Fiches', onClick:() => { setDir(-1); reset(); } },
+                { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setView('ues'); } },
+                { label:selectedUE }
+              ]}/>
+              <div style={{ marginBottom:20 }}>
+                <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedUE}</h2>
+                <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{chapters.length} chapitre{chapters.length>1?'s':''}</p>
+              </div>
+              <DetailList
+                items={chapters.map(chap => ({
+                  key: chap, label: chap,
+                  sub: `${structure[selectedSemester][selectedUE][chap].length} fiche${structure[selectedSemester][selectedUE][chap].length>1?'s':''}`,
+                }))}
+                onPick={chap => { setDir(1); setSelectedChapter(chap); setView('fiches'); }}
+              />
+            </>
+          )}
+
+          {view === 'fiches' && selectedSemester && selectedUE && selectedChapter && (
+            <>
+              <CoursBreadcrumb items={[
+                { label:'Fiches', onClick:() => { setDir(-1); reset(); } },
+                { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
+                { label:selectedUE, onClick:() => { setDir(-1); setSelectedChapter(null); setView('chapters'); } },
+                { label:selectedChapter }
+              ]}/>
+              <div style={{ marginBottom:20 }}>
+                <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedChapter}</h2>
+                <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{currentFiches.length} fiche{currentFiches.length>1?'s':''}</p>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10, maxWidth:680 }}>
+                {currentFiches.map((fiche, i) => <FicheFileCard key={fiche._id} fiche={fiche} index={i}/>)}
+              </div>
+            </>
+          )}
+        </SlideLevel>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -1196,6 +1386,7 @@ export default function Cours() {
   const { user } = useAuth();
   const [tab, setTab] = useState('cours');
   const isPro = ['pro','premium'].includes(user?.subscription);
+  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
 
   const tabs = [
     { id:'cours',  label:'Cours' },
@@ -1226,6 +1417,9 @@ export default function Cours() {
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Cours & Fiches</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Consultez les cours, révisez et créez vos fiches</p>
               </div>
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
+              </div>
             </div>
             <p style={{ fontSize:13, color:'rgba(196,181,253,0.7)', marginBottom:20, maxWidth:480 }}>
               Consultez les cours, révisez avec les fiches officielles, créez vos fiches personnelles avec l'IA.
@@ -1253,8 +1447,8 @@ export default function Cours() {
             <motion.div key={tab}
               initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }}
               transition={{ duration:0.25 }}>
-              {tab==='cours'  && <CoursTab/>}
-              {tab==='fiches' && <FichesTab/>}
+              {tab==='cours'  && <CoursTab  displayMode={displayMode} dir={dir} setDir={setDir}/>}
+              {tab==='fiches' && <FichesTab displayMode={displayMode} dir={dir} setDir={setDir}/>}
               {tab==='perso'  && <FichesPersoTab isPro={isPro}/>}
             </motion.div>
           </AnimatePresence>

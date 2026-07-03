@@ -4,6 +4,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
+import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -245,6 +246,7 @@ export default function Annales() {
   const [loading,  setLoading]  = useState(true);
   const [selected, setSelected] = useState(null);
 
+  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
   const [view,             setView]             = useState('years');
   const [selectedYear,     setSelectedYear]     = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
@@ -306,13 +308,16 @@ export default function Annales() {
 
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45 }}
             style={{ position:'relative', padding:'28px 24px 28px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               </div>
               <div>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Annales</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Sujets d'examens classés par année et semestre</p>
+              </div>
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>
             <div style={{ display:'flex', gap:20 }}>
@@ -340,8 +345,102 @@ export default function Annales() {
                 <AnnaleCard annale={selected} yearPalette={yearPalette} onBack={() => setSelected(null)}/>
               )}
 
-              {/* ── Navigation views ── */}
-              {!selected && (
+              {/* ── Navigation — AFFICHAGE DÉTAILLÉ (listes) ── */}
+              {!selected && displayMode === 'detail' && (
+                <div style={{ maxWidth:760 }}>
+                  <SlideLevel id={view} dir={dir.current}>
+                    {view === 'years' && (
+                      years.length === 0 ? (
+                        <div style={{ textAlign:'center', padding:'80px 0', color:C.sub }}>
+                          <p style={{ fontSize:15, fontWeight:600, color:C.text, marginBottom:6 }}>Aucune annale disponible</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ marginBottom:20 }}>
+                            <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>Années</h2>
+                            <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{years.length} année{years.length>1?'s':''}</p>
+                          </div>
+                          <DetailList
+                            items={years.map(yr => {
+                              const total = Object.values(structure[yr]).flatMap(s => Object.values(s)).flat().length;
+                              return { key: yr, label: yr, sub: `${Object.keys(structure[yr]).length} semestre${Object.keys(structure[yr]).length>1?'s':''} · ${total} sujet${total>1?'s':''}` };
+                            })}
+                            onPick={yr => { setDir(1); setSelectedYear(yr); setView('semesters'); }}
+                          />
+                        </>
+                      )
+                    )}
+
+                    {view === 'semesters' && selectedYear && (
+                      <>
+                        <Breadcrumb items={[
+                          { label:'Annales', onClick:() => { setDir(-1); reset(); } },
+                          { label:selectedYear }
+                        ]}/>
+                        <div style={{ marginBottom:20 }}>
+                          <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedYear}</h2>
+                          <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{semesters.length} semestre{semesters.length>1?'s':''}</p>
+                        </div>
+                        <DetailList
+                          items={semesters.map(sem => {
+                            const total = Object.values(structure[selectedYear][sem]).flat().length;
+                            return { key: sem, label: sem, sub: `${Object.keys(structure[selectedYear][sem]).length} matière${Object.keys(structure[selectedYear][sem]).length>1?'s':''} · ${total} sujet${total>1?'s':''}` };
+                          })}
+                          onPick={sem => { setDir(1); setSelectedSemester(sem); setView('subjects'); }}
+                        />
+                      </>
+                    )}
+
+                    {view === 'subjects' && selectedYear && selectedSemester && (
+                      <>
+                        <Breadcrumb items={[
+                          { label:'Annales', onClick:() => { setDir(-1); reset(); } },
+                          { label:selectedYear, onClick:() => { setDir(-1); setSelectedSemester(null); setView('semesters'); } },
+                          { label:selectedSemester }
+                        ]}/>
+                        <div style={{ marginBottom:20 }}>
+                          <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
+                          <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{totalInSem} sujet{totalInSem>1?'s':''}</p>
+                        </div>
+                        <DetailList
+                          items={subjects.map(sub => ({
+                            key: sub, label: sub,
+                            sub: `${structure[selectedYear][selectedSemester][sub].length} sujet${structure[selectedYear][selectedSemester][sub].length>1?'s':''}`,
+                          }))}
+                          onPick={sub => { setDir(1); setSelectedSubject(sub); setView('annales'); }}
+                        />
+                      </>
+                    )}
+
+                    {view === 'annales' && selectedYear && selectedSemester && selectedSubject && (
+                      <>
+                        <Breadcrumb items={[
+                          { label:'Annales', onClick:() => { setDir(-1); reset(); } },
+                          { label:selectedYear, onClick:() => { setDir(-1); setSelectedSemester(null); setSelectedSubject(null); setView('semesters'); } },
+                          { label:selectedSemester, onClick:() => { setDir(-1); setSelectedSubject(null); setView('subjects'); } },
+                          { label:selectedSubject }
+                        ]}/>
+                        <div style={{ marginBottom:20 }}>
+                          <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedSubject}</h2>
+                          <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{currentAnnales.length} sujet{currentAnnales.length>1?'s':''}</p>
+                        </div>
+                        <DetailList
+                          items={currentAnnales.map(a => ({
+                            key: a._id,
+                            label: a.title,
+                            sub: a.description || `${a.year} · ${a.semester}`,
+                            right: a.hasFile ? <DetailBadge color="#dc2626" bg="#fee2e2">PDF</DetailBadge> : null,
+                          }))}
+                          onPick={(id) => { const a = currentAnnales.find(x => x._id === id); if (a) setSelected(a); }}
+                        />
+                      </>
+                    )}
+                  </SlideLevel>
+                </div>
+              )}
+
+              {/* ── Navigation — AFFICHAGE SIMPLIFIÉ (cartes) ── */}
+              {!selected && displayMode === 'simple' && (
                 <AnimatePresence mode="wait">
 
                   {/* ANNÉES */}

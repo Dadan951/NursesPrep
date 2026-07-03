@@ -11,6 +11,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
+import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens (identiques au Dashboard) ────────────────────────────── */
 const C = {
@@ -355,6 +356,7 @@ export default function Quiz() {
   const [personalQuizzes, setPersonalQuizzes] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [personalLoading, setPersonalLoading] = useState(false);
+  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
   const [view, setView]               = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedUE, setSelectedUE]             = useState(null);
@@ -433,7 +435,7 @@ export default function Quiz() {
 
           <div style={{ position:'relative', padding:'28px 24px 0' }}>
             {/* Icon + titre */}
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -443,6 +445,9 @@ export default function Quiz() {
               <div>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Quiz</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Testez vos connaissances par unité d'enseignement</p>
+              </div>
+              <div style={{ marginLeft:'auto' }}>
+                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
               </div>
             </div>
 
@@ -471,8 +476,116 @@ export default function Quiz() {
         {/* ── CONTENT ──────────────────────────────────────────────────── */}
         <div style={{ padding:'24px 16px' }}>
 
-          {/* ── CATALOGUE ── */}
-          {tab === 'catalogue' && (
+          {/* ── CATALOGUE — AFFICHAGE DÉTAILLÉ (listes) ── */}
+          {tab === 'catalogue' && displayMode === 'detail' && (
+            <div style={{ maxWidth:760 }}>
+              <SlideLevel id={view} dir={dir.current}>
+                {view === 'semesters' && (
+                  loading ? <Skeleton/> : semesters.length === 0 ? (
+                    <div style={{ textAlign:'center', padding:'60px 24px', color:C.muted }}>
+                      <p style={{ fontWeight:700, color:C.text, fontFamily:'Nunito,sans-serif' }}>Aucun quiz disponible</p>
+                    </div>
+                  ) : (
+                    <>
+                      <SectionHeader title="Semestres" sub={`${semesters.length} semestre${semesters.length>1?'s':''}`}/>
+                      <DetailList
+                        items={semesters.map(sem => {
+                          const allQ = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat();
+                          const done = allQ.filter(q => q.attempt?.status === 'completed').length;
+                          return {
+                            key: sem, label: sem,
+                            sub: `${Object.keys(structure[sem]).length} UE · ${allQ.length} quiz`,
+                            right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{allQ.length}</DetailBadge> : null,
+                          };
+                        })}
+                        onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
+                      />
+                    </>
+                  )
+                )}
+
+                {view === 'ues' && selectedSemester && (
+                  <>
+                    <Breadcrumb items={[
+                      { label:'Quiz', onClick:() => { setDir(-1); resetCatalogue(); } },
+                      { label:selectedSemester }
+                    ]}/>
+                    <SectionHeader title={selectedSemester} sub={`${ues.length} unité${ues.length>1?'s':''} d'enseignement`}/>
+                    <DetailList
+                      items={ues.map(ue => {
+                        const allQ = Object.values(structure[selectedSemester][ue]).flat();
+                        const done = allQ.filter(q => q.attempt?.status === 'completed').length;
+                        return {
+                          key: ue, label: ue,
+                          sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${allQ.length} quiz`,
+                          right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{allQ.length}</DetailBadge> : null,
+                        };
+                      })}
+                      onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
+                    />
+                  </>
+                )}
+
+                {view === 'chapters' && selectedSemester && selectedUE && (
+                  <>
+                    <Breadcrumb items={[
+                      { label:'Quiz', onClick:() => { setDir(-1); resetCatalogue(); } },
+                      { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setView('ues'); } },
+                      { label:selectedUE }
+                    ]}/>
+                    <SectionHeader title={selectedUE} sub={`${totalInUE} quiz disponible${totalInUE>1?'s':''}`}/>
+                    <DetailList
+                      items={chapters.map(chap => {
+                        const chapQ = structure[selectedSemester][selectedUE][chap];
+                        const done  = chapQ.filter(q => q.attempt?.status === 'completed').length;
+                        return {
+                          key: chap, label: chap,
+                          sub: `${chapQ.length} quiz disponible${chapQ.length>1?'s':''}`,
+                          done: done === chapQ.length && chapQ.length > 0,
+                          right: done > 0 ? <DetailBadge color={done===chapQ.length?'#15803d':C.indigo} bg={done===chapQ.length?'#dcfce7':undefined}>✓ {done}/{chapQ.length}</DetailBadge> : null,
+                        };
+                      })}
+                      onPick={chap => { setDir(1); setSelectedChapter(chap); setView('quizzes'); }}
+                    />
+                  </>
+                )}
+
+                {view === 'quizzes' && selectedSemester && selectedUE && selectedChapter && (
+                  <>
+                    <Breadcrumb items={[
+                      { label:'Quiz', onClick:() => { setDir(-1); resetCatalogue(); } },
+                      { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
+                      { label:selectedUE, onClick:() => { setDir(-1); setSelectedChapter(null); setView('chapters'); } },
+                      { label:selectedChapter }
+                    ]}/>
+                    <SectionHeader title={selectedChapter} sub={`${currentQuizzes.length} quiz disponible${currentQuizzes.length>1?'s':''}`}/>
+                    <DetailList
+                      items={currentQuizzes.map(quiz => {
+                        const a      = quiz.attempt;
+                        const isDone = a?.status === 'completed';
+                        const pct    = isDone ? Math.round((a.score / a.totalQuestions) * 100) : null;
+                        const diff   = DIFF[quiz.difficulty] || DIFF.medium;
+                        return {
+                          key: quiz._id, label: quiz.title,
+                          sub: `${quiz.questions?.length || 0} question${(quiz.questions?.length||0)>1?'s':''} · ${quiz.duration} min · ${diff.label}`,
+                          done: isDone,
+                          right: isDone
+                            ? <DetailBadge color={pct>=60?'#15803d':'#991b1b'} bg={pct>=60?'#dcfce7':'#fee2e2'}>{pct>=60?'✓':'✗'} {a.score}/{a.totalQuestions}</DetailBadge>
+                            : a?.status === 'in_progress'
+                              ? <DetailBadge color="#854d0e" bg="#fef9c3">● En cours</DetailBadge>
+                              : null,
+                        };
+                      })}
+                      onPick={id => handlePlay(id)}
+                    />
+                  </>
+                )}
+              </SlideLevel>
+            </div>
+          )}
+
+          {/* ── CATALOGUE — AFFICHAGE SIMPLIFIÉ (cartes) ── */}
+          {tab === 'catalogue' && displayMode === 'simple' && (
             <AnimatePresence mode="wait">
 
               {/* SEMESTERS */}

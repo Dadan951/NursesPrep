@@ -222,7 +222,7 @@ function ProgressBar({ value, max, color, label, sublabel }) {
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-          style={{ height: '100%', borderRadius: 99, background: done ? C.green : `linear-gradient(90deg, ${color}, ${color}bb)`, boxShadow: `0 2px 6px ${color}55` }}
+          style={{ height: '100%', borderRadius: 99, background: done ? C.green : `linear-gradient(90deg, ${color}, color-mix(in srgb, ${color} 75%, transparent))`, boxShadow: `0 2px 6px color-mix(in srgb, ${color} 33%, transparent)` }}
         />
       </div>
     </div>
@@ -478,7 +478,7 @@ export default function Dashboard() {
                 >
                   <Tilt3D depth={6}>
                     <Card style={{ padding:'22px 24px', cursor:'default' }}>
-                      <div style={{ height:4, borderRadius:99, background:`linear-gradient(90deg, ${s.color}, ${s.color}88)`, marginBottom:16 }}/>
+                      <div style={{ height:4, borderRadius:99, background:`linear-gradient(90deg, ${s.color}, color-mix(in srgb, ${s.color} 55%, transparent))`, marginBottom:16 }}/>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
                         <div style={{ width:42, height:42, borderRadius:14, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, boxShadow:clay.sm }}>
                           {s.icon}

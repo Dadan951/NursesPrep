@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from
 import axios from 'axios';
 import DashboardLayout from '../../components/DashboardLayout';
 import { useAuth, API_URL } from '../../context/AuthContext';
+import { Toaster, toast, ConfirmModal, useIsMobile } from '../../components/admin/adminKit';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -115,6 +116,7 @@ function SCard({ children, title, badge, delay = 0 }) {
 export default function AdminDashboard() {
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile(1024);
 
   useEffect(() => {
     axios.get(`${API_URL}/admin/stats`)
@@ -178,10 +180,11 @@ export default function AdminDashboard() {
         @keyframes drift2  { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(18px,-14px) scale(1.05)} }
       `}</style>
 
-      <div style={{ flex:1, overflowY:'auto', background:C.bg, position:'relative' }}>
+      <Toaster />
+      <div style={{ flex:1, overflowY:'auto', background:'var(--theme-bg)', position:'relative' }}>
 
         {/* ── HERO ── */}
-        <div style={{ background:'linear-gradient(135deg,#0f0c29 0%,#1e1b4b 40%,#4338ca 80%,#7C3AED 100%)', position:'relative', overflow:'hidden' }}>
+        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden' }}>
           {/* Orbs */}
           <div style={{ position:'absolute', top:-40, right:-40, width:220, height:220, borderRadius:'50%', background:'radial-gradient(circle,#6366f1,transparent)', opacity:0.2, filter:'blur(50px)', animation:'drift1 18s ease-in-out infinite', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', bottom:-20, left:80, width:160, height:160, borderRadius:'50%', background:'radial-gradient(circle,#EC4899,transparent)', opacity:0.15, filter:'blur(40px)', animation:'drift2 22s ease-in-out infinite', pointerEvents:'none' }} aria-hidden/>
@@ -196,12 +199,12 @@ export default function AdminDashboard() {
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
               <div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-                  <span style={{ fontSize:10, fontWeight:700, padding:'3px 12px', borderRadius:20, background:'rgba(255,255,255,0.15)', color:'rgba(196,181,253,0.9)', border:'1.5px solid rgba(255,255,255,0.2)', backdropFilter:'blur(6px)' }}>
-                    ⚙️ Administration
+                  <span style={{ fontSize:10, fontWeight:700, padding:'3px 12px', borderRadius:20, background:'rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.85)', border:'1.5px solid rgba(255,255,255,0.25)', backdropFilter:'blur(6px)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
+                    Administration
                   </span>
                 </div>
                 <h1 className="nunito" style={{ fontSize:30, fontWeight:900, color:'#fff', lineHeight:1.1, marginBottom:4 }}>Tableau de bord</h1>
-                <p style={{ fontSize:13, color:'rgba(196,181,253,0.65)' }}>
+                <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)' }}>
                   {new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' })} · NursesPrep
                 </p>
               </div>
@@ -238,8 +241,8 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Main 2-col grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16, alignItems:'start' }}>
+          {/* Main 2-col grid — 1 colonne sur mobile */}
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap:16, alignItems:'start' }}>
 
             {/* Left column */}
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -273,7 +276,7 @@ export default function AdminDashboard() {
 
               {/* Content overview */}
               <SCard title="Contenu de la plateforme" delay={0.3}>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(110px,1fr))', gap:10 }}>
                   {contentItems.map((c, i) => (
                     <motion.div key={i}
                       initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
@@ -324,7 +327,7 @@ export default function AdminDashboard() {
 
               {/* Quick links */}
               <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.25, duration:0.5, ease:[0.16,1,0.3,1] }}>
-                <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'#a5b4fc', marginBottom:10 }}>Gestion rapide</p>
+                <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--theme-primary)', opacity:0.6, marginBottom:10 }}>Gestion rapide</p>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                   {quickLinks.map((l, i) => (
                     <motion.div key={i}
@@ -444,7 +447,7 @@ function InventoryPanel({ token }) {
     try {
       const r = await axios.get(`${API_URL}/admin/lessons-inventory`, { headers:{ Authorization:`Bearer ${token}` } });
       setData(r.data); setOpen(true);
-    } catch (e) { alert('Erreur : ' + (e.response?.data?.error || e.message)); }
+    } catch (e) { toast.error(e.response?.data?.error || e.message); }
     finally { setLoading(false); }
   };
 
@@ -480,7 +483,20 @@ function SeedPanel() {
   const [loading,  setLoading]  = useState({});
   const [zipFiles, setZipFiles] = useState({});
   const [aiCount,  setAiCount]  = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const { token } = useAuth();
+
+  const handleResetGenerated = async () => {
+    setResetLoading(true);
+    try {
+      const r = await axios.delete(`${API_URL}/admin/generated-content`, { headers:{ Authorization:`Bearer ${token}` } });
+      toast.success(r.data.message);
+      setAiCount(c => c ? { ...c, quizDone:0, flashDone:0 } : c);
+      setConfirmReset(false);
+    } catch (e) { toast.error(e.response?.data?.error || e.message); }
+    finally { setResetLoading(false); }
+  };
 
   useEffect(() => {
     axios.get(`${API_URL}/admin/generate-content-lessons/count`, { headers:{ Authorization:`Bearer ${token}` } })
@@ -533,8 +549,8 @@ function SeedPanel() {
       {/* Fix UE labels */}
       <button
         onClick={async () => {
-          try { const r = await axios.post(`${API_URL}/admin/fix-ue-labels`, {}, { headers:{ Authorization:`Bearer ${token}` } }); alert(r.data.message); }
-          catch (e) { alert('Erreur : ' + (e.response?.data?.error || e.message)); }
+          try { const r = await axios.post(`${API_URL}/admin/fix-ue-labels`, {}, { headers:{ Authorization:`Bearer ${token}` } }); toast.success(r.data.message); }
+          catch (e) { toast.error(e.response?.data?.error || e.message); }
         }}
         style={{ width:'100%', padding:'8px', borderRadius:12, fontSize:10, fontWeight:600, color:'#059669', border:`1.5px solid #bbf7d0`, background:'#f0fdf4', cursor:'pointer' }}>
         🔧 Corriger les labels UE (migration)
@@ -602,11 +618,7 @@ function SeedPanel() {
                 </p>
               )}
               <button
-                onClick={async () => {
-                  if (!window.confirm('Supprimer TOUS les quiz et flashcards générés ? (irréversible)')) return;
-                  try { const r = await axios.delete(`${API_URL}/admin/generated-content`, { headers:{ Authorization:`Bearer ${token}` } }); alert(r.data.message); setAiCount(c => c?{ ...c, quizDone:0, flashDone:0 }:c); }
-                  catch (e) { alert('Erreur : ' + (e.response?.data?.error || e.message)); }
-                }}
+                onClick={() => setConfirmReset(true)}
                 style={{ width:'100%', padding:'6px', borderRadius:10, fontSize:9, fontWeight:600, color:'#f87171', border:'1px solid #fecaca', background:'#fff', cursor:'pointer' }}>
                 🗑 Réinitialiser (supprimer quiz + flashcards générés)
               </button>
@@ -641,6 +653,19 @@ function SeedPanel() {
           )}
         </div>
       ))}
+
+      <AnimatePresence>
+        {confirmReset && (
+          <ConfirmModal
+            title="Réinitialiser le contenu généré ?"
+            message="TOUS les quiz et flashcards générés par IA seront supprimés. Cette action est irréversible."
+            confirmLabel="Tout supprimer"
+            onConfirm={handleResetGenerated}
+            onClose={() => setConfirmReset(false)}
+            loading={resetLoading}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

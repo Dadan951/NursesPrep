@@ -1,88 +1,35 @@
 import { useState, useEffect } from 'react';
-import {
-  motion, AnimatePresence,
-  useMotionValue, useTransform, useSpring,
-} from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth, API_URL } from '../../context/AuthContext';
-import DashboardLayout from '../../components/DashboardLayout';
-import NursesLogo from '../../components/NursesLogo';
+import {
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge,
+  Toolbar, SearchInput, DataTable, Modal, ConfirmModal,
+  Field, inputCls, toast, useDraft, DraftBanner, C,
+} from '../../components/admin/adminKit';
 
-/* ─── Palette of preset class colors ─────────────────────────────────────── */
-const COLORS = [
-  '#0891b2','#2563eb','#7c3aed','#db2777','#dc2626',
-  '#ea580c','#ca8a04','#16a34a','#0d9488','#475569',
-];
+const pillIcon = (size = 22) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m10.5 20.5-7-7a5 5 0 1 1 7-7l7 7a5 5 0 1 1-7 7Z" />
+    <path d="m8.5 8.5 7 7" />
+  </svg>
+);
+const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
-/* ─── 3D Tilt card ───────────────────────────────────────────────────────── */
-function TiltCard({ children, className = '' }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-0.5, 0.5], [5, -5]), { stiffness: 300, damping: 22 });
-  const rotY = useSpring(useTransform(x, [-0.5, 0.5], [-5, 5]), { stiffness: 300, damping: 22 });
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - r.left) / r.width  - 0.5);
-    y.set((e.clientY - r.top)  / r.height - 0.5);
-  };
-  return (
-    <div style={{ perspective: 900 }}>
-      <motion.div
-        style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => { x.set(0); y.set(0); }}
-        whileHover={{ scale: 1.02 }}
-        className={`rounded-2xl ${className}`}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-}
+const COLORS = ['#0891b2', '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0d9488', '#475569'];
 
-/* ─── Stat card ──────────────────────────────────────────────────────────── */
-function StatCard({ label, value, icon, gradient, delay }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const target = Number(value) || 0;
-    if (!target) return;
-    let step = 0;
-    const id = setInterval(() => {
-      step++;
-      setCount(Math.round(target * step / 40));
-      if (step >= 40) { setCount(target); clearInterval(id); }
-    }, 18);
-    return () => clearInterval(id);
-  }, [value]);
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.5 }}>
-      <TiltCard>
-        <div className="relative rounded-2xl p-5 overflow-hidden text-white"
-          style={{ background: gradient }}>
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
-          <div className="text-2xl mb-1">{icon}</div>
-          <div className="text-3xl font-bold">{count}</div>
-          <div className="text-sm text-white/80 mt-0.5">{label}</div>
-        </div>
-      </TiltCard>
-    </motion.div>
-  );
-}
-
-/* ─── Class form modal ───────────────────────────────────────────────────── */
+/* ─── Modal Classe ──────────────────────────────────────────────────────── */
 function ClassModal({ editCls, onSave, onClose, token }) {
-  const [form, setForm] = useState(
-    editCls
-      ? { name: editCls.name, description: editCls.description, color: editCls.color, icon: editCls.icon }
-      : { name: '', description: '', color: COLORS[0], icon: '' }
-  );
+  const initial = editCls
+    ? { name: editCls.name, description: editCls.description, color: editCls.color, icon: editCls.icon }
+    : { name: '', description: '', color: COLORS[0], icon: '' };
+  const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const headers = { Authorization: `Bearer ${token}` };
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) return;
+  const submit = async () => {
+    if (!form.name.trim()) return toast.error('Le nom de la classe est requis');
     setSaving(true);
     try {
       if (editCls) {
@@ -93,143 +40,116 @@ function ClassModal({ editCls, onSave, onClose, token }) {
         onSave(res.data, 'create');
       }
       onClose();
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+      toast.success(editCls ? 'Classe mise à jour' : 'Classe créée');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur — tes données sont conservées');
+    } finally { setSaving(false); }
   };
 
   return (
-    <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
+    <Modal
+      title={editCls ? 'Modifier la classe' : 'Nouvelle classe médicamenteuse'}
+      icon={pillIcon(18)}
+      onClose={onClose}
+      dirty={dirty}
+      maxWidth={480}
+      footer={<>
+        <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+        <PrimaryBtn onClick={submit} loading={saving}>{saving ? 'Enregistrement…' : editCls ? 'Enregistrer' : 'Créer'}</PrimaryBtn>
+      </>}
     >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 16 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        onClick={e => e.stopPropagation()}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6"
-      >
-        <h2 className="text-lg font-bold text-slate-800 mb-5">
-          {editCls ? 'Modifier la classe' : 'Nouvelle classe médicamenteuse'}
-        </h2>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="flex gap-3">
-            {/* Icon */}
-            <div className="flex-shrink-0">
-              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Icône</label>
-              <input type="text" value={form.icon} onChange={e => setForm({...form, icon: e.target.value})}
-                className="w-16 h-11 text-center text-2xl border border-slate-200 rounded-xl focus:outline-none focus:border-blue-400" />
-            </div>
-            {/* Name */}
-            <div className="flex-1">
-              <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Nom *</label>
-              <input required type="text" value={form.name} placeholder="ex: Antibiotiques"
-                onChange={e => setForm({...form, name: e.target.value})}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flexShrink: 0, width: 74 }}>
+            <Field label="Icône">
+              <input type="text" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })}
+                style={{ width: '100%', boxSizing: 'border-box', height: 46, textAlign: 'center', fontSize: 22, border: `1.5px solid ${C.border}`, borderRadius: 12, outline: 'none', background: '#f8fafc' }} />
+            </Field>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Description</label>
-            <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-              placeholder="Courte description de la classe..."
-              rows={2}
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
+          <div style={{ flex: 1 }}>
+            <Field label="Nom" required>
+              <input type="text" value={form.name} placeholder="ex: Antibiotiques"
+                onChange={e => setForm({ ...form, name: e.target.value })} className={inputCls} />
+            </Field>
           </div>
-          {/* Color picker */}
-          <div>
-            <label className="text-xs font-semibold text-slate-600 mb-2 block">Couleur</label>
-            <div className="flex flex-wrap gap-2">
-              {COLORS.map(c => (
-                <button key={c} type="button" onClick={() => setForm({...form, color: c})}
-                  className={`w-7 h-7 rounded-lg transition-all ${form.color === c ? 'ring-2 ring-offset-2 scale-110' : 'opacity-70 hover:opacity-100'}`}
-                  style={{ backgroundColor: c, ringColor: c }} />
-              ))}
-              <input type="color" value={form.color} onChange={e => setForm({...form, color: e.target.value})}
-                className="w-7 h-7 rounded-lg border border-slate-200 cursor-pointer" title="Couleur personnalisée" />
-            </div>
+        </div>
+        <Field label="Description">
+          <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+            placeholder="Courte description de la classe…" rows={2} className={`${inputCls} resize-none`} />
+        </Field>
+        <Field label="Couleur">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {COLORS.map(c => (
+              <button key={c} type="button" onClick={() => setForm({ ...form, color: c })}
+                aria-label={`Couleur ${c}`}
+                style={{
+                  width: 32, height: 32, borderRadius: 10, cursor: 'pointer', backgroundColor: c,
+                  border: 'none', outline: form.color === c ? `2.5px solid ${c}` : 'none', outlineOffset: 2,
+                  opacity: form.color === c ? 1 : 0.65, transform: form.color === c ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.15s',
+                }} />
+            ))}
+            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })}
+              style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${C.border}`, cursor: 'pointer', padding: 0 }} title="Couleur personnalisée" />
           </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition">
-              Annuler
-            </button>
-            <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-70"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
-              {saving ? '...' : editCls ? 'Enregistrer' : 'Créer'}
-            </motion.button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
+        </Field>
+      </div>
+    </Modal>
   );
 }
 
-/* ─── Drug editor ─────────────────────────────────────────────────────────── */
-function DrugEditor({ drug: initDrug, classes, token, onSaved, onCancel }) {
+/* ─── Modal Médicament (éditeur complet à onglets) ──────────────────────── */
+function DrugModal({ drug: initDrug, classes, token, onSaved, onClose }) {
   const isEdit = !!initDrug;
-  const [form, setForm] = useState(
-    isEdit
-      ? {
-          name: initDrug.name, genericName: initDrug.genericName || '',
-          drugClass: initDrug.drugClass?._id || initDrug.drugClass || '',
-          description: initDrug.description || '',
-          tags: (initDrug.tags || []).join(', '),
-          sections: initDrug.sections?.length > 0 ? initDrug.sections : [{ title: '', content: '' }],
-          mindMapUrl: initDrug.mindMap?.url || '', mindMapCaption: initDrug.mindMap?.caption || '',
-          attachments: initDrug.attachments || [],
-          sources: initDrug.sources || [],
-        }
-      : {
-          name: '', genericName: '', drugClass: classes[0]?._id || '',
-          description: '', tags: '',
-          sections: [{ title: '', content: '' }],
-          mindMapUrl: '', mindMapCaption: '',
-          attachments: [], sources: [],
-        }
-  );
+  const initial = isEdit
+    ? {
+        name: initDrug.name, genericName: initDrug.genericName || '',
+        drugClass: initDrug.drugClass?._id || initDrug.drugClass || '',
+        description: initDrug.description || '',
+        tags: (initDrug.tags || []).join(', '),
+        sections: initDrug.sections?.length > 0 ? initDrug.sections : [{ title: '', content: '' }],
+        mindMapUrl: initDrug.mindMap?.url || '', mindMapCaption: initDrug.mindMap?.caption || '',
+        attachments: initDrug.attachments || [],
+        sources: initDrug.sources || [],
+      }
+    : {
+        name: '', genericName: '', drugClass: classes[0]?._id || '',
+        description: '', tags: '',
+        sections: [{ title: '', content: '' }],
+        mindMapUrl: '', mindMapCaption: '',
+        attachments: [], sources: [],
+      };
+  const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const headers = { Authorization: `Bearer ${token}` };
 
-  /* Section helpers */
-  const updateSection = (i, field, val) => {
-    const s = [...form.sections];
-    s[i] = { ...s[i], [field]: val };
-    setForm({ ...form, sections: s });
-  };
-  const addSection = () => setForm({ ...form, sections: [...form.sections, { title: '', content: '' }] });
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  const { pendingDraft, consumeDraft, dismissDraft, clearDraft } = useDraft('draft:drug', form, { enabled: !isEdit, initial });
+
+  /* Sections */
+  const updateSection = (i, field, val) => { const s = [...form.sections]; s[i] = { ...s[i], [field]: val }; setForm({ ...form, sections: s }); };
+  const addSection    = () => setForm({ ...form, sections: [...form.sections, { title: '', content: '' }] });
   const removeSection = (i) => setForm({ ...form, sections: form.sections.filter((_, j) => j !== i) });
-  const moveSection = (i, dir) => {
-    const s = [...form.sections];
-    const j = i + dir;
+  const moveSection   = (i, dir) => {
+    const s = [...form.sections]; const j = i + dir;
     if (j < 0 || j >= s.length) return;
     [s[i], s[j]] = [s[j], s[i]];
     setForm({ ...form, sections: s });
   };
 
-  /* Attachment helpers */
-  const addAttachment = () => setForm({ ...form, attachments: [...form.attachments, { name: '', url: '', type: 'pdf' }] });
-  const updateAttachment = (i, field, val) => {
-    const a = [...form.attachments];
-    a[i] = { ...a[i], [field]: val };
-    setForm({ ...form, attachments: a });
-  };
+  /* Attachments */
+  const addAttachment    = () => setForm({ ...form, attachments: [...form.attachments, { name: '', url: '', type: 'pdf' }] });
+  const updateAttachment = (i, field, val) => { const a = [...form.attachments]; a[i] = { ...a[i], [field]: val }; setForm({ ...form, attachments: a }); };
   const removeAttachment = (i) => setForm({ ...form, attachments: form.attachments.filter((_, j) => j !== i) });
 
-  /* Source helpers */
-  const addSource = () => setForm({ ...form, sources: [...form.sources, { title: '', authors: '', year: '', url: '' }] });
-  const updateSource = (i, field, val) => {
-    const s = [...form.sources];
-    s[i] = { ...s[i], [field]: val };
-    setForm({ ...form, sources: s });
-  };
+  /* Sources */
+  const addSource    = () => setForm({ ...form, sources: [...form.sources, { title: '', authors: '', year: '', url: '' }] });
+  const updateSource = (i, field, val) => { const s = [...form.sources]; s[i] = { ...s[i], [field]: val }; setForm({ ...form, sources: s }); };
   const removeSource = (i) => setForm({ ...form, sources: form.sources.filter((_, j) => j !== i) });
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim() || !form.drugClass) return;
+  const submit = async () => {
+    if (!form.name.trim())  return toast.error('Le nom commercial est requis');
+    if (!form.drugClass)    return toast.error('Choisis une classe médicamenteuse');
     setSaving(true);
     const payload = {
       name: form.name, genericName: form.genericName,
@@ -242,287 +162,221 @@ function DrugEditor({ drug: initDrug, classes, token, onSaved, onCancel }) {
     };
     try {
       let res;
-      if (isEdit) {
-        res = await axios.put(`${API_URL}/drugs/${initDrug._id}`, payload, { headers });
-      } else {
-        res = await axios.post(`${API_URL}/drugs`, payload, { headers });
-      }
+      if (isEdit) res = await axios.put(`${API_URL}/drugs/${initDrug._id}`, payload, { headers });
+      else        res = await axios.post(`${API_URL}/drugs`, payload, { headers });
+      clearDraft();
       onSaved(res.data, isEdit ? 'edit' : 'create');
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+      toast.success(isEdit ? 'Médicament mis à jour' : 'Médicament créé');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur — tes données sont conservées');
+    } finally { setSaving(false); }
   };
 
   const TABS = [
-    { id: 'general',  label: 'Général',   icon: '' },
-    { id: 'sections', label: 'Sections',  icon: '' },
-    { id: 'media',    label: 'Médias',    icon: ''  },
-    { id: 'sources',  label: 'Sources',   icon: '' },
+    { id: 'general',  label: 'Général' },
+    { id: 'sections', label: `Sections (${form.sections.filter(s => s.title.trim()).length})` },
+    { id: 'media',    label: 'Médias' },
+    { id: 'sources',  label: `Sources (${form.sources.length})` },
   ];
 
-  const inputCls = "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition";
-  const labelCls = "block text-xs font-semibold text-slate-600 mb-1.5";
+  const smallInput = { padding: '9px 11px', borderRadius: 11, border: `1.5px solid ${C.border}`, background: '#fff', outline: 'none', fontSize: 13, minHeight: 40, boxSizing: 'border-box' };
 
   return (
-    <form onSubmit={submit} className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">
-            {isEdit ? `Modifier — ${initDrug.name}` : 'Nouveau médicament'}
-          </h2>
-          <button type="button" onClick={onCancel} className="text-slate-400 hover:text-slate-600 transition p-1">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <Modal
+      title={isEdit ? `Modifier — ${initDrug.name}` : 'Nouveau médicament'}
+      subtitle="Fiche pharmacologique"
+      icon={pillIcon(18)}
+      onClose={onClose}
+      dirty={dirty}
+      maxWidth={720}
+      footer={<>
+        <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+        <PrimaryBtn onClick={submit} loading={saving}>{saving ? 'Sauvegarde…' : isEdit ? 'Enregistrer' : 'Créer le médicament'}</PrimaryBtn>
+      </>}
+    >
+      {pendingDraft && !isEdit && (
+        <DraftBanner onRestore={() => setForm(consumeDraft())} onDismiss={dismissDraft} />
+      )}
+
+      {/* Onglets */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+        {TABS.map(t => (
+          <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
+            style={{
+              padding: '9px 14px', borderRadius: 11, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', minHeight: 40,
+              background: activeTab === t.id ? 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' : C.bg,
+              color: activeTab === t.id ? '#fff' : C.sub,
+            }}>
+            {t.label}
           </button>
-        </div>
-        {/* Tabs */}
-        <div className="flex gap-1">
-          {TABS.map(t => (
-            <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                activeTab === t.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}>
-              <span>{t.icon}</span> {t.label}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      {/* ── GÉNÉRAL ── */}
+      {activeTab === 'general' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Nom commercial" required>
+              <input type="text" value={form.name} placeholder="ex: Amoxicilline"
+                onChange={e => setForm({ ...form, name: e.target.value })} className={inputCls} />
+            </Field>
+            <Field label="DCI / Nom générique">
+              <input type="text" value={form.genericName} placeholder="ex: Amoxicillin"
+                onChange={e => setForm({ ...form, genericName: e.target.value })} className={inputCls} />
+            </Field>
+          </div>
+          <Field label="Classe médicamenteuse" required>
+            <select value={form.drugClass} onChange={e => setForm({ ...form, drugClass: e.target.value })} className={inputCls}>
+              <option value="">Choisir une classe…</option>
+              {classes.map(c => <option key={c._id} value={c._id}>{c.icon} {c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Description courte">
+            <textarea value={form.description} rows={3} placeholder="Présentation générale du médicament…"
+              onChange={e => setForm({ ...form, description: e.target.value })} className={`${inputCls} resize-none`} />
+          </Field>
+          <Field label="Tags" hint="séparés par des virgules">
+            <input type="text" value={form.tags} placeholder="ex: beta-lactamine, bactéricide, pénicilline"
+              onChange={e => setForm({ ...form, tags: e.target.value })} className={inputCls} />
+          </Field>
+        </div>
+      )}
 
-        {/* ── GÉNÉRAL ─────────────────────────────────────────────── */}
-        {activeTab === 'general' && (
-          <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Nom commercial *</label>
-                <input required type="text" value={form.name} placeholder="ex: Amoxicilline"
-                  onChange={e => setForm({...form, name: e.target.value})} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>DCI / Nom générique</label>
-                <input type="text" value={form.genericName} placeholder="ex: Amoxicillin"
-                  onChange={e => setForm({...form, genericName: e.target.value})} className={inputCls} />
-              </div>
-            </div>
-            <div>
-              <label className={labelCls}>Classe médicamenteuse *</label>
-              <select required value={form.drugClass} onChange={e => setForm({...form, drugClass: e.target.value})}
-                className={inputCls}>
-                <option value="">Choisir une classe...</option>
-                {classes.map(c => (
-                  <option key={c._id} value={c._id}>{c.icon} {c.name}</option>
+      {/* ── SECTIONS ── */}
+      {activeTab === 'sections' && (
+        <div>
+          {form.sections.some(s => s.title.trim()) && (
+            <div style={{ marginBottom: 18, background: 'rgba(var(--theme-primary-rgb),0.06)', border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--theme-primary)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Sommaire automatique</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {form.sections.map((s, i) => s.title.trim() && (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text }}>
+                    <span style={{ width: 20, height: 20, borderRadius: 6, background: 'rgba(var(--theme-primary-rgb),0.15)', color: 'var(--theme-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                    {s.title}
+                  </div>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Description courte</label>
-              <textarea value={form.description} rows={3}
-                placeholder="Présentation générale du médicament..."
-                onChange={e => setForm({...form, description: e.target.value})}
-                className={`${inputCls} resize-none`} />
-            </div>
-            <div>
-              <label className={labelCls}>Tags (séparés par des virgules)</label>
-              <input type="text" value={form.tags} placeholder="ex: beta-lactamine, bactéricide, pénicilline"
-                onChange={e => setForm({...form, tags: e.target.value})} className={inputCls} />
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── SECTIONS ────────────────────────────────────────────── */}
-        {activeTab === 'sections' && (
-          <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}>
-            {/* Auto-sommaire preview */}
-            {form.sections.some(s => s.title.trim()) && (
-              <div className="mb-5 bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Sommaire automatique</p>
-                <div className="space-y-1">
-                  {form.sections.map((s, i) => s.title.trim() && (
-                    <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                      <span className="w-5 h-5 rounded bg-blue-200 text-blue-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                        {i + 1}
-                      </span>
-                      {s.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {form.sections.map((s, i) => (
-                <motion.div key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-slate-50 border border-slate-200 rounded-2xl p-4"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
-                      {i + 1}
-                    </div>
-                    <input type="text" value={s.title} placeholder={`Titre de la partie ${i + 1}...`}
-                      onChange={e => updateSection(i, 'title', e.target.value)}
-                      className="flex-1 px-3 py-1.5 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-blue-400 bg-white" />
-                    <div className="flex gap-1">
-                      <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0}
-                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 flex items-center justify-center text-xs">↑</button>
-                      <button type="button" onClick={() => moveSection(i, 1)} disabled={i === form.sections.length - 1}
-                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-30 flex items-center justify-center text-xs">↓</button>
-                      <button type="button" onClick={() => removeSection(i)}
-                        className="w-7 h-7 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <textarea value={s.content} rows={5}
-                    placeholder={`Contenu de la partie ${i + 1}...\n\nTu peux utiliser des listes, des explications détaillées, etc.`}
-                    onChange={e => updateSection(i, 'content', e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white" />
-                </motion.div>
-              ))}
-            </div>
-            <motion.button type="button" onClick={addSection} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              className="mt-4 w-full py-3 border-2 border-dashed border-blue-300 rounded-2xl text-sm font-semibold text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition flex items-center justify-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Ajouter une section
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* ── MÉDIAS ──────────────────────────────────────────────── */}
-        {activeTab === 'media' && (
-          <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            {/* Mind map */}
-            <div>
-              <label className={`${labelCls} flex items-center gap-1.5`}>
-                Carte mentale
-              </label>
-              <div className="space-y-2">
-                <input type="url" value={form.mindMapUrl}
-                  placeholder="URL de l'image de la carte mentale..."
-                  onChange={e => setForm({...form, mindMapUrl: e.target.value})}
-                  className={inputCls} />
-                <input type="text" value={form.mindMapCaption}
-                  placeholder="Légende (optionnel)..."
-                  onChange={e => setForm({...form, mindMapCaption: e.target.value})}
-                  className={inputCls} />
-                {form.mindMapUrl && (
-                  <div className="rounded-xl overflow-hidden border border-slate-200 mt-2">
-                    <img src={form.mindMapUrl} alt="Aperçu carte mentale" className="w-full max-h-48 object-cover" />
-                  </div>
-                )}
               </div>
             </div>
+          )}
 
-            {/* Attachments */}
-            <div>
-              <label className={`${labelCls} flex items-center gap-1.5`}>
-                Pièces jointes
-              </label>
-              <div className="space-y-2">
-                {form.attachments.map((a, i) => (
-                  <div key={i} className="flex gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                    <select value={a.type} onChange={e => updateAttachment(i, 'type', e.target.value)}
-                      className="w-24 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-400 bg-white">
-                      <option value="pdf">PDF</option>
-                      <option value="image">Image</option>
-                      <option value="video">Vidéo</option>
-                      <option value="other">Autre</option>
-                    </select>
-                    <input type="text" value={a.name} placeholder="Nom du fichier"
-                      onChange={e => updateAttachment(i, 'name', e.target.value)}
-                      className="w-32 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-400 bg-white" />
-                    <input type="url" value={a.url} placeholder="URL..."
-                      onChange={e => updateAttachment(i, 'url', e.target.value)}
-                      className="flex-1 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-blue-400 bg-white min-w-0" />
-                    <button type="button" onClick={() => removeAttachment(i)}
-                      className="text-red-400 hover:text-red-600 transition p-1">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {form.sections.map((s, i) => (
+              <div key={i} style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' }}>{i + 1}</div>
+                  <input type="text" value={s.title} placeholder={`Titre de la partie ${i + 1}…`}
+                    onChange={e => updateSection(i, 'title', e.target.value)}
+                    className="text-base md:text-sm"
+                    style={{ ...smallInput, flex: 1, minWidth: 140, fontWeight: 700 }} />
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0} aria-label="Monter"
+                      style={{ width: 34, height: 34, borderRadius: 9, background: '#fff', border: `1px solid ${C.border}`, color: C.sub, cursor: 'pointer', opacity: i === 0 ? 0.3 : 1 }}>↑</button>
+                    <button type="button" onClick={() => moveSection(i, 1)} disabled={i === form.sections.length - 1} aria-label="Descendre"
+                      style={{ width: 34, height: 34, borderRadius: 9, background: '#fff', border: `1px solid ${C.border}`, color: C.sub, cursor: 'pointer', opacity: i === form.sections.length - 1 ? 0.3 : 1 }}>↓</button>
+                    <button type="button" onClick={() => removeSection(i)} aria-label="Supprimer la section"
+                      style={{ width: 34, height: 34, borderRadius: 9, background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
                   </div>
-                ))}
-                <button type="button" onClick={addAttachment}
-                  className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-xl text-xs font-semibold text-slate-500 hover:border-blue-300 hover:text-blue-600 transition flex items-center justify-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Ajouter une pièce jointe
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── SOURCES ─────────────────────────────────────────────── */}
-        {activeTab === 'sources' && (
-          <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
-            {form.sources.map((s, i) => (
-              <div key={i} className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-500">Source {i + 1}</span>
-                  <button type="button" onClick={() => removeSource(i)} className="text-red-400 hover:text-red-600 transition">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={s.title} placeholder="Titre"
-                    onChange={e => updateSource(i, 'title', e.target.value)}
-                    className="col-span-2 px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-400 bg-white" />
-                  <input type="text" value={s.authors} placeholder="Auteurs"
-                    onChange={e => updateSource(i, 'authors', e.target.value)}
-                    className="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-400 bg-white" />
-                  <input type="text" value={s.year} placeholder="Année"
-                    onChange={e => updateSource(i, 'year', e.target.value)}
-                    className="px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-400 bg-white" />
-                  <input type="url" value={s.url} placeholder="URL (optionnel)"
-                    onChange={e => updateSource(i, 'url', e.target.value)}
-                    className="col-span-2 px-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-400 bg-white" />
-                </div>
+                <textarea value={s.content} rows={5}
+                  placeholder={`Contenu de la partie ${i + 1}…`}
+                  onChange={e => updateSection(i, 'content', e.target.value)}
+                  className="text-base md:text-sm"
+                  style={{ ...smallInput, width: '100%', resize: 'vertical' }} />
               </div>
             ))}
-            <button type="button" onClick={addSource}
-              className="w-full py-3 border-2 border-dashed border-amber-300 rounded-2xl text-sm font-semibold text-amber-600 hover:border-amber-400 hover:bg-amber-50 transition flex items-center justify-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Ajouter une source
-            </button>
-          </motion.div>
-        )}
-      </div>
+          </div>
+          <button type="button" onClick={addSection}
+            style={{ marginTop: 14, width: '100%', padding: '13px', borderRadius: 16, border: '2px dashed rgba(var(--theme-primary-rgb),0.4)', background: 'transparent', fontSize: 13, fontWeight: 700, color: 'var(--theme-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48 }}>
+            {plusIcon} Ajouter une section
+          </button>
+        </div>
+      )}
 
-      {/* Footer */}
-      <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
-        <button type="button" onClick={onCancel}
-          className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition">
-          Annuler
-        </button>
-        <motion.button type="submit" disabled={saving} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70"
-          style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
-          {saving
-            ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Sauvegarde...</>
-            : isEdit ? '✓ Enregistrer' : '✓ Créer le médicament'
-          }
-        </motion.button>
-      </div>
-    </form>
+      {/* ── MÉDIAS ── */}
+      {activeTab === 'media' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <Field label="Carte mentale">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input type="url" value={form.mindMapUrl} placeholder="URL de l'image de la carte mentale…"
+                onChange={e => setForm({ ...form, mindMapUrl: e.target.value })} className={inputCls} />
+              <input type="text" value={form.mindMapCaption} placeholder="Légende (optionnel)…"
+                onChange={e => setForm({ ...form, mindMapCaption: e.target.value })} className={inputCls} />
+              {form.mindMapUrl && (
+                <div style={{ borderRadius: 14, overflow: 'hidden', border: `1.5px solid ${C.border}` }}>
+                  <img src={form.mindMapUrl} alt="Aperçu carte mentale" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', display: 'block' }} />
+                </div>
+              )}
+            </div>
+          </Field>
+
+          <Field label="Pièces jointes">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {form.attachments.map((a, i) => (
+                <div key={i} style={{ display: 'flex', gap: 6, background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: 10, flexWrap: 'wrap' }}>
+                  <select value={a.type} onChange={e => updateAttachment(i, 'type', e.target.value)} style={{ ...smallInput, width: 90 }}>
+                    <option value="pdf">PDF</option><option value="image">Image</option><option value="video">Vidéo</option><option value="other">Autre</option>
+                  </select>
+                  <input type="text" value={a.name} placeholder="Nom" onChange={e => updateAttachment(i, 'name', e.target.value)} style={{ ...smallInput, flex: '1 1 100px' }} />
+                  <input type="url" value={a.url} placeholder="URL…" onChange={e => updateAttachment(i, 'url', e.target.value)} style={{ ...smallInput, flex: '2 1 160px', minWidth: 0 }} />
+                  <button type="button" onClick={() => removeAttachment(i)} aria-label="Retirer"
+                    style={{ width: 40, height: 40, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={addAttachment}
+                style={{ width: '100%', padding: '12px', borderRadius: 14, border: `2px dashed ${C.border}`, background: 'transparent', fontSize: 12, fontWeight: 700, color: C.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 46 }}>
+                {plusIcon} Ajouter une pièce jointe
+              </button>
+            </div>
+          </Field>
+        </div>
+      )}
+
+      {/* ── SOURCES ── */}
+      {activeTab === 'sources' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {form.sources.map((s, i) => (
+            <div key={i} style={{ background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.sub }}>Source {i + 1}</span>
+                <button type="button" onClick={() => removeSource(i)} aria-label="Retirer la source"
+                  style={{ width: 32, height: 32, borderRadius: 9, background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input type="text" value={s.title} placeholder="Titre" onChange={e => updateSource(i, 'title', e.target.value)} className="sm:col-span-2" style={{ ...smallInput, width: '100%' }} />
+                <input type="text" value={s.authors} placeholder="Auteurs" onChange={e => updateSource(i, 'authors', e.target.value)} style={{ ...smallInput, width: '100%' }} />
+                <input type="text" value={s.year} placeholder="Année" onChange={e => updateSource(i, 'year', e.target.value)} style={{ ...smallInput, width: '100%' }} />
+                <input type="url" value={s.url} placeholder="URL (optionnel)" onChange={e => updateSource(i, 'url', e.target.value)} className="sm:col-span-2" style={{ ...smallInput, width: '100%' }} />
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addSource}
+            style={{ width: '100%', padding: '13px', borderRadius: 16, border: '2px dashed #fcd34d', background: 'transparent', fontSize: 13, fontWeight: 700, color: '#d97706', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48 }}>
+            {plusIcon} Ajouter une source
+          </button>
+        </div>
+      )}
+    </Modal>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   ADMIN MEDICAMENTS PAGE
-══════════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════ */
 export default function AdminMedicaments() {
   const { token } = useAuth();
-  const [classes,  setClasses]  = useState([]);
-  const [drugs,    setDrugs]    = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [selClass, setSelClass] = useState(null);   // selected class filter
-  const [search,   setSearch]   = useState('');
-  const [panel,    setPanel]    = useState(null);   // null | 'createDrug' | {drug} | 'createClass' | {cls}
-  const [classModal, setClassModal] = useState(null); // null | 'create' | cls object
-  const [delConfirm, setDelConfirm] = useState(null); // {type, id, name}
+  const [classes, setClasses]   = useState([]);
+  const [drugs, setDrugs]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [selClass, setSelClass] = useState(null);
+  const [search, setSearch]     = useState('');
+  const [drugModal, setDrugModal]   = useState(null);  // null | 'create' | drug
+  const [classModal, setClassModal] = useState(null);  // null | 'create' | cls
+  const [delConfirm, setDelConfirm] = useState(null);  // { type, id, name }
+  const [delLoading, setDelLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -530,17 +384,15 @@ export default function AdminMedicaments() {
     try {
       const [cRes, dRes] = await Promise.all([
         axios.get(`${API_URL}/drugs/classes`, { headers }),
-        axios.get(`${API_URL}/drugs`,         { headers }),
+        axios.get(`${API_URL}/drugs`, { headers }),
       ]);
       setClasses(cRes.data);
       setDrugs(dRes.data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Impossible de charger les médicaments'); }
     finally { setLoading(false); }
   };
+  useEffect(() => { load(); }, []); // eslint-disable-line
 
-  useEffect(() => { load(); }, []);
-
-  /* Drug list filtered */
   const filteredDrugs = drugs.filter(d => {
     const matchClass = !selClass || d.drugClass?._id === selClass;
     const matchSearch = !search ||
@@ -558,291 +410,196 @@ export default function AdminMedicaments() {
   const handleSaveDrug = (saved, mode) => {
     if (mode === 'create') setDrugs(prev => [...prev, saved]);
     else setDrugs(prev => prev.map(d => d._id === saved._id ? saved : d));
-    setPanel(null);
-    load(); // refresh class counts
+    setDrugModal(null);
+    load();
   };
 
   const handleDelete = async () => {
     if (!delConfirm) return;
+    setDelLoading(true);
     try {
       if (delConfirm.type === 'drug') {
         await axios.delete(`${API_URL}/drugs/${delConfirm.id}`, { headers });
         setDrugs(prev => prev.filter(d => d._id !== delConfirm.id));
+        toast.success('Médicament supprimé');
       } else {
         await axios.delete(`${API_URL}/drugs/classes/${delConfirm.id}`, { headers });
         setClasses(prev => prev.filter(c => c._id !== delConfirm.id));
         setDrugs(prev => prev.filter(d => d.drugClass?._id !== delConfirm.id));
         if (selClass === delConfirm.id) setSelClass(null);
+        toast.success('Classe supprimée');
       }
-    } catch (e) { console.error(e); }
-    setDelConfirm(null);
+      setDelConfirm(null);
+    } catch (e) { toast.error(e.response?.data?.message || 'Erreur lors de la suppression'); }
+    finally { setDelLoading(false); }
   };
 
-  const totalDrugs   = drugs.length;
-  const totalClasses = classes.length;
   const totalSections = drugs.reduce((acc, d) => acc + (d.sections?.length || 0), 0);
+  const sortedClasses = [...classes].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
 
   return (
-    <DashboardLayout isAdmin>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }}>
-
-        {/* ── Header ────────────────────────────────────────────────── */}
-        <div className="px-6 pt-8 pb-6">
-          {/* Top bar */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <NursesLogo size="sm" light />
-              <div className="h-6 w-px bg-white/20" />
-              <div>
-                <h1 className="text-white font-bold text-lg">Médicaments</h1>
-                <p className="text-blue-200/60 text-xs">Gestion des classes et des cours</p>
-              </div>
+    <AdminPage
+      title="Médicaments"
+      subtitle="Gestion des classes et des fiches pharmacologiques"
+      icon={pillIcon()}
+      stats={[
+        { value: classes.length, label: 'classes' },
+        { value: drugs.length,   label: 'médicaments' },
+        { value: totalSections,  label: 'sections' },
+      ]}
+      actions={<>
+        <HeroBtn secondary onClick={() => setClassModal('create')}>{plusIcon} Classe</HeroBtn>
+        <HeroBtn onClick={() => setDrugModal('create')}>{plusIcon} Médicament</HeroBtn>
+      </>}
+    >
+      {/* ── Classes : puces filtrantes ── */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, marginBottom: 14, WebkitOverflowScrolling: 'touch' }}>
+        <button onClick={() => setSelClass(null)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 7, padding: '9px 15px', borderRadius: 999, fontSize: 12.5, fontWeight: 700,
+            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, minHeight: 40,
+            border: `1.5px solid ${!selClass ? 'transparent' : C.border}`,
+            background: !selClass ? 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' : '#fff',
+            color: !selClass ? '#fff' : C.sub,
+            boxShadow: !selClass ? '0 3px 10px rgba(var(--theme-primary-rgb),0.35)' : '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+          Tous
+          <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 8px', borderRadius: 999, background: !selClass ? 'rgba(255,255,255,0.25)' : C.bg }}>{drugs.length}</span>
+        </button>
+        {sortedClasses.map(cls => {
+          const count = drugs.filter(d => d.drugClass?._id === cls._id).length;
+          const active = selClass === cls._id;
+          return (
+            <div key={cls._id} style={{ display: 'flex', alignItems: 'center', flexShrink: 0, gap: 2 }}>
+              <button onClick={() => setSelClass(active ? null : cls._id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7, padding: '9px 15px', borderRadius: 999, fontSize: 12.5, fontWeight: 700,
+                  cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 40,
+                  border: `1.5px solid ${active ? 'transparent' : C.border}`,
+                  background: active ? cls.color : '#fff',
+                  color: active ? '#fff' : C.sub,
+                  boxShadow: active ? `0 3px 10px ${cls.color}55` : '0 1px 3px rgba(0,0,0,0.06)',
+                }}>
+                {cls.icon && <span>{cls.icon}</span>}
+                {cls.name}
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 8px', borderRadius: 999, background: active ? 'rgba(255,255,255,0.25)' : C.bg }}>{count}</span>
+              </button>
+              {active && (
+                <div style={{ display: 'flex', gap: 2 }}>
+                  <button onClick={() => setClassModal(cls)} aria-label="Modifier la classe"
+                    style={{ width: 34, height: 34, borderRadius: 999, background: '#fff', border: `1px solid ${C.border}`, color: C.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                  </button>
+                  <button onClick={() => setDelConfirm({ type: 'class', id: cls._id, name: cls.name })} aria-label="Supprimer la classe"
+                    style={{ width: 34, height: 34, borderRadius: 999, background: '#fff', border: '1px solid #fecaca', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => setClassModal('create')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Classe
-              </motion.button>
-              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => setPanel('createDrug')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Médicament
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <StatCard label="Classes"     value={totalClasses}  icon=""  delay={0}    gradient="linear-gradient(135deg,#2563eb,#1d4ed8)" />
-            <StatCard label="Médicaments" value={totalDrugs}    icon=""  delay={0.1}  gradient="linear-gradient(135deg,#0891b2,#0e7490)" />
-            <StatCard label="Sections"    value={totalSections} icon=""  delay={0.2}  gradient="linear-gradient(135deg,#7c3aed,#6d28d9)" />
-          </div>
-        </div>
-
-        {/* ── Content area ──────────────────────────────────────────── */}
-        <div className="px-6 pb-8">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className="flex" style={{ minHeight: 600 }}>
-
-              {/* ── Classes sidebar ──────────────────────────────── */}
-              <div className="w-64 border-r border-slate-100 flex flex-col flex-shrink-0">
-                <div className="p-4 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Classes</p>
-                </div>
-                <div className="flex-1 overflow-y-auto p-2">
-                  {/* All classes */}
-                  <button
-                    onClick={() => setSelClass(null)}
-                    className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm mb-1 transition-all ${
-                      !selClass ? 'bg-blue-600 text-white font-semibold' : 'text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="flex-1 truncate">Tous</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${!selClass ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                      {drugs.length}
-                    </span>
-                  </button>
-
-                  {loading
-                    ? <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
-                    : classes.sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((cls, i) => {
-                        const count = drugs.filter(d => d.drugClass?._id === cls._id).length;
-                        return (
-                          <motion.div key={cls._id}
-                            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.03 }}
-                            className="group flex items-center gap-1 mb-0.5"
-                          >
-                            <button
-                              onClick={() => setSelClass(cls._id)}
-                              className={`flex-1 text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                                selClass === cls._id ? 'text-white font-semibold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
-                              }`}
-                              style={selClass === cls._id ? { backgroundColor: cls.color } : {}}
-                            >
-                              <span className="text-base">{cls.icon}</span>
-                              <span className="flex-1 truncate text-xs">{cls.name}</span>
-                              <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0 ${
-                                selClass === cls._id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                              }`}>
-                                {count}
-                              </span>
-                            </button>
-                            {/* Class actions */}
-                            <div className="hidden group-hover:flex gap-0.5">
-                              <button onClick={() => setClassModal(cls)}
-                                className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-blue-100 text-slate-400 hover:text-blue-600 flex items-center justify-center transition text-xs">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              </button>
-                              <button onClick={() => setDelConfirm({ type: 'class', id: cls._id, name: cls.name })}
-                                className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center transition text-xs">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                              </button>
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                  }
-                </div>
-                {/* Add class button */}
-                <div className="p-3 border-t border-slate-100">
-                  <button onClick={() => setClassModal('create')}
-                    className="w-full py-2.5 border-2 border-dashed border-blue-300 rounded-xl text-xs font-semibold text-blue-600 hover:bg-blue-50 transition flex items-center justify-center gap-1.5">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Nouvelle classe
-                  </button>
-                </div>
-              </div>
-
-              {/* ── Drugs list + editor ───────────────────────────── */}
-              <div className="flex-1 flex overflow-hidden">
-
-                {/* Drug list */}
-                <div className={`flex flex-col ${panel ? 'w-64 flex-shrink-0 border-r border-slate-100' : 'flex-1'}`}>
-                  {/* Search */}
-                  <div className="p-4 border-b border-slate-100">
-                    <div className="relative">
-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                      <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder="Rechercher..."
-                        className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100" />
-                    </div>
-                  </div>
-
-                  {/* Drugs */}
-                  <div className="flex-1 overflow-y-auto p-3">
-                    {loading
-                      ? <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
-                      : filteredDrugs.length === 0
-                        ? (
-                          <div className="text-center py-12 text-slate-400">
-                            <div className="text-4xl mb-2">💊</div>
-                            <p className="text-sm font-medium">Aucun médicament</p>
-                            <button onClick={() => setPanel('createDrug')}
-                              className="mt-3 text-xs text-blue-500 hover:underline">
-                              + Créer le premier
-                            </button>
-                          </div>
-                        )
-                        : filteredDrugs.map((drug, i) => {
-                            const cls = classes.find(c => c._id === drug.drugClass?._id);
-                            const isActive = panel?._id === drug._id;
-                            return (
-                              <motion.div key={drug._id}
-                                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.025 }}
-                                className={`group flex items-center gap-3 p-3 rounded-xl mb-1 cursor-pointer transition-all ${
-                                  isActive ? 'bg-blue-50 border border-blue-200' : 'hover:bg-slate-50 border border-transparent'
-                                }`}
-                                onClick={() => setPanel(drug)}
-                              >
-                                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                                  style={{ backgroundColor: (cls?.color || '#0891b2') + '20' }}>
-                                  {cls?.icon || '💊'}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-slate-800 truncate">{drug.name}</p>
-                                  {drug.genericName && <p className="text-xs text-slate-400 truncate italic">{drug.genericName}</p>}
-                                </div>
-                                <button
-                                  onClick={e => { e.stopPropagation(); setDelConfirm({ type: 'drug', id: drug._id, name: drug.name }); }}
-                                  className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg bg-red-50 text-red-400 hover:text-red-600 flex items-center justify-center transition text-xs"
-                                >
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                                </button>
-                              </motion.div>
-                            );
-                          })
-                    }
-                  </div>
-
-                  {/* Add drug */}
-                  {!panel && (
-                    <div className="p-3 border-t border-slate-100">
-                      <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                        onClick={() => setPanel('createDrug')}
-                        className="w-full py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                        style={{ background: 'linear-gradient(135deg, #2563eb, #0891b2)' }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Nouveau médicament
-                      </motion.button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Drug editor panel */}
-                <AnimatePresence>
-                  {panel && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.25 }}
-                      className="flex-1 flex flex-col overflow-hidden"
-                    >
-                      <DrugEditor
-                        drug={panel === 'createDrug' ? null : panel}
-                        classes={classes}
-                        token={token}
-                        onSaved={handleSaveDrug}
-                        onCancel={() => setPanel(null)}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Modals ────────────────────────────────────────────────── */}
-        <AnimatePresence>
-          {classModal && (
-            <ClassModal
-              editCls={classModal === 'create' ? null : classModal}
-              onSave={handleSaveClass}
-              onClose={() => setClassModal(null)}
-              token={token}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Delete confirm modal */}
-        <AnimatePresence>
-          {delConfirm && (
-            <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setDelConfirm(null)}
-            >
-              <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
-                onClick={e => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center"
-              >
-                <div className="text-4xl mb-3"></div>
-                <h3 className="font-bold text-slate-800 mb-1">Supprimer ?</h3>
-                <p className="text-sm text-slate-500 mb-5">
-                  <span className="font-semibold">"{delConfirm.name}"</span> sera définitivement supprimé
-                  {delConfirm.type === 'class' && ' ainsi que tous ses médicaments'}.
-                </p>
-                <div className="flex gap-3">
-                  <button onClick={() => setDelConfirm(null)}
-                    className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition">
-                    Annuler
-                  </button>
-                  <button onClick={handleDelete}
-                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold transition">
-                    Supprimer
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          );
+        })}
       </div>
-    </DashboardLayout>
+
+      <Card>
+        <Toolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="Rechercher un médicament…" />
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: C.sub, fontWeight: 600 }}>{filteredDrugs.length} / {drugs.length}</span>
+        </Toolbar>
+
+        <DataTable
+          loading={loading}
+          items={filteredDrugs}
+          onEdit={d => setDrugModal(d)}
+          onDelete={d => setDelConfirm({ type: 'drug', id: d._id, name: d.name })}
+          empty={{
+            icon: pillIcon(24),
+            title: 'Aucun médicament',
+            hint: 'Crée ta première fiche pharmacologique',
+            onReset: (search || selClass) ? () => { setSearch(''); setSelClass(null); } : null,
+          }}
+          columns={[
+            { label: 'Nom', maxWidth: 220, render: d => {
+              const cls = classes.find(c => c._id === d.drugClass?._id);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, backgroundColor: (cls?.color || '#0891b2') + '22' }}>
+                    {cls?.icon || '💊'}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
+                    {d.genericName && <span style={{ fontSize: 11, color: C.sub, fontStyle: 'italic' }}>{d.genericName}</span>}
+                  </div>
+                </div>
+              );
+            } },
+            { label: 'Classe', render: d => {
+              const cls = classes.find(c => c._id === d.drugClass?._id);
+              return cls ? <Badge color={cls.color}>{cls.name}</Badge> : <span style={{ color: '#cbd5e1' }}>—</span>;
+            } },
+            { label: 'Sections', render: d => <span style={{ fontWeight: 700 }}>{d.sections?.length || 0}</span> },
+            { label: 'Tags', maxWidth: 200, render: d => (d.tags || []).length
+              ? <span style={{ fontSize: 11, color: C.sub }}>{d.tags.slice(0, 3).join(', ')}{d.tags.length > 3 ? '…' : ''}</span>
+              : <span style={{ color: '#cbd5e1' }}>—</span> },
+          ]}
+          renderCard={d => {
+            const cls = classes.find(c => c._id === d.drugClass?._id);
+            return (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, backgroundColor: (cls?.color || '#0891b2') + '22' }}>
+                    {cls?.icon || '💊'}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: C.text, fontFamily: 'Nunito,sans-serif' }}>{d.name}</div>
+                    {d.genericName && <div style={{ fontSize: 11, color: C.sub, fontStyle: 'italic' }}>{d.genericName}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {cls && <Badge color={cls.color}>{cls.name}</Badge>}
+                  <Badge color="#64748b">{d.sections?.length || 0} section{(d.sections?.length || 0) > 1 ? 's' : ''}</Badge>
+                </div>
+              </>
+            );
+          }}
+        />
+      </Card>
+
+      {/* ── Modals ── */}
+      <AnimatePresence>
+        {classModal && (
+          <ClassModal
+            editCls={classModal === 'create' ? null : classModal}
+            onSave={handleSaveClass}
+            onClose={() => setClassModal(null)}
+            token={token}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {drugModal && (
+          <DrugModal
+            drug={drugModal === 'create' ? null : drugModal}
+            classes={classes}
+            token={token}
+            onSaved={handleSaveDrug}
+            onClose={() => setDrugModal(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {delConfirm && (
+          <ConfirmModal
+            title={delConfirm.type === 'class' ? 'Supprimer cette classe ?' : 'Supprimer ce médicament ?'}
+            message={<><strong>« {delConfirm.name} »</strong> sera définitivement supprimé{delConfirm.type === 'class' ? ' ainsi que tous ses médicaments' : ''}.</>}
+            onConfirm={handleDelete}
+            onClose={() => setDelConfirm(null)}
+            loading={delLoading}
+          />
+        )}
+      </AnimatePresence>
+    </AdminPage>
   );
 }

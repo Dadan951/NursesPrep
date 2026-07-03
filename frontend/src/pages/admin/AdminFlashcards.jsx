@@ -1,240 +1,126 @@
 import { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import DashboardLayout from '../../components/DashboardLayout';
 import { API_URL } from '../../context/AuthContext';
-import NursesLogo from '../../components/NursesLogo';
+import {
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  Toolbar, SearchInput, FilterSelect, BulkBar, DataTable, Modal, ConfirmModal,
+  Field, Toggle, inputCls, toast, useDraft, DraftBanner, C,
+} from '../../components/admin/adminKit';
+
+const flashIcon = (size = 22) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+  </svg>
+);
+const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
 const EMPTY = { front: '', back: '', semester: '', category: '', chapter: '', difficulty: 'medium', hint: '', isPublished: true };
 
-/* ── Tilt 3-D card ─────────────────────────────────────────────────── */
-function TiltCard({ children, className = '' }) {
-  const x = useMotionValue(0), y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-0.5, 0.5], [5, -5]), { stiffness: 300, damping: 22 });
-  const rotY = useSpring(useTransform(x, [-0.5, 0.5], [-5, 5]), { stiffness: 300, damping: 22 });
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - r.left) / r.width - 0.5);
-    y.set((e.clientY - r.top) / r.height - 0.5);
-  };
-  return (
-    <div style={{ perspective: 900 }}>
-      <motion.div
-        style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => { x.set(0); y.set(0); }}
-        whileHover={{ scale: 1.02 }}
-        className={`rounded-2xl ${className}`}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-}
-
-/* ── Animated stat card ─────────────────────────────────────────────── */
-function StatCard({ label, value, icon, gradient, delay }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const target = Number(value) || 0;
-    if (!target) return;
-    let step = 0;
-    const id = setInterval(() => {
-      step++;
-      setCount(Math.round(target * step / 40));
-      if (step >= 40) { setCount(target); clearInterval(id); }
-    }, 18);
-    return () => clearInterval(id);
-  }, [value]);
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.5 }}>
-      <TiltCard>
-        <div className="relative rounded-2xl p-5 overflow-hidden text-white" style={{ background: gradient }}>
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
-          <div className="text-2xl mb-1">{icon}</div>
-          <div className="text-3xl font-bold">{count}</div>
-          <div className="text-sm text-white/80 mt-0.5">{label}</div>
-        </div>
-      </TiltCard>
-    </motion.div>
-  );
-}
-
-/* ── Flash modal ────────────────────────────────────────────────────── */
+/* ─── Modal Flashcard ───────────────────────────────────────────────────── */
 function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], existingCategories = [], existingChapters = [] }) {
-  const [form, setForm] = useState(item ? { ...item } : { ...EMPTY, ...(preset || {}) });
+  const isNew = !item;
+  const initial = item ? { ...item } : { ...EMPTY, ...(preset || {}) };
+  const [form, setForm] = useState(initial);
   const [loading, setLoading] = useState(false);
 
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  const { pendingDraft, consumeDraft, dismissDraft, clearDraft } = useDraft('draft:flashcard', form, { enabled: isNew, initial: { ...EMPTY, ...(preset || {}) } });
+
   const handleSave = async () => {
-    if (!form.front || !form.back || !form.category) return alert('Recto, verso et catégorie sont requis');
+    if (!form.front.trim() || !form.back.trim()) return toast.error('Recto et verso sont requis');
+    if (!form.category.trim())                    return toast.error('La catégorie (UE) est requise');
     setLoading(true);
-    try { await onSave(form); onClose(); }
-    catch (err) { alert(err.response?.data?.message || 'Erreur'); }
-    finally { setLoading(false); }
+    try {
+      await onSave(form);
+      clearDraft();
+      onClose();
+      toast.success(isNew ? 'Flashcard créée' : 'Flashcard mise à jour');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur — tes données sont conservées');
+    } finally { setLoading(false); }
   };
 
-  const inputCls = 'w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:bg-white transition placeholder:text-slate-400';
-  const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';
-
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-        className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
-      >
-        {/* Modal header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-slate-100" style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
-          <div>
-            <h3 className="text-base font-bold text-white">{item ? 'Modifier la flashcard' : 'Nouvelle flashcard'}</h3>
-            <p className="text-xs text-blue-200/60 mt-0.5">{item ? 'Mettre à jour les informations' : 'Créer une nouvelle carte de révision'}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
+    <Modal
+      title={item ? 'Modifier la flashcard' : 'Nouvelle flashcard'}
+      subtitle={item ? 'Mettre à jour les informations' : 'Créer une carte de révision'}
+      icon={flashIcon(18)}
+      onClose={onClose}
+      dirty={dirty}
+      maxWidth={540}
+      footer={<>
+        <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+        <PrimaryBtn onClick={handleSave} loading={loading}>{loading ? 'Enregistrement…' : 'Enregistrer'}</PrimaryBtn>
+      </>}
+    >
+      {pendingDraft && isNew && (
+        <DraftBanner onRestore={() => setForm(consumeDraft())} onDismiss={dismissDraft} />
+      )}
 
-        {/* Modal body */}
-        <div className="p-6 space-y-4">
-          <div>
-            <label className={labelCls}>Recto (Question) *</label>
-            <textarea
-              value={form.front}
-              onChange={e => setForm({ ...form, front: e.target.value })}
-              rows={2}
-              className={`${inputCls} resize-none`}
-              placeholder="Question ou terme…"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Verso (Réponse) *</label>
-            <textarea
-              value={form.back}
-              onChange={e => setForm({ ...form, back: e.target.value })}
-              rows={3}
-              className={`${inputCls} resize-none`}
-              placeholder="Définition ou réponse…"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Semestre</label>
-              <input
-                list="fc-sem-list"
-                value={form.semester || ''}
-                onChange={e => setForm({ ...form, semester: e.target.value })}
-                className={inputCls}
-                placeholder="Ex: Semestre 1"
-              />
-              <datalist id="fc-sem-list">
-                {existingSemesters.map(s => <option key={s} value={s} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className={labelCls}>Catégorie (UE) *</label>
-              <input
-                list="fc-cat-list"
-                value={form.category}
-                onChange={e => setForm({ ...form, category: e.target.value })}
-                className={inputCls}
-                placeholder="Ex: UE 2.4"
-              />
-              <datalist id="fc-cat-list">
-                {existingCategories.map(c => <option key={c} value={c} />)}
-              </datalist>
-            </div>
-            <div className="col-span-2">
-              <label className={labelCls}>Chapitre</label>
-              <input
-                list="fc-chap-list"
-                value={form.chapter || ''}
-                onChange={e => setForm({ ...form, chapter: e.target.value })}
-                className={inputCls}
-                placeholder="Ex: Troubles du rythme"
-              />
-              <datalist id="fc-chap-list">
-                {existingChapters.map(c => <option key={c} value={c} />)}
-              </datalist>
-            </div>
-          </div>
-          <div>
-            <label className={labelCls}>Difficulté</label>
-            <select
-              value={form.difficulty}
-              onChange={e => setForm({ ...form, difficulty: e.target.value })}
-              className={inputCls}
-            >
-              <option value="easy">Facile</option>
-              <option value="medium">Moyen</option>
-              <option value="hard">Difficile</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Indice (optionnel)</label>
-            <input
-              value={form.hint}
-              onChange={e => setForm({ ...form, hint: e.target.value })}
-              className={inputCls}
-              placeholder="Indice pour aider…"
-            />
-          </div>
-          <div className="flex items-center gap-2.5">
-            <input
-              type="checkbox"
-              id="fpub"
-              checked={form.isPublished}
-              onChange={e => setForm({ ...form, isPublished: e.target.checked })}
-              className="w-4 h-4 accent-blue-500"
-            />
-            <label htmlFor="fpub" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Publié</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Field label="Recto (Question)" required>
+          <textarea value={form.front} onChange={e => setForm({ ...form, front: e.target.value })} rows={2} className={`${inputCls} resize-none`} placeholder="Question ou terme…" />
+        </Field>
+        <Field label="Verso (Réponse)" required>
+          <textarea value={form.back} onChange={e => setForm({ ...form, back: e.target.value })} rows={3} className={`${inputCls} resize-none`} placeholder="Définition ou réponse…" />
+        </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Semestre">
+            <input list="fc-sem-list" value={form.semester || ''} onChange={e => setForm({ ...form, semester: e.target.value })} className={inputCls} placeholder="Ex: Semestre 1" />
+            <datalist id="fc-sem-list">{existingSemesters.map(s => <option key={s} value={s} />)}</datalist>
+          </Field>
+          <Field label="Catégorie (UE)" required>
+            <input list="fc-cat-list" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} placeholder="Ex: UE 2.4" />
+            <datalist id="fc-cat-list">{existingCategories.map(c => <option key={c} value={c} />)}</datalist>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Chapitre">
+              <input list="fc-chap-list" value={form.chapter || ''} onChange={e => setForm({ ...form, chapter: e.target.value })} className={inputCls} placeholder="Ex: Troubles du rythme" />
+              <datalist id="fc-chap-list">{existingChapters.map(c => <option key={c} value={c} />)}</datalist>
+            </Field>
           </div>
         </div>
-
-        {/* Modal footer */}
-        <div className="flex gap-3 px-6 pb-6">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition"
-          >
-            Annuler
-          </button>
-          <motion.button
-            onClick={handleSave}
-            disabled={loading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold disabled:opacity-60 transition"
-            style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
-          >
-            {loading ? 'Enregistrement…' : 'Enregistrer'}
-          </motion.button>
-        </div>
-      </motion.div>
-    </div>
+        <Field label="Difficulté">
+          <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
+            <option value="easy">Facile</option><option value="medium">Moyen</option><option value="hard">Difficile</option>
+          </select>
+        </Field>
+        <Field label="Indice (optionnel)">
+          <input value={form.hint} onChange={e => setForm({ ...form, hint: e.target.value })} className={inputCls} placeholder="Indice pour aider…" />
+        </Field>
+        <Toggle checked={form.isPublished} onChange={v => setForm({ ...form, isPublished: v })} labels={['Publiée — visible par les étudiants', 'Masquée — non visible']} />
+      </div>
+    </Modal>
   );
 }
 
-/* ── Main page ──────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════ */
 export default function AdminFlashcards() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [modal, setModal]       = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [search,     setSearch]     = useState('');
-  const [filterSem,  setFilterSem]  = useState('');
-  const [filterUE,   setFilterUE]   = useState('');
+  const [delLoading, setDelLoading] = useState(false);
+  const [search, setSearch]         = useState('');
+  const [filterSem, setFilterSem]   = useState('');
+  const [filterUE, setFilterUE]     = useState('');
   const [filterChap, setFilterChap] = useState('');
-  const [selected,    setSelected]    = useState(new Set());
+  const [selected, setSelected]     = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const load = () => {
     setLoading(true);
     setSelected(new Set());
-    axios.get(`${API_URL}/flashcards/admin`).then(r => setItems(r.data)).finally(() => setLoading(false));
+    axios.get(`${API_URL}/flashcards/admin`)
+      .then(r => setItems(r.data))
+      .catch(() => toast.error('Impossible de charger les flashcards'))
+      .finally(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -244,9 +130,14 @@ export default function AdminFlashcards() {
     load();
   };
   const handleDelete = async (id) => {
-    await axios.delete(`${API_URL}/flashcards/${id}`);
-    setDeleting(null);
-    load();
+    setDelLoading(true);
+    try {
+      await axios.delete(`${API_URL}/flashcards/${id}`);
+      setDeleting(null);
+      toast.success('Flashcard supprimée');
+      load();
+    } catch (e) { toast.error(e.response?.data?.message || 'Erreur lors de la suppression'); }
+    finally { setDelLoading(false); }
   };
 
   const toggleOne = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -256,263 +147,110 @@ export default function AdminFlashcards() {
   };
   const bulkAction = async (action, value) => {
     if (!selected.size) return;
-    if (action === 'delete' && !window.confirm(`Supprimer ${selected.size} flashcard${selected.size > 1 ? 's' : ''} ?`)) return;
     setBulkLoading(true);
     try {
       await axios.post(`${API_URL}/admin/bulk/flashcards`, { ids: [...selected], action, value }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(action === 'delete' ? `${selected.size} flashcard(s) supprimée(s)` : 'Statut mis à jour');
+      setBulkDeleting(false);
       load();
-    } catch (e) { alert('Erreur : ' + (e.response?.data?.message || e.message)); }
+    } catch (e) { toast.error(e.response?.data?.message || e.message); }
     finally { setBulkLoading(false); }
   };
 
-  const diffColors = {
-    easy: 'bg-emerald-100 text-emerald-700',
-    medium: 'bg-amber-100 text-amber-700',
-    hard: 'bg-red-100 text-red-700',
-  };
-  const diffLabel = { easy: 'Facile', medium: 'Moyen', hard: 'Difficile' };
-
   const semesters = [...new Set(items.map(i => i.semester).filter(Boolean))].sort();
-  const ues       = [...new Set(
-    items.filter(i => !filterSem || i.semester === filterSem).map(i => i.category).filter(Boolean)
-  )].sort();
-  const chapters  = [...new Set(
-    items.filter(i => (!filterSem || i.semester === filterSem) && (!filterUE || i.category === filterUE))
-         .map(i => i.chapter).filter(Boolean)
-  )].sort();
+  const ues = [...new Set(items.filter(i => !filterSem || i.semester === filterSem).map(i => i.category).filter(Boolean))].sort();
+  const chapters = [...new Set(items.filter(i => (!filterSem || i.semester === filterSem) && (!filterUE || i.category === filterUE)).map(i => i.chapter).filter(Boolean))].sort();
 
   const filtered = items.filter(i => {
-    const matchSearch = i.front.toLowerCase().includes(search.toLowerCase()) || (i.category||'').toLowerCase().includes(search.toLowerCase());
-    const matchSem  = !filterSem  || i.semester  === filterSem;
-    const matchUE   = !filterUE   || i.category  === filterUE;
-    const matchChap = !filterChap || i.chapter    === filterChap;
-    return matchSearch && matchSem && matchUE && matchChap;
+    const s = search.toLowerCase();
+    const matchSearch = i.front.toLowerCase().includes(s) || (i.category || '').toLowerCase().includes(s);
+    return matchSearch
+      && (!filterSem  || i.semester === filterSem)
+      && (!filterUE   || i.category === filterUE)
+      && (!filterChap || i.chapter  === filterChap);
   });
 
   const published  = items.filter(i => i.isPublished).length;
   const categories = [...new Set(items.map(i => i.category).filter(Boolean))].length;
+  const hasFilters = search || filterSem || filterUE || filterChap;
+  const clearFilters = () => { setSearch(''); setFilterSem(''); setFilterUE(''); setFilterChap(''); };
 
   return (
-    <DashboardLayout isAdmin>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
+    <AdminPage
+      title="Flashcards"
+      subtitle="Gestion des cartes de révision"
+      icon={flashIcon()}
+      stats={[
+        { value: items.length, label: 'flashcards' },
+        { value: published,    label: 'publiées' },
+        { value: categories,   label: 'catégories' },
+      ]}
+      actions={<HeroBtn onClick={() => setModal('new')}>{plusIcon} Nouvelle flashcard</HeroBtn>}
+    >
+      <Card>
+        <Toolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une flashcard…" />
+          <FilterSelect value={filterSem} onChange={v => { setFilterSem(v); setFilterUE(''); setFilterChap(''); }} options={semesters} allLabel="Tous les semestres" />
+          <FilterSelect value={filterUE} onChange={v => { setFilterUE(v); setFilterChap(''); }} options={ues} allLabel="Toutes les UE" />
+          <FilterSelect value={filterChap} onChange={setFilterChap} options={chapters} allLabel="Tous les chapitres" />
+          {(filterSem || filterUE || filterChap) && (
+            <button onClick={() => setModal({ _preset: true, semester: filterSem, category: filterUE, chapter: filterChap })}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', minHeight: 44, background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow: '0 3px 8px rgba(var(--theme-primary-rgb),0.3)' }}>
+              {plusIcon} Ajouter ici
+            </button>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: C.sub, fontWeight: 600 }}>{filtered.length} / {items.length}</span>
+        </Toolbar>
 
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }}>
-
-        {/* ── Header ── */}
-        <div className="px-6 pt-8 pb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <NursesLogo size="sm" light />
-              <div className="h-6 w-px bg-white/20" />
-              <div>
-                <h1 className="text-white font-bold text-lg">Flashcards</h1>
-                <p className="text-blue-200/60 text-xs">Gestion des cartes de révision</p>
-              </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setModal('new')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Nouvelle flashcard
-            </motion.button>
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard
-              label="Total Flashcards"
-              value={items.length}
-              icon=""
-              gradient="linear-gradient(135deg,#2563eb,#1d4ed8)"
-              delay={0}
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <BulkBar
+              count={selected.size}
+              loading={bulkLoading}
+              onPublish={() => bulkAction('publish', true)}
+              onUnpublish={() => bulkAction('publish', false)}
+              onDelete={() => setBulkDeleting(true)}
+              onClear={() => setSelected(new Set())}
+              publishLabels={['Publier', 'Masquer']}
             />
-            <StatCard
-              label="Publiées"
-              value={published}
-              icon=""
-              gradient="linear-gradient(135deg,#059669,#047857)"
-              delay={0.1}
-            />
-            <StatCard
-              label="Catégories"
-              value={categories}
-              icon=""
-              gradient="linear-gradient(135deg,#0891b2,#0e7490)"
-              delay={0.2}
-            />
-          </div>
-        </div>
+          )}
+        </AnimatePresence>
 
-        {/* ── White content card ── */}
-        <div className="px-6 pb-8">
-          <div className="bg-white rounded-3xl shadow-2xl">
-
-            {/* Toolbar */}
-            <div className="p-5 border-b border-slate-100 flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[180px]">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Rechercher une flashcard…"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:bg-white transition placeholder:text-slate-400"
-                />
+        <DataTable
+          loading={loading}
+          items={filtered}
+          selectable={{ selected, toggleOne, toggleAll }}
+          onEdit={i => setModal(i)}
+          onDelete={i => setDeleting(i)}
+          empty={{
+            icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" /><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" /></svg>,
+            title: 'Aucune flashcard trouvée',
+            hint: hasFilters ? null : 'Ajoute ta première carte de révision',
+            onReset: hasFilters ? clearFilters : null,
+          }}
+          columns={[
+            { label: 'Recto', maxWidth: 280, render: i => <span style={{ fontWeight: 700 }} title={i.front}>{i.front}</span> },
+            { label: 'Semestre', render: i => i.semester ? <Badge color="#7c3aed">{i.semester}</Badge> : <span style={{ color: '#cbd5e1' }}>—</span> },
+            { label: 'UE', maxWidth: 170, render: i => <Badge color="#2563eb">{i.category}</Badge> },
+            { label: 'Chapitre', maxWidth: 150, render: i => <span style={{ fontSize: 12, color: C.sub }}>{i.chapter || '—'}</span> },
+            { label: 'Difficulté', render: i => <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge> },
+            { label: 'Statut', render: i => <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} /> },
+          ]}
+          renderCard={i => (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, fontFamily: 'Nunito,sans-serif', marginBottom: 8 }}>{i.front}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                {i.semester && <Badge color="#7c3aed">{i.semester}</Badge>}
+                <Badge color="#2563eb">{i.category}</Badge>
+                <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge>
+                <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} />
               </div>
+              {i.chapter && <div style={{ fontSize: 12, color: C.sub }}>{i.chapter}</div>}
+            </>
+          )}
+        />
+      </Card>
 
-              {/* Filtre semestre */}
-              <select value={filterSem} onChange={e => { setFilterSem(e.target.value); setFilterUE(''); setFilterChap(''); }}
-                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-white">
-                <option value="">Tous les semestres</option>
-                {semesters.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-
-              {/* Filtre UE (cascade depuis semestre) */}
-              <select value={filterUE} onChange={e => { setFilterUE(e.target.value); setFilterChap(''); }}
-                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-white max-w-[220px]">
-                <option value="">Toutes les UE</option>
-                {ues.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-
-              {/* Filtre chapitre (cascade depuis UE) */}
-              <select value={filterChap} onChange={e => setFilterChap(e.target.value)}
-                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition bg-white max-w-[220px]">
-                <option value="">Tous les chapitres</option>
-                {chapters.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-
-              {/* Bouton contextuel */}
-              {(filterSem || filterUE || filterChap) && (
-                <motion.button
-                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                  onClick={() => setModal({ _preset: true, semester: filterSem, category: filterUE, chapter: filterChap })}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-white shadow-sm whitespace-nowrap"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Ajouter une flashcard ici
-                </motion.button>
-              )}
-
-              <span className="ml-auto text-xs text-slate-400 font-medium">
-                {filtered.length} / {items.length} flashcard{items.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-
-            {/* Barre actions groupées */}
-            <AnimatePresence>
-              {selected.size > 0 && (
-                <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-                  className="px-5 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-3 flex-wrap">
-                  <span className="text-xs font-bold text-blue-700">{selected.size} sélectionné{selected.size > 1 ? 's' : ''}</span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => bulkAction('publish', true)} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">✓ Publier</button>
-                    <button onClick={() => bulkAction('publish', false)} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">○ Masquer</button>
-                    <button onClick={() => bulkAction('delete')} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">🗑 Supprimer</button>
-                    <button onClick={() => setSelected(new Set())}
-                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">✕ Désélectionner</button>
-                  </div>
-                  {bulkLoading && <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin ml-1"/>}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Table body */}
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="text-center py-16 text-slate-400">
-                <div className="text-5xl mb-3"></div>
-                <p className="font-semibold">Aucune flashcard trouvée</p>
-                {(search || filterSem || filterUE || filterChap) ? (
-                  <button onClick={() => { setSearch(''); setFilterSem(''); setFilterUE(''); setFilterChap(''); }}
-                    className="mt-3 text-xs text-blue-500 hover:text-blue-700 underline">
-                    Réinitialiser les filtres
-                  </button>
-                ) : (
-                  <p className="text-xs mt-1">Ajoutez votre première carte de révision</p>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-4 py-3.5">
-                        <input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length}
-                          onChange={toggleAll} className="rounded accent-blue-600 cursor-pointer w-3.5 h-3.5"/>
-                      </th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Recto</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Catégorie</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Difficulté</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Statut</th>
-                      <th className="px-5 py-3.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((item, i) => (
-                      <motion.tr
-                        key={item._id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.02 }}
-                        className={`border-b border-slate-100 hover:bg-blue-50/30 transition-all group ${selected.has(item._id) ? 'bg-blue-50' : ''}`}
-                      >
-                        <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                          <input type="checkbox" checked={selected.has(item._id)} onChange={() => toggleOne(item._id)}
-                            className="rounded accent-blue-600 cursor-pointer w-3.5 h-3.5"/>
-                        </td>
-                        <td className="px-5 py-3.5 text-sm font-medium text-slate-800 max-w-xs truncate">{item.front}</td>
-                        <td className="px-5 py-3.5">
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">{item.category}</span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${diffColors[item.difficulty]}`}>
-                            {diffLabel[item.difficulty]}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                            {item.isPublished ? 'Publiée' : 'Masquée'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => setModal(item)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition"
-                              title="Modifier"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                            <button
-                              onClick={() => setDeleting(item)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition"
-                              title="Supprimer"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                            </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── FlashModal ── */}
       <AnimatePresence>
         {modal && (
           <FlashModal
@@ -527,48 +265,26 @@ export default function AdminFlashcards() {
         )}
       </AnimatePresence>
 
-      {/* ── Delete confirm modal ── */}
       <AnimatePresence>
         {deleting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.88, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88, y: 20 }}
-              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-              className="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl text-center"
-            >
-              <div className="text-5xl mb-4"></div>
-              <h3 className="text-base font-bold text-slate-800 mb-1">Supprimer cette flashcard ?</h3>
-              <p className="text-xs text-slate-400 mb-6">
-                « <span className="font-medium text-slate-600">{deleting.front?.slice(0, 60)}{deleting.front?.length > 60 ? '…' : ''}</span> »
-                <br />Cette action est irréversible.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleting(null)}
-                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition"
-                >
-                  Annuler
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handleDelete(deleting._id)}
-                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition"
-                >
-                  Supprimer
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <ConfirmModal
+            title="Supprimer cette flashcard ?"
+            message={<><strong>« {deleting.front?.slice(0, 60)}{deleting.front?.length > 60 ? '…' : ''} »</strong><br />Cette action est irréversible.</>}
+            onConfirm={() => handleDelete(deleting._id)}
+            onClose={() => setDeleting(null)}
+            loading={delLoading}
+          />
+        )}
+        {bulkDeleting && (
+          <ConfirmModal
+            title={`Supprimer ${selected.size} flashcard(s) ?`}
+            message="Cette action est irréversible."
+            onConfirm={() => bulkAction('delete')}
+            onClose={() => setBulkDeleting(false)}
+            loading={bulkLoading}
+          />
         )}
       </AnimatePresence>
-    </DashboardLayout>
+    </AdminPage>
   );
 }

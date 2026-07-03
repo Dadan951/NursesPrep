@@ -1,70 +1,42 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import DashboardLayout from '../../components/DashboardLayout';
 import { API_URL } from '../../context/AuthContext';
-import NursesLogo from '../../components/NursesLogo';
+import {
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  Toolbar, SearchInput, FilterPills, BulkBar, DataTable, Modal, ConfirmModal,
+  Field, Toggle, inputCls, toast, useDraft, DraftBanner, C,
+} from '../../components/admin/adminKit';
+
+const exoIcon = (size = 22) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.4 14.4 9.6 9.6" />
+    <path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z" />
+    <path d="m21.5 21.5-1.4-1.4" />
+    <path d="M3.9 3.9 2.5 2.5" />
+    <path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z" />
+  </svg>
+);
+const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
 const EMPTY = { title: '', content: '', answer: '', semester: '', caseType: '', category: '', type: 'open', difficulty: 'medium', isPublished: true, options: [] };
 const QCM_OPT = [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }];
 
-/* ─── TiltCard ─────────────────────────────────────────────────────────────── */
-function TiltCard({ children, className = '' }) {
-  const x = useMotionValue(0), y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-0.5, 0.5], [5, -5]), { stiffness: 300, damping: 22 });
-  const rotY = useSpring(useTransform(x, [-0.5, 0.5], [-5, 5]), { stiffness: 300, damping: 22 });
-  const onMove = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - r.left) / r.width - 0.5);
-    y.set((e.clientY - r.top) / r.height - 0.5);
-  };
-  return (
-    <div style={{ perspective: 900 }}>
-      <motion.div
-        style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => { x.set(0); y.set(0); }}
-        whileHover={{ scale: 1.02 }}
-        className={`rounded-2xl ${className}`}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-}
+const TYPE_BADGE = {
+  qcm:        { label: 'QCM',              color: '#2563eb' },
+  open:       { label: 'Question ouverte', color: '#7c3aed' },
+  case_study: { label: 'Cas clinique',     color: '#ea580c' },
+};
 
-/* ─── StatCard ──────────────────────────────────────────────────────────────── */
-function StatCard({ label, value, icon, gradient, delay }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const target = Number(value) || 0;
-    if (!target) return;
-    let step = 0;
-    const id = setInterval(() => {
-      step++;
-      setCount(Math.round(target * step / 40));
-      if (step >= 40) { setCount(target); clearInterval(id); }
-    }, 18);
-    return () => clearInterval(id);
-  }, [value]);
-  return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay, duration: 0.5 }}>
-      <TiltCard>
-        <div className="relative rounded-2xl p-5 overflow-hidden text-white" style={{ background: gradient }}>
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
-          <div className="text-2xl mb-1">{icon}</div>
-          <div className="text-3xl font-bold">{count}</div>
-          <div className="text-sm text-white/80 mt-0.5">{label}</div>
-        </div>
-      </TiltCard>
-    </motion.div>
-  );
-}
-
-/* ─── ExModal ───────────────────────────────────────────────────────────────── */
+/* ─── Modal Exercice ────────────────────────────────────────────────────── */
 function ExModal({ item, onClose, onSave, existingSemesters = [], existingCategories = [] }) {
-  const [form, setForm] = useState(item ? { ...item, options: item.options || [] } : EMPTY);
+  const isNew = !item;
+  const initial = item ? { ...item, options: item.options || [] } : { ...EMPTY };
+  const [form, setForm] = useState(initial);
   const [loading, setLoading] = useState(false);
+
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  const { pendingDraft, consumeDraft, dismissDraft, clearDraft } = useDraft('draft:exercise', form, { enabled: isNew, initial: EMPTY });
 
   const isQcm = form.type === 'qcm';
 
@@ -74,293 +46,172 @@ function ExModal({ item, onClose, onSave, existingSemesters = [], existingCatego
     else opts[i] = { ...opts[i], [field]: value };
     setForm({ ...form, options: opts });
   };
-
   const handleTypeChange = (type) => {
-    setForm({ ...form, type, options: type === 'qcm' ? (form.options.length ? form.options : [...QCM_OPT]) : form.options });
+    setForm({ ...form, type, options: type === 'qcm' ? (form.options.length ? form.options : JSON.parse(JSON.stringify(QCM_OPT))) : form.options });
   };
 
   const handleSave = async () => {
-    if (!form.title || !form.content || !form.category) return alert('Titre, contenu et catégorie sont requis');
+    if (!form.title.trim())    return toast.error('Le titre est requis');
+    if (!form.content.trim())  return toast.error("L'énoncé est requis");
+    if (!form.category.trim()) return toast.error('La catégorie (UE) est requise');
     setLoading(true);
-    try { await onSave(form); onClose(); }
-    catch (err) { alert(err.response?.data?.message || 'Erreur'); }
-    finally { setLoading(false); }
+    try {
+      await onSave(form);
+      clearDraft();
+      onClose();
+      toast.success(isNew ? 'Exercice créé' : 'Exercice mis à jour');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur — tes données sont conservées');
+    } finally { setLoading(false); }
   };
 
   const typeOptions = [
-    { value: 'open', label: 'Question ouverte' },
-    { value: 'qcm', label: 'QCM' },
+    { value: 'open',       label: 'Question ouverte' },
+    { value: 'qcm',        label: 'QCM' },
     { value: 'case_study', label: 'Cas clinique' },
   ];
-  const diffOptions = [
-    { value: 'easy', label: 'Facile', color: 'emerald' },
-    { value: 'medium', label: 'Moyen', color: 'amber' },
-    { value: 'hard', label: 'Difficile', color: 'red' },
-  ];
+  const diffColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(8px)' }}
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.93, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.93, y: 20 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-          className="bg-white rounded-3xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-        >
-          {/* Modal header */}
-          <div
-            className="px-7 py-5 flex items-center justify-between"
-            style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}>
-              </div>
-              <h3 className="text-sm font-bold text-white">
-                {item ? "Modifier l'exercice" : 'Nouvel exercice'}
-              </h3>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition hover:bg-white/10"
-              style={{ background: 'rgba(255,255,255,0.08)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" strokeWidth="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+    <Modal
+      title={item ? "Modifier l'exercice" : 'Nouvel exercice'}
+      subtitle={TYPE_BADGE[form.type]?.label}
+      icon={exoIcon(18)}
+      onClose={onClose}
+      dirty={dirty}
+      maxWidth={620}
+      footer={<>
+        <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+        <PrimaryBtn onClick={handleSave} loading={loading}>{loading ? 'Enregistrement…' : 'Enregistrer'}</PrimaryBtn>
+      </>}
+    >
+      {pendingDraft && isNew && (
+        <DraftBanner onRestore={() => setForm(consumeDraft())} onDismiss={dismissDraft} />
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Field label="Titre" required>
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inputCls} placeholder="Titre de l'exercice" />
+        </Field>
+
+        <Field label="Type">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {typeOptions.map(t => (
+              <button key={t.value} type="button" onClick={() => handleTypeChange(t.value)}
+                style={{
+                  padding: '10px 15px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 42,
+                  border: `1.5px solid ${form.type === t.value ? 'transparent' : C.border}`,
+                  background: form.type === t.value ? 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' : '#fff',
+                  color: form.type === t.value ? '#fff' : C.sub,
+                }}>
+                {t.label}
+              </button>
+            ))}
           </div>
+        </Field>
 
-          {/* Modal body */}
-          <div className="flex-1 overflow-auto p-7 space-y-5 bg-white">
-
-            {/* Title */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Titre *</label>
-              <input
-                value={form.title}
-                onChange={e => setForm({ ...form, title: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
-                placeholder="Titre de l'exercice"
-              />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Semestre">
+            <input list="ex-sem-list" value={form.semester || ''} onChange={e => setForm({ ...form, semester: e.target.value })} className={inputCls} placeholder="Ex: Semestre 2" />
+            <datalist id="ex-sem-list">{existingSemesters.map(s => <option key={s} value={s} />)}</datalist>
+          </Field>
+          <Field label="Type de cas">
+            <input value={form.caseType || ''} onChange={e => setForm({ ...form, caseType: e.target.value })} className={inputCls} placeholder="Ex: Cas pratiques" />
+          </Field>
+          <Field label="Catégorie (UE)" required>
+            <input list="ex-cat-list" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} placeholder="Ex: UE 4.4" />
+            <datalist id="ex-cat-list">{existingCategories.map(c => <option key={c} value={c} />)}</datalist>
+          </Field>
+          <Field label="Difficulté">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {Object.entries(DIFF_BADGE).map(([val, d]) => (
+                <button key={val} type="button" onClick={() => setForm({ ...form, difficulty: val })}
+                  style={{
+                    flex: 1, padding: '10px 4px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 42,
+                    border: `1.5px solid ${form.difficulty === val ? 'transparent' : C.border}`,
+                    background: form.difficulty === val ? diffColors[val] : '#fff',
+                    color: form.difficulty === val ? '#fff' : '#94a3b8',
+                  }}>
+                  {d.label}
+                </button>
+              ))}
             </div>
+          </Field>
+        </div>
 
-            {/* Type pill buttons */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Type</label>
-              <div className="flex gap-2 flex-wrap">
-                {typeOptions.map(t => (
-                  <button
-                    key={t.value}
-                    onClick={() => handleTypeChange(t.value)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                      form.type === t.value
-                        ? 'text-white border-transparent shadow-sm'
-                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                    }`}
-                    style={form.type === t.value ? { background: 'linear-gradient(135deg,#2563eb,#0891b2)' } : {}}
-                  >
-                    {t.label}
+        <Field label="Énoncé" required>
+          <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={4} className={`${inputCls} resize-none`} placeholder="Énoncé de l'exercice…" />
+        </Field>
+
+        {isQcm && (
+          <Field label="Options QCM (sélectionner la bonne réponse)">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {(form.options.length ? form.options : QCM_OPT).map((opt, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button type="button" onClick={() => setOpt(i, 'isCorrect', true)} aria-label={`Option ${String.fromCharCode(65 + i)} correcte`}
+                    style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${opt.isCorrect ? '#10b981' : '#cbd5e1'}`, background: opt.isCorrect ? '#10b981' : '#fff' }}>
+                    {opt.isCorrect && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Semester + CaseType */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Semestre</label>
-                <input
-                  list="ex-sem-list"
-                  value={form.semester || ''}
-                  onChange={e => setForm({ ...form, semester: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
-                  placeholder="Ex: Semestre 2"
-                />
-                <datalist id="ex-sem-list">
-                  {existingSemesters.map(s => <option key={s} value={s} />)}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Type de cas</label>
-                <input
-                  value={form.caseType || ''}
-                  onChange={e => setForm({ ...form, caseType: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
-                  placeholder="Ex: Cas pratiques"
-                />
-              </div>
-            </div>
-
-            {/* Category + Difficulty */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Catégorie (UE) *</label>
-                <input
-                  list="ex-cat-list"
-                  value={form.category}
-                  onChange={e => setForm({ ...form, category: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
-                  placeholder="Ex: UE 4.4"
-                />
-                <datalist id="ex-cat-list">
-                  {existingCategories.map(c => <option key={c} value={c} />)}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Difficulté</label>
-                <div className="flex gap-1.5">
-                  {diffOptions.map(d => (
-                    <button
-                      key={d.value}
-                      onClick={() => setForm({ ...form, difficulty: d.value })}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                        form.difficulty === d.value
-                          ? d.value === 'easy' ? 'bg-emerald-500 text-white border-transparent'
-                            : d.value === 'medium' ? 'bg-amber-500 text-white border-transparent'
-                            : 'bg-red-500 text-white border-transparent'
-                          : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
+                  <input value={opt.text} onChange={e => setOpt(i, 'text', e.target.value)}
+                    className="text-base md:text-sm"
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 12, border: `1.5px solid ${opt.isCorrect ? '#a7f3d0' : C.border}`, background: opt.isCorrect ? '#ecfdf5' : '#fff', outline: 'none', minHeight: 44 }}
+                    placeholder={`Option ${String.fromCharCode(65 + i)}`} />
                 </div>
-              </div>
+              ))}
             </div>
+          </Field>
+        )}
 
-            {/* Content */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Énoncé *</label>
-              <textarea
-                value={form.content}
-                onChange={e => setForm({ ...form, content: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition"
-                placeholder="Énoncé de l'exercice..."
-              />
-            </div>
+        <Field label="Correction / Réponse">
+          <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} rows={3} className={`${inputCls} resize-none`} placeholder="Correction détaillée…" />
+        </Field>
 
-            {/* QCM options */}
-            {isQcm && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Options QCM
-                </label>
-                <div className="space-y-2">
-                  {(form.options.length ? form.options : QCM_OPT).map((opt, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-2.5"
-                    >
-                      <button
-                        onClick={() => setOpt(i, 'isCorrect', true)}
-                        className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                          opt.isCorrect ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 bg-white hover:border-emerald-400'
-                        }`}
-                      >
-                        {opt.isCorrect && (
-                          <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </button>
-                      <input
-                        value={opt.text}
-                        onChange={e => setOpt(i, 'text', e.target.value)}
-                        className={`flex-1 px-3.5 py-2 rounded-xl border text-xs text-slate-800 focus:outline-none transition ${
-                          opt.isCorrect
-                            ? 'border-emerald-300 bg-emerald-50 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
-                            : 'border-slate-200 bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                        }`}
-                        placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Answer */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Correction / Réponse</label>
-              <textarea
-                value={form.answer}
-                onChange={e => setForm({ ...form, answer: e.target.value })}
-                rows={3}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition"
-                placeholder="Correction détaillée..."
-              />
-            </div>
-
-            {/* Published */}
-            <div
-              className="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition hover:opacity-90"
-              style={{ background: form.isPublished ? 'linear-gradient(135deg,#dcfce7,#d1fae5)' : '#f8fafc' }}
-              onClick={() => setForm({ ...form, isPublished: !form.isPublished })}
-            >
-              <span className={`text-xs font-semibold ${form.isPublished ? 'text-emerald-700' : 'text-slate-500'}`}>
-                {form.isPublished ? 'Publié — visible par les étudiants' : 'Masqué — non visible'}
-              </span>
-              <div className={`w-10 h-5 rounded-full relative transition-all ${form.isPublished ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.isPublished ? 'left-5' : 'left-0.5'}`} />
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="px-7 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/60">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-100 transition"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold transition disabled:opacity-60 hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
-            >
-              {loading ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        <Toggle checked={form.isPublished} onChange={v => setForm({ ...form, isPublished: v })} />
+      </div>
+    </Modal>
   );
 }
 
-/* ─── AdminExercises ────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════ */
 export default function AdminExercises() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null);
+  const [items, setItems]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [modal, setModal]       = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const [search, setSearch] = useState('');
+  const [delLoading, setDelLoading] = useState(false);
+  const [search, setSearch]         = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [selected,    setSelected]    = useState(new Set());
+  const [selected, setSelected]     = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const load = () => {
     setLoading(true);
     setSelected(new Set());
-    axios.get(`${API_URL}/exercises/admin`).then(r => setItems(r.data)).finally(() => setLoading(false));
+    axios.get(`${API_URL}/exercises/admin`)
+      .then(r => setItems(r.data))
+      .catch(() => toast.error('Impossible de charger les exercices'))
+      .finally(() => setLoading(false));
   };
   useEffect(load, []);
+
+  const handleSave = async (data) => {
+    if (data._id) await axios.put(`${API_URL}/exercises/${data._id}`, data);
+    else await axios.post(`${API_URL}/exercises`, data);
+    load();
+  };
+  const handleDelete = async (id) => {
+    setDelLoading(true);
+    try {
+      await axios.delete(`${API_URL}/exercises/${id}`);
+      setDeleting(null);
+      toast.success('Exercice supprimé');
+      load();
+    } catch (e) { toast.error(e.response?.data?.message || 'Erreur lors de la suppression'); }
+    finally { setDelLoading(false); }
+  };
 
   const toggleOne = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleAll = () => {
@@ -369,309 +220,127 @@ export default function AdminExercises() {
   };
   const bulkAction = async (action, value) => {
     if (!selected.size) return;
-    if (action === 'delete' && !window.confirm(`Supprimer ${selected.size} exercice${selected.size > 1 ? 's' : ''} ?`)) return;
     setBulkLoading(true);
     try {
       await axios.post(`${API_URL}/admin/bulk/exercises`, { ids: [...selected], action, value }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(action === 'delete' ? `${selected.size} exercice(s) supprimé(s)` : 'Statut mis à jour');
+      setBulkDeleting(false);
       load();
-    } catch (e) { alert('Erreur : ' + (e.response?.data?.message || e.message)); }
+    } catch (e) { toast.error(e.response?.data?.message || e.message); }
     finally { setBulkLoading(false); }
   };
 
-  const handleSave = async (data) => {
-    if (data._id) await axios.put(`${API_URL}/exercises/${data._id}`, data);
-    else await axios.post(`${API_URL}/exercises`, data);
-    load();
-  };
-  const handleDelete = async (id) => {
-    await axios.delete(`${API_URL}/exercises/${id}`);
-    setDeleting(null);
-    load();
-  };
-
-  const typeLabel = { qcm: 'QCM', open: 'Question ouverte', case_study: 'Cas clinique' };
-  const typeColors = { qcm: 'bg-blue-100 text-blue-700', open: 'bg-purple-100 text-purple-700', case_study: 'bg-orange-100 text-orange-700' };
-  const diffColors = { easy: 'bg-emerald-100 text-emerald-700', medium: 'bg-amber-100 text-amber-700', hard: 'bg-red-100 text-red-700' };
-  const diffLabel = { easy: 'Facile', medium: 'Moyen', hard: 'Difficile' };
-
-  const qcmCount = items.filter(i => i.type === 'qcm').length;
-  const openCount = items.filter(i => i.type === 'open').length;
-  const caseCount = items.filter(i => i.type === 'case_study').length;
-
   const filtered = items.filter(i => {
-    const matchSearch = i.title.toLowerCase().includes(search.toLowerCase()) || i.category.toLowerCase().includes(search.toLowerCase());
+    const s = search.toLowerCase();
+    const matchSearch = i.title.toLowerCase().includes(s) || i.category.toLowerCase().includes(s);
     const matchType = filterType === 'all' || i.type === filterType;
     return matchSearch && matchType;
   });
 
-  const filterPills = [
-    ['all', 'Tout'],
-    ['qcm', 'QCM'],
-    ['open', 'Question ouverte'],
-    ['case_study', 'Cas clinique'],
-  ];
+  const qcmCount  = items.filter(i => i.type === 'qcm').length;
+  const openCount = items.filter(i => i.type === 'open').length;
+  const caseCount = items.filter(i => i.type === 'case_study').length;
+  const hasFilters = search || filterType !== 'all';
 
   return (
-    <DashboardLayout isAdmin>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c4a6e 100%)' }}>
+    <AdminPage
+      title="Exercices"
+      subtitle="Gestion des exercices cliniques"
+      icon={exoIcon()}
+      stats={[
+        { value: items.length, label: 'exercices' },
+        { value: qcmCount,     label: 'QCM' },
+        { value: openCount,    label: 'ouverts' },
+        { value: caseCount,    label: 'cas cliniques' },
+      ]}
+      actions={<HeroBtn onClick={() => setModal('new')}>{plusIcon} Nouvel exercice</HeroBtn>}
+    >
+      <Card>
+        <Toolbar>
+          <SearchInput value={search} onChange={setSearch} placeholder="Rechercher un exercice…" />
+          <FilterPills value={filterType} onChange={setFilterType}
+            options={[['all', 'Tout'], ['qcm', 'QCM'], ['open', 'Ouverte'], ['case_study', 'Cas clinique']]} />
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: C.sub, fontWeight: 600 }}>{filtered.length} / {items.length}</span>
+        </Toolbar>
 
-        {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="px-6 pt-8 pb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <NursesLogo size="sm" light />
-              <div className="h-6 w-px bg-white/20" />
-              <div>
-                <h1 className="text-white font-bold text-lg">Exercices</h1>
-                <p className="text-blue-200/60 text-xs">Gestion des exercices cliniques</p>
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <BulkBar
+              count={selected.size}
+              loading={bulkLoading}
+              onPublish={() => bulkAction('publish', true)}
+              onUnpublish={() => bulkAction('publish', false)}
+              onDelete={() => setBulkDeleting(true)}
+              onClear={() => setSelected(new Set())}
+            />
+          )}
+        </AnimatePresence>
+
+        <DataTable
+          loading={loading}
+          items={filtered}
+          selectable={{ selected, toggleOne, toggleAll }}
+          onEdit={i => setModal(i)}
+          onDelete={i => setDeleting(i)}
+          empty={{
+            icon: exoIcon(24),
+            title: 'Aucun exercice trouvé',
+            hint: hasFilters ? null : 'Crée ton premier exercice',
+            onReset: hasFilters ? () => { setSearch(''); setFilterType('all'); } : null,
+          }}
+          columns={[
+            { label: 'Titre', maxWidth: 240, render: i => <span style={{ fontWeight: 700 }} title={i.title}>{i.title}</span> },
+            { label: 'Type', render: i => <Badge color={TYPE_BADGE[i.type]?.color}>{TYPE_BADGE[i.type]?.label}</Badge> },
+            { label: 'Catégorie', maxWidth: 150, render: i => <Badge color="#64748b">{i.category}</Badge> },
+            { label: 'Difficulté', render: i => <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge> },
+            { label: 'Statut', render: i => <PubBadge ok={i.isPublished} labels={['Publié', 'Masqué']} /> },
+          ]}
+          renderCard={i => (
+            <>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.text, fontFamily: 'Nunito,sans-serif', marginBottom: 8 }}>{i.title}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <Badge color={TYPE_BADGE[i.type]?.color}>{TYPE_BADGE[i.type]?.label}</Badge>
+                <Badge color="#64748b">{i.category}</Badge>
+                <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge>
+                <PubBadge ok={i.isPublished} labels={['Publié', 'Masqué']} />
               </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setModal('new')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)' }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Nouvel exercice
-            </motion.button>
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Exercices" value={items.length} icon="" gradient="linear-gradient(135deg,#2563eb,#1d4ed8)" delay={0} />
-            <StatCard label="QCM" value={qcmCount} icon="" gradient="linear-gradient(135deg,#0891b2,#0e7490)" delay={0.1} />
-            <StatCard label="Questions ouvertes" value={openCount} icon="" gradient="linear-gradient(135deg,#7c3aed,#6d28d9)" delay={0.2} />
-            <StatCard label="Cas cliniques" value={caseCount} icon="" gradient="linear-gradient(135deg,#db2777,#be185d)" delay={0.3} />
-          </div>
-        </div>
-
-        {/* ── White card ─────────────────────────────────────────────────── */}
-        <div className="px-6 pb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="bg-white rounded-3xl shadow-2xl"
-          >
-            {/* Toolbar */}
-            <div className="p-5 border-b border-slate-100 flex flex-wrap gap-3 items-center">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Rechercher un exercice..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
-
-              {/* Filter pills */}
-              <div className="flex gap-2 flex-wrap">
-                {filterPills.map(([val, lbl]) => (
-                  <button
-                    key={val}
-                    onClick={() => setFilterType(val)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                      filterType === val
-                        ? 'text-white border-transparent shadow-sm'
-                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                    }`}
-                    style={filterType === val ? { background: 'linear-gradient(135deg,#2563eb,#0891b2)' } : {}}
-                  >
-                    {lbl}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Barre actions groupées */}
-            <AnimatePresence>
-              {selected.size > 0 && (
-                <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-                  className="px-5 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-3 flex-wrap">
-                  <span className="text-xs font-bold text-blue-700">{selected.size} sélectionné{selected.size > 1 ? 's' : ''}</span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => bulkAction('publish', true)} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">✓ Publier</button>
-                    <button onClick={() => bulkAction('publish', false)} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-slate-500 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">○ Brouillon</button>
-                    <button onClick={() => bulkAction('delete')} disabled={bulkLoading}
-                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">🗑 Supprimer</button>
-                    <button onClick={() => setSelected(new Set())}
-                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">✕ Désélectionner</button>
-                  </div>
-                  {bulkLoading && <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin ml-1"/>}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Table */}
-            {loading ? (
-              <div className="flex justify-center py-20">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-4 py-3.5">
-                        <input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length}
-                          onChange={toggleAll} className="rounded accent-blue-600 cursor-pointer w-3.5 h-3.5"/>
-                      </th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Titre</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Type</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Catégorie</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Difficulté</th>
-                      <th className="px-5 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Statut</th>
-                      <th className="px-5 py-3.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <AnimatePresence>
-                      {filtered.map((item, i) => (
-                        <motion.tr
-                          key={item._id}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ delay: i * 0.02 }}
-                          className={`border-b border-slate-100 hover:bg-blue-50/30 transition-all group ${selected.has(item._id) ? 'bg-blue-50' : ''}`}
-                        >
-                          <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" checked={selected.has(item._id)} onChange={() => toggleOne(item._id)}
-                              className="rounded accent-blue-600 cursor-pointer w-3.5 h-3.5"/>
-                          </td>
-                          <td className="px-5 py-3.5 text-sm font-semibold text-slate-800 max-w-[220px] truncate">
-                            {item.title}
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${typeColors[item.type]}`}>
-                              {typeLabel[item.type]}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className="text-xs font-medium bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">
-                              {item.category}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${diffColors[item.difficulty]}`}>
-                              {diffLabel[item.difficulty]}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${item.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                              {item.isPublished ? 'Publié' : 'Masqué'}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <motion.button
-                                whileHover={{ scale: 1.12 }}
-                                whileTap={{ scale: 0.92 }}
-                                onClick={() => setModal(item)}
-                                className="p-1.5 rounded-lg text-blue-400 hover:text-blue-600 hover:bg-blue-100 transition"
-                                title="Modifier"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.12 }}
-                                whileTap={{ scale: 0.92 }}
-                                onClick={() => setDeleting(item)}
-                                className="p-1.5 rounded-lg text-red-300 hover:text-red-500 hover:bg-red-50 transition"
-                                title="Supprimer"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                </svg>
-                              </motion.button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </AnimatePresence>
-                    {filtered.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="text-center py-14">
-                          <div className="text-3xl mb-2"></div>
-                          <div className="text-sm text-slate-400 font-medium">Aucun exercice trouvé</div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-        </div>
-      </div>
-
-      {/* ── ExModal ──────────────────────────────────────────────────────── */}
-      {modal && (
-        <ExModal
-          item={modal === 'new' ? null : modal}
-          onClose={() => setModal(null)}
-          onSave={handleSave}
-          existingSemesters={[...new Set(items.map(x => x.semester).filter(Boolean))].sort()}
-          existingCategories={[...new Set(items.map(x => x.category).filter(Boolean))].sort()}
+            </>
+          )}
         />
-      )}
+      </Card>
 
-      {/* ── Delete confirm ───────────────────────────────────────────────── */}
       <AnimatePresence>
-        {deleting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(8px)' }}
-            onClick={(e) => { if (e.target === e.currentTarget) setDeleting(null); }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.88, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88, y: 16 }}
-              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-              className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center"
-            >
-              <div className="text-4xl mb-4"></div>
-              <h3 className="text-base font-bold text-slate-800 mb-1.5">Supprimer cet exercice ?</h3>
-              <p className="text-xs text-slate-400 mb-1 font-medium">{deleting.title}</p>
-              <p className="text-xs text-slate-400 mb-6">Cette action est irréversible.</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleting(null)}
-                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={() => handleDelete(deleting._id)}
-                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+        {modal && (
+          <ExModal
+            item={modal === 'new' ? null : modal}
+            onClose={() => setModal(null)}
+            onSave={handleSave}
+            existingSemesters={[...new Set(items.map(x => x.semester).filter(Boolean))].sort()}
+            existingCategories={[...new Set(items.map(x => x.category).filter(Boolean))].sort()}
+          />
         )}
       </AnimatePresence>
-    </DashboardLayout>
+
+      <AnimatePresence>
+        {deleting && (
+          <ConfirmModal
+            title="Supprimer cet exercice ?"
+            message={<><strong>« {deleting.title} »</strong><br />Cette action est irréversible.</>}
+            onConfirm={() => handleDelete(deleting._id)}
+            onClose={() => setDeleting(null)}
+            loading={delLoading}
+          />
+        )}
+        {bulkDeleting && (
+          <ConfirmModal
+            title={`Supprimer ${selected.size} exercice(s) ?`}
+            message="Cette action est irréversible."
+            onConfirm={() => bulkAction('delete')}
+            onClose={() => setBulkDeleting(false)}
+            loading={bulkLoading}
+          />
+        )}
+      </AnimatePresence>
+    </AdminPage>
   );
 }

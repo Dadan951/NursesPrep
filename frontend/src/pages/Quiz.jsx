@@ -16,7 +16,7 @@ import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from 
 /* ─── Design tokens (identiques au Dashboard) ────────────────────────────── */
 const C = {
   bg:     'var(--theme-bg)',
-  card:   '#FFFFFF',
+  card:   'var(--theme-card)',
   text:   'var(--theme-text)',
   muted:  '#6b7280',
   border: 'var(--theme-border)',

@@ -11,7 +11,7 @@ import { API_URL } from '../context/AuthContext';
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
   bg:     'var(--theme-bg)',
-  card:   '#FFFFFF',
+  card:   'var(--theme-card)',
   text:   'var(--theme-text)',
   border: 'var(--theme-border)',
   indigo: 'var(--theme-primary)',

@@ -9,7 +9,7 @@ import { getCache, setCache } from '../utils/cache';
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
   bg:     'var(--theme-bg)',
-  card:   '#FFFFFF',
+  card:   'var(--theme-card)',
   text:   'var(--theme-text)',
   muted:  'var(--theme-primary)',
   border: 'var(--theme-border)',

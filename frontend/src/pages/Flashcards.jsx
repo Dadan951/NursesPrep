@@ -9,7 +9,7 @@ import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from 
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const C = {
-  bg:'var(--theme-bg)', card:'#FFFFFF', text:'var(--theme-text)', muted:'#6b7280',
+  bg:'var(--theme-bg)', card:'var(--theme-card)', text:'var(--theme-text)', muted:'#6b7280',
   border:'var(--theme-border)', indigo:'var(--theme-primary)', violet:'var(--theme-secondary)',
   green:'#10B981', red:'#DC2626', amber:'#F59E0B',
 };

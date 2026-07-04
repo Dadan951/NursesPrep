@@ -6,6 +6,7 @@ const flashcardSchema = new mongoose.Schema({
   semester: { type: String, default: '', trim: true },
   category: { type: String, required: true, trim: true },
   chapter:  { type: String, default: '', trim: true },
+  part:     { type: String, default: '', trim: true },
   difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
   hint: { type: String, default: '' },
   isPublished:   { type: Boolean, default: true },

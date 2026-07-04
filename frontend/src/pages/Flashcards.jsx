@@ -31,6 +31,16 @@ const PALETTE = [
   { from:'#be185d', to:'#9333ea', dark:'#701a75' },
 ];
 
+/* Tri naturel des parties : "Partie 2" avant "Partie 10" */
+function sortParts(arr) {
+  return [...arr].sort((a, b) => {
+    const na = parseInt(a.match(/\d+/)?.[0], 10);
+    const nb = parseInt(b.match(/\d+/)?.[0], 10);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b);
+  });
+}
+
 /* ─── GradCard ───────────────────────────────────────────────────────────── */
 function GradCard({ pal, title, sub, sub2, onClick, progress, badge }) {
   const [hov, setHov] = useState(false);
@@ -231,7 +241,7 @@ function OverviewGrid({ cards, currentIndex, unknownCards, onJumpTo, onClose }) 
 }
 
 /* ─── SwipeGame ──────────────────────────────────────────────────────────── */
-function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
+function SwipeGame({ cards, onExit, semester, ue, chapter, part, prevAttempt }) {
   const total = cards.length;
   const [currentIndex, setCurrentIndex] = useState(() =>
     prevAttempt?.status === 'in_progress' ? Math.min(prevAttempt.currentIndex, total - 1) : 0);
@@ -269,12 +279,12 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
   const persistProgress = useCallback(async (idx, k, u, uCards, status = 'in_progress') => {
     try {
       if (status === 'completed') {
-        await axios.post(`${API_URL}/flashcards/attempt/complete`, { semester, ue, chapter, known: k, unknown: u, total, unknownCards: uCards });
+        await axios.post(`${API_URL}/flashcards/attempt/complete`, { semester, ue, chapter, part, known: k, unknown: u, total, unknownCards: uCards });
       } else {
-        await axios.put(`${API_URL}/flashcards/attempt`, { semester, ue, chapter, currentIndex: idx, known: k, unknown: u, total, unknownCards: uCards });
+        await axios.put(`${API_URL}/flashcards/attempt`, { semester, ue, chapter, part, currentIndex: idx, known: k, unknown: u, total, unknownCards: uCards });
       }
     } catch {}
-  }, [semester, ue, chapter, total]);
+  }, [semester, ue, chapter, part, total]);
 
   const handleAnswer = useCallback((dir) => {
     if (!flipped) return;
@@ -331,7 +341,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
           <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:4 }}>
             {pct >= 80 ? 'Excellent !' : pct >= 60 ? 'Bien joué !' : 'Continue à t\'entraîner !'}
           </h2>
-          <p style={{ fontSize:13, color:C.muted, marginBottom:20 }}>{chapter}</p>
+          <p style={{ fontSize:13, color:C.muted, marginBottom:20 }}>{chapter}{part ? ` — ${part}` : ''}</p>
 
           {/* Stats */}
           <div style={{ display:'flex', borderTop:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, padding:'16px 0', marginBottom:18 }}>
@@ -437,7 +447,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, prevAttempt }) {
         <div style={{ position:'sticky', top:0, zIndex:10, background:C.card, borderBottom:`1px solid ${C.border}`, padding:'12px 20px 10px', boxShadow:clay.sm }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div>
-              <p style={{ fontSize:11, color:C.muted, marginBottom:1 }}>{chapter}</p>
+              <p style={{ fontSize:11, color:C.muted, marginBottom:1 }}>{chapter}{part ? ` — ${part}` : ''}</p>
               <p style={{ fontSize:13, fontWeight:700, color:C.text }}>Carte {currentIndex + 1} / {total}</p>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -529,6 +539,7 @@ export default function Flashcards() {
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedUE,       setSelectedUE]       = useState(null);
   const [selectedChapter,  setSelectedChapter]  = useState(null);
+  const [selectedPart,     setSelectedPart]     = useState(null);
   const [chapterAttempt,   setChapterAttempt]   = useState(null);
   const [resumeModal,      setResumeModal]      = useState(false);
   const [errorsModal,      setErrorsModal]      = useState(false);
@@ -545,31 +556,60 @@ export default function Flashcards() {
   }, []);
 
   const attemptMap = {};
-  attempts.forEach(a => { attemptMap[`${a.semester}|${a.ue}|${a.chapter}`] = a; });
+  attempts.forEach(a => { attemptMap[`${a.semester}|${a.ue}|${a.chapter}|${a.part || ''}`] = a; });
 
+  /* Structure 4 niveaux : semestre → UE → chapitre → partie → cartes */
   const structure = {};
   cards.forEach(c => {
     const sem  = (c.semester || 'Non classé').trim();
     const ue   = (c.category || 'Autre').trim();
     const chap = (c.chapter  || 'Général').trim();
+    const part = (c.part     || '').trim() || 'Général';
     if (!structure[sem]) structure[sem] = {};
     if (!structure[sem][ue]) structure[sem][ue] = {};
-    if (!structure[sem][ue][chap]) structure[sem][ue][chap] = [];
-    structure[sem][ue][chap].push(c);
+    if (!structure[sem][ue][chap]) structure[sem][ue][chap] = {};
+    if (!structure[sem][ue][chap][part]) structure[sem][ue][chap][part] = [];
+    structure[sem][ue][chap][part].push(c);
   });
 
-  const semesters    = Object.keys(structure).sort();
-  const ues          = selectedSemester ? Object.keys(structure[selectedSemester] || {}).sort() : [];
-  const chapters     = selectedSemester && selectedUE ? Object.keys(structure[selectedSemester]?.[selectedUE] || {}).sort() : [];
-  const currentCards = selectedSemester && selectedUE && selectedChapter
-    ? (structure[selectedSemester]?.[selectedUE]?.[selectedChapter] || []) : [];
-  const totalInUE    = selectedSemester && selectedUE
-    ? Object.values(structure[selectedSemester]?.[selectedUE] || {}).flat().length : 0;
-  const totalCards   = cards.length;
+  const semesters = Object.keys(structure).sort();
+  const ues       = selectedSemester ? Object.keys(structure[selectedSemester] || {}).sort() : [];
+  const chapters  = selectedSemester && selectedUE ? Object.keys(structure[selectedSemester]?.[selectedUE] || {}).sort() : [];
+  const parts     = selectedSemester && selectedUE && selectedChapter
+    ? sortParts(Object.keys(structure[selectedSemester]?.[selectedUE]?.[selectedChapter] || {})) : [];
+  const currentCards = selectedSemester && selectedUE && selectedChapter && selectedPart
+    ? (structure[selectedSemester]?.[selectedUE]?.[selectedChapter]?.[selectedPart] || []) : [];
+  const totalInUE = selectedSemester && selectedUE
+    ? Object.values(structure[selectedSemester]?.[selectedUE] || {}).flatMap(chapObj => Object.values(chapObj)).flat().length : 0;
+  const totalInChapter = selectedSemester && selectedUE && selectedChapter
+    ? Object.values(structure[selectedSemester]?.[selectedUE]?.[selectedChapter] || {}).flat().length : 0;
+  const totalCards = cards.length;
+
+  /* Nombre de parties terminées dans une UE (toutes chapitres confondus) */
+  const donePartsInUE = (sem, ue) => {
+    const chapObj = structure[sem]?.[ue] || {};
+    return Object.entries(chapObj).reduce((acc, [chap, partsObj]) =>
+      acc + Object.keys(partsObj).filter(p => attemptMap[`${sem}|${ue}|${chap}|${p}`]?.status === 'completed').length, 0);
+  };
+  const totalPartsInUE = (sem, ue) => {
+    const chapObj = structure[sem]?.[ue] || {};
+    return Object.values(chapObj).reduce((acc, partsObj) => acc + Object.keys(partsObj).length, 0);
+  };
+  /* Nombre de parties terminées dans un chapitre */
+  const donePartsInChapter = (sem, ue, chap) => {
+    const partsObj = structure[sem]?.[ue]?.[chap] || {};
+    return Object.keys(partsObj).filter(p => attemptMap[`${sem}|${ue}|${chap}|${p}`]?.status === 'completed').length;
+  };
 
   const handleChapterClick = (chap) => {
     setSelectedChapter(chap);
-    const a = attemptMap[`${selectedSemester}|${selectedUE}|${chap}`];
+    setDir(1);
+    setView('parts');
+  };
+
+  const handlePartClick = (part) => {
+    setSelectedPart(part);
+    const a = attemptMap[`${selectedSemester}|${selectedUE}|${selectedChapter}|${part}`];
     setChapterAttempt(a || null);
     if (a?.status === 'in_progress')  { setResumeModal(true); }
     else if (a?.status === 'completed') { setErrorsModal(true); }
@@ -599,8 +639,10 @@ export default function Flashcards() {
 
   const handleExit = () => {
     axios.get(`${API_URL}/flashcards/attempts`).then(r => setAttempts(r.data)).catch(() => {});
-    setView('chapters'); setChapterAttempt(null);
+    setView('parts'); setChapterAttempt(null);
   };
+
+  const backToParts = () => { setResumeModal(false); setErrorsModal(false); setSelectedPart(null); };
 
   /* ── Loading ── */
   if (loading) return (
@@ -613,12 +655,12 @@ export default function Flashcards() {
   );
 
   /* ── Mode jeu ── */
-  if (view === 'cards' && selectedSemester && selectedUE && selectedChapter) {
+  if (view === 'cards' && selectedSemester && selectedUE && selectedChapter && selectedPart) {
     return (
       <DashboardLayout>
-        <SwipeGame key={`${selectedChapter}-${chapterAttempt?.status}`}
+        <SwipeGame key={`${selectedChapter}-${selectedPart}-${chapterAttempt?.status}`}
           cards={currentCards} onExit={handleExit}
-          semester={selectedSemester} ue={selectedUE} chapter={selectedChapter}
+          semester={selectedSemester} ue={selectedUE} chapter={selectedChapter} part={selectedPart}
           prevAttempt={chapterAttempt}/>
       </DashboardLayout>
     );
@@ -640,7 +682,8 @@ export default function Flashcards() {
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
             </div>
-            <h2 style={{ fontSize:18, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:6 }}>Session en cours</h2>
+            <h2 style={{ fontSize:18, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:2 }}>Session en cours</h2>
+            <p style={{ fontSize:12, color:C.muted, marginBottom:6 }}>{selectedChapter} — {selectedPart}</p>
             <p style={{ fontSize:13, color:C.muted, marginBottom:20 }}>
               Tu t'étais arrêté à la carte <strong style={{ color:C.text }}>{a.currentIndex + 1}/{tot}</strong>
             </p>
@@ -658,9 +701,9 @@ export default function Flashcards() {
                 style={{ width:'100%', padding:'13px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.text, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
                 Recommencer depuis le début
               </motion.button>
-              <button onClick={() => { setResumeModal(false); setSelectedChapter(null); }}
+              <button onClick={backToParts}
                 style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.muted, marginTop:4 }}>
-                ← Retour aux chapitres
+                ← Retour aux parties
               </button>
             </div>
           </motion.div>
@@ -669,7 +712,7 @@ export default function Flashcards() {
     );
   }
 
-  /* ── Modal : chapitre terminé ── */
+  /* ── Modal : partie terminée ── */
   if (errorsModal && chapterAttempt) {
     const a      = chapterAttempt;
     const tot    = a.total || currentCards.length;
@@ -696,7 +739,8 @@ export default function Flashcards() {
                   <span style={{ fontSize:20, fontWeight:900, color:ringColor, fontFamily:'Nunito,sans-serif' }}>{pct}%</span>
                 </div>
               </div>
-              <h2 style={{ fontSize:18, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:4 }}>Dernière session</h2>
+              <h2 style={{ fontSize:18, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:2 }}>Dernière session</h2>
+              <p style={{ fontSize:12, color:C.indigo, fontWeight:700, marginBottom:4 }}>{selectedChapter} — {selectedPart}</p>
               <p style={{ fontSize:12, color:C.muted }}>{a.known} connu · {a.unknown} à revoir · {tot} cartes</p>
             </div>
 
@@ -723,11 +767,11 @@ export default function Flashcards() {
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               <motion.button onClick={handleStart} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
                 style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn() }}>
-                Refaire ce chapitre
+                Refaire cette partie
               </motion.button>
-              <motion.button onClick={() => { setErrorsModal(false); setSelectedChapter(null); }} whileTap={{ scale:0.96 }}
+              <motion.button onClick={backToParts} whileTap={{ scale:0.96 }}
                 style={{ width:'100%', padding:'13px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.sm }}>
-                ← Retour aux chapitres
+                ← Retour aux parties
               </motion.button>
             </div>
           </motion.div>
@@ -834,7 +878,7 @@ export default function Flashcards() {
                     </div>
                     <DetailList
                       items={semesters.map(sem => {
-                        const total = Object.values(structure[sem]).flatMap(u => Object.values(u)).flat().length;
+                        const total = Object.values(structure[sem]).flatMap(u => Object.values(u)).flatMap(c => Object.values(c)).flat().length;
                         const done  = attempts.filter(a => a.semester === sem && a.status === 'completed').length;
                         return {
                           key: sem, label: sem,
@@ -860,14 +904,14 @@ export default function Flashcards() {
                   </div>
                   <DetailList
                     items={ues.map(ue => {
-                      const total   = Object.values(structure[selectedSemester][ue]).flat().length;
-                      const chCount = Object.keys(structure[selectedSemester][ue]).length;
-                      const done    = Object.keys(structure[selectedSemester][ue]).filter(ch =>
-                        attemptMap[`${selectedSemester}|${ue}|${ch}`]?.status === 'completed').length;
+                      const total    = Object.values(structure[selectedSemester][ue]).flatMap(p => Object.values(p)).flat().length;
+                      const chCount  = Object.keys(structure[selectedSemester][ue]).length;
+                      const doneP    = donePartsInUE(selectedSemester, ue);
+                      const totalP   = totalPartsInUE(selectedSemester, ue);
                       return {
                         key: ue, label: ue,
                         sub: `${chCount} chapitre${chCount>1?'s':''} · ${total} carte${total>1?'s':''}`,
-                        right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{chCount}</DetailBadge> : null,
+                        right: doneP > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {doneP}/{totalP}</DetailBadge> : null,
                       };
                     })}
                     onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
@@ -888,13 +932,42 @@ export default function Flashcards() {
                   </div>
                   <DetailList
                     items={chapters.map(chap => {
-                      const count  = structure[selectedSemester][selectedUE][chap].length;
-                      const a      = attemptMap[`${selectedSemester}|${selectedUE}|${chap}`];
+                      const partsObj = structure[selectedSemester][selectedUE][chap];
+                      const partCount = Object.keys(partsObj).length;
+                      const count  = Object.values(partsObj).flat().length;
+                      const doneP  = donePartsInChapter(selectedSemester, selectedUE, chap);
+                      return {
+                        key: chap, label: chap,
+                        sub: `${partCount} partie${partCount>1?'s':''} · ${count} carte${count>1?'s':''}`,
+                        right: doneP > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {doneP}/{partCount}</DetailBadge> : null,
+                      };
+                    })}
+                    onPick={chap => handleChapterClick(chap)}
+                  />
+                </>
+              )}
+
+              {view === 'parts' && selectedSemester && selectedUE && selectedChapter && (
+                <>
+                  <Breadcrumb items={[
+                    { label:'Flashcards', onClick:() => { setDir(-1); setSelectedSemester(null); setSelectedUE(null); setSelectedChapter(null); setView('semesters'); } },
+                    { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
+                    { label:selectedUE, onClick:() => { setDir(-1); setSelectedChapter(null); setView('chapters'); } },
+                    { label:selectedChapter },
+                  ]}/>
+                  <div style={{ marginBottom:20 }}>
+                    <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif' }}>{selectedChapter}</h2>
+                    <p style={{ fontSize:13, color:C.muted, marginTop:2 }}>{totalInChapter} carte{totalInChapter>1?'s':''} disponible{totalInChapter>1?'s':''}</p>
+                  </div>
+                  <DetailList
+                    items={parts.map(part => {
+                      const count  = structure[selectedSemester][selectedUE][selectedChapter][part].length;
+                      const a      = attemptMap[`${selectedSemester}|${selectedUE}|${selectedChapter}|${part}`];
                       const isDone = a?.status === 'completed';
                       const isProg = a?.status === 'in_progress';
                       const pct    = isDone && a.total ? Math.round((a.known / a.total) * 100) : null;
                       return {
-                        key: chap, label: chap,
+                        key: part, label: part,
                         sub: `${count} carte${count>1?'s':''}`,
                         done: isDone,
                         right: isDone
@@ -904,7 +977,7 @@ export default function Flashcards() {
                             : null,
                       };
                     })}
-                    onPick={chap => { setDir(1); handleChapterClick(chap); }}
+                    onPick={part => handlePartClick(part)}
                   />
                 </>
               )}
@@ -933,7 +1006,7 @@ export default function Flashcards() {
                     {semesters.map((sem, idx) => {
                       const pal       = PALETTE[idx % PALETTE.length];
                       const ueCount   = Object.keys(structure[sem]).length;
-                      const total     = Object.values(structure[sem]).flatMap(u => Object.values(u)).flat().length;
+                      const total     = Object.values(structure[sem]).flatMap(u => Object.values(u)).flatMap(c => Object.values(c)).flat().length;
                       const doneCount = attempts.filter(a => a.semester === sem && a.status === 'completed').length;
                       return (
                         <motion.div key={sem} initial={{ opacity:0, y:18, scale:0.94 }} animate={{ opacity:1, y:0, scale:1 }}
@@ -942,8 +1015,8 @@ export default function Flashcards() {
                             onClick={() => { setSelectedSemester(sem); setView('ues'); }}
                             title={sem}
                             sub={`${ueCount} UE · ${total} carte${total>1?'s':''}`}
-                            sub2={doneCount > 0 ? `✓ ${doneCount} chapitre${doneCount>1?'s':''} terminé${doneCount>1?'s':''}` : null}
-                            progress={total > 0 ? (doneCount / Object.values(structure[sem]).flatMap(u => Object.keys(u)).length) * 100 : null}
+                            sub2={doneCount > 0 ? `✓ ${doneCount} terminée${doneCount>1?'s':''}` : null}
+                            progress={null}
                           />
                         </motion.div>
                       );
@@ -966,11 +1039,11 @@ export default function Flashcards() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:14 }}>
                   {ues.map((ue, idx) => {
-                    const pal       = PALETTE[idx % PALETTE.length];
-                    const total     = Object.values(structure[selectedSemester][ue]).flat().length;
-                    const chCount   = Object.keys(structure[selectedSemester][ue]).length;
-                    const doneCount = Object.keys(structure[selectedSemester][ue]).filter(ch =>
-                      attemptMap[`${selectedSemester}|${ue}|${ch}`]?.status === 'completed').length;
+                    const pal      = PALETTE[idx % PALETTE.length];
+                    const total    = Object.values(structure[selectedSemester][ue]).flatMap(p => Object.values(p)).flat().length;
+                    const chCount  = Object.keys(structure[selectedSemester][ue]).length;
+                    const doneP    = donePartsInUE(selectedSemester, ue);
+                    const totalP   = totalPartsInUE(selectedSemester, ue);
                     return (
                       <motion.div key={ue} initial={{ opacity:0, y:18, scale:0.94 }} animate={{ opacity:1, y:0, scale:1 }}
                         transition={{ type:'spring', stiffness:280, damping:24, delay: idx*0.055 }}>
@@ -978,8 +1051,8 @@ export default function Flashcards() {
                           onClick={() => { setSelectedUE(ue); setView('chapters'); }}
                           title={ue}
                           sub={`${chCount} chapitre${chCount>1?'s':''} · ${total} carte${total>1?'s':''}`}
-                          sub2={doneCount > 0 ? `✓ ${doneCount}/${chCount} terminé${doneCount>1?'s':''}` : null}
-                          progress={chCount > 0 ? (doneCount/chCount)*100 : null}
+                          sub2={doneP > 0 ? `✓ ${doneP}/${totalP} partie${totalP>1?'s':''} terminée${doneP>1?'s':''}` : null}
+                          progress={totalP > 0 ? (doneP/totalP)*100 : null}
                         />
                       </motion.div>
                     );
@@ -1002,13 +1075,13 @@ export default function Flashcards() {
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
                   {chapters.map((chap, idx) => {
-                    const pal         = PALETTE[idx % PALETTE.length];
-                    const count       = structure[selectedSemester][selectedUE][chap].length;
-                    const a           = attemptMap[`${selectedSemester}|${selectedUE}|${chap}`];
-                    const isDone      = a?.status === 'completed';
-                    const isProgress  = a?.status === 'in_progress';
-                    const pct         = isDone && a.total ? Math.round((a.known / a.total) * 100) : null;
-                    const progressPct = isProgress && count ? Math.round((a.currentIndex / count) * 100) : null;
+                    const pal        = PALETTE[idx % PALETTE.length];
+                    const partsObj   = structure[selectedSemester][selectedUE][chap];
+                    const partCount  = Object.keys(partsObj).length;
+                    const count      = Object.values(partsObj).flat().length;
+                    const doneP      = donePartsInChapter(selectedSemester, selectedUE, chap);
+                    const allDone    = doneP === partCount && partCount > 0;
+                    const pct        = partCount > 0 ? (doneP/partCount)*100 : 0;
 
                     return (
                       <motion.div key={chap} style={{ display:'flex' }}
@@ -1027,6 +1100,68 @@ export default function Flashcards() {
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2 }}>
                                 <span style={{ fontSize:13, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif' }}>{chap}</span>
+                                {doneP > 0 && (
+                                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:99,
+                                    background:allDone?'#dcfce7':'var(--theme-border)', color:allDone?'#15803d':C.indigo, flexShrink:0 }}>
+                                    ✓ {doneP}/{partCount}
+                                  </span>
+                                )}
+                              </div>
+                              <p style={{ fontSize:11, color:C.muted }}>{partCount} partie{partCount>1?'s':''} · {count} carte{count>1?'s':''}</p>
+                            </div>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                          </div>
+                          {doneP > 0 && (
+                            <div style={{ height:4, background:'var(--theme-border)' }}>
+                              <div style={{ height:'100%', width:`${pct}%`, background:allDone?`linear-gradient(90deg,${C.green},#34d399)`:`linear-gradient(90deg,${C.indigo},${C.violet})`, transition:'width 0.8s ease' }}/>
+                            </div>
+                          )}
+                        </motion.button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* PARTIES */}
+            {view === 'parts' && selectedSemester && selectedUE && selectedChapter && (
+              <motion.div key="parts" initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }} transition={{ duration:0.28 }}>
+                <Breadcrumb items={[
+                  { label:'Flashcards', onClick:() => { setSelectedSemester(null); setSelectedUE(null); setSelectedChapter(null); setView('semesters'); } },
+                  { label:selectedSemester, onClick:() => { setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
+                  { label:selectedUE, onClick:() => { setSelectedChapter(null); setView('chapters'); } },
+                  { label:selectedChapter },
+                ]}/>
+                <div style={{ marginBottom:20 }}>
+                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif' }}>{selectedChapter}</h2>
+                  <p style={{ fontSize:13, color:C.muted, marginTop:2 }}>{totalInChapter} carte{totalInChapter>1?'s':''} disponible{totalInChapter>1?'s':''}</p>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
+                  {parts.map((part, idx) => {
+                    const pal         = PALETTE[idx % PALETTE.length];
+                    const count       = structure[selectedSemester][selectedUE][selectedChapter][part].length;
+                    const a           = attemptMap[`${selectedSemester}|${selectedUE}|${selectedChapter}|${part}`];
+                    const isDone      = a?.status === 'completed';
+                    const isProgress  = a?.status === 'in_progress';
+                    const pct         = isDone && a.total ? Math.round((a.known / a.total) * 100) : null;
+                    const progressPct = isProgress && count ? Math.round((a.currentIndex / count) * 100) : null;
+
+                    return (
+                      <motion.div key={part} style={{ display:'flex' }}
+                        initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+                        transition={{ duration:0.3, ease:[0.16,1,0.3,1], delay: idx*0.05 }}>
+                        <motion.button onClick={() => handlePartClick(part)}
+                          whileHover={{ y:-3, boxShadow:`inset 0 1px 0 rgba(255,255,255,0.95), 0 8px 0 rgba(0,0,0,0.06), 0 20px 40px rgba(var(--theme-primary-rgb),0.14)` }}
+                          whileTap={{ scale:0.98 }}
+                          style={{ flex:1, width:'100%', textAlign:'left', border:`1px solid ${C.border}`, cursor:'pointer', borderRadius:18, overflow:'hidden', background:C.card, boxShadow:clay.card, padding:0, transition:'box-shadow 0.2s' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:14, padding:'16px 18px' }}>
+                            <div style={{ width:44, height:44, borderRadius:14, background:`linear-gradient(135deg,${pal.from},${pal.to})`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 4px 10px ${pal.from}44` }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 3h6a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>
+                            </div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2 }}>
+                                <span style={{ fontSize:13, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif' }}>{part}</span>
                                 {isDone && (
                                   <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:99,
                                     background: pct >= 60 ? '#dcfce7' : '#ffedd5',

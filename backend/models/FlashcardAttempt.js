@@ -11,6 +11,7 @@ const flashcardAttemptSchema = new Schema({
   semester:     { type: String, required: true },
   ue:           { type: String, required: true },
   chapter:      { type: String, required: true },
+  part:         { type: String, default: '' },
   status:       { type: String, enum: ['in_progress', 'completed'], default: 'in_progress' },
   currentIndex: { type: Number, default: 0 },
   known:        { type: Number, default: 0 },
@@ -21,9 +22,9 @@ const flashcardAttemptSchema = new Schema({
   completedAt:  { type: Date, default: null },
 }, { timestamps: true });
 
-// Un seul document par (user, semester, ue, chapter)
+// Un seul document par (user, semester, ue, chapter, part)
 flashcardAttemptSchema.index(
-  { user: 1, semester: 1, ue: 1, chapter: 1 },
+  { user: 1, semester: 1, ue: 1, chapter: 1, part: 1 },
   { unique: true }
 );
 

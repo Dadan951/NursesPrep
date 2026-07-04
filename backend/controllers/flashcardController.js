@@ -76,9 +76,10 @@ exports.getHistory = async (req, res) => {
     const result = attempts.map(a => ({
       _id:          a._id,
       type:         'flashcard',
-      title:        a.chapter,
+      title:        a.part ? `${a.chapter} — ${a.part}` : a.chapter,
       category:     a.ue,
       chapter:      a.chapter,
+      part:         a.part || '',
       semester:     a.semester,
       ue:           a.ue,
       known:        a.known || 0,
@@ -104,13 +105,13 @@ exports.getAttempts = async (req, res) => {
   }
 };
 
-// ── GET /api/flashcards/attempt?semester=&ue=&chapter= ────────────────────
-// Attempt pour un chapitre précis
+// ── GET /api/flashcards/attempt?semester=&ue=&chapter=&part= ───────────────
+// Attempt pour une partie précise (d'un chapitre)
 exports.getAttempt = async (req, res) => {
   try {
-    const { semester, ue, chapter } = req.query;
+    const { semester, ue, chapter, part = '' } = req.query;
     const attempt = await FlashcardAttempt.findOne({
-      user: req.user._id, semester, ue, chapter
+      user: req.user._id, semester, ue, chapter, part
     });
     res.json(attempt || null);
   } catch (err) {
@@ -122,9 +123,9 @@ exports.getAttempt = async (req, res) => {
 // Sauvegarde la progression (après chaque carte)
 exports.saveAttempt = async (req, res) => {
   try {
-    const { semester, ue, chapter, currentIndex, known, unknown, total, unknownCards } = req.body;
+    const { semester, ue, chapter, part = '', currentIndex, known, unknown, total, unknownCards } = req.body;
     const attempt = await FlashcardAttempt.findOneAndUpdate(
-      { user: req.user._id, semester, ue, chapter },
+      { user: req.user._id, semester, ue, chapter, part },
       { $set: { currentIndex, known, unknown, total, unknownCards, status: 'in_progress' } },
       { upsert: true, new: true }
     );
@@ -135,13 +136,13 @@ exports.saveAttempt = async (req, res) => {
 };
 
 // ── POST /api/flashcards/attempt/complete ─────────────────────────────────
-// Marque le chapitre comme terminé
+// Marque la partie comme terminée
 exports.completeAttempt = async (req, res) => {
   try {
-    const { semester, ue, chapter, known, unknown, total, unknownCards } = req.body;
+    const { semester, ue, chapter, part = '', known, unknown, total, unknownCards } = req.body;
 
     await FlashcardAttempt.findOneAndUpdate(
-      { user: req.user._id, semester, ue, chapter },
+      { user: req.user._id, semester, ue, chapter, part },
       { $set: { status: 'completed', currentIndex: 0, known, unknown, total, unknownCards, completedAt: new Date() } },
       { upsert: true, new: true }
     );

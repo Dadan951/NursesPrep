@@ -17,10 +17,10 @@ const flashIcon = (size = 22) => (
 );
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
-const EMPTY = { front: '', back: '', semester: '', category: '', chapter: '', difficulty: 'medium', hint: '', isPublished: true };
+const EMPTY = { front: '', back: '', semester: '', category: '', chapter: '', part: '', difficulty: 'medium', hint: '', isPublished: true };
 
 /* ─── Modal Flashcard ───────────────────────────────────────────────────── */
-function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], existingCategories = [], existingChapters = [] }) {
+function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], existingCategories = [], existingChapters = [], existingParts = [] }) {
   const isNew = !item;
   const initial = item ? { ...item } : { ...EMPTY, ...(preset || {}) };
   const [form, setForm] = useState(initial);
@@ -76,12 +76,14 @@ function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], exi
             <input list="fc-cat-list" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} placeholder="Ex: UE 2.4" />
             <datalist id="fc-cat-list">{existingCategories.map(c => <option key={c} value={c} />)}</datalist>
           </Field>
-          <div className="sm:col-span-2">
-            <Field label="Chapitre">
-              <input list="fc-chap-list" value={form.chapter || ''} onChange={e => setForm({ ...form, chapter: e.target.value })} className={inputCls} placeholder="Ex: Troubles du rythme" />
-              <datalist id="fc-chap-list">{existingChapters.map(c => <option key={c} value={c} />)}</datalist>
-            </Field>
-          </div>
+          <Field label="Chapitre">
+            <input list="fc-chap-list" value={form.chapter || ''} onChange={e => setForm({ ...form, chapter: e.target.value })} className={inputCls} placeholder="Ex: Troubles du rythme" />
+            <datalist id="fc-chap-list">{existingChapters.map(c => <option key={c} value={c} />)}</datalist>
+          </Field>
+          <Field label="Partie">
+            <input list="fc-part-list" value={form.part || ''} onChange={e => setForm({ ...form, part: e.target.value })} className={inputCls} placeholder="Ex: Partie 1" />
+            <datalist id="fc-part-list">{existingParts.map(p => <option key={p} value={p} />)}</datalist>
+          </Field>
         </div>
         <Field label="Difficulté">
           <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
@@ -108,6 +110,7 @@ export default function AdminFlashcards() {
   const [filterSem, setFilterSem]   = useState('');
   const [filterUE, setFilterUE]     = useState('');
   const [filterChap, setFilterChap] = useState('');
+  const [filterPart, setFilterPart] = useState('');
   const [selected, setSelected]     = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -160,6 +163,7 @@ export default function AdminFlashcards() {
   const semesters = [...new Set(items.map(i => i.semester).filter(Boolean))].sort();
   const ues = [...new Set(items.filter(i => !filterSem || i.semester === filterSem).map(i => i.category).filter(Boolean))].sort();
   const chapters = [...new Set(items.filter(i => (!filterSem || i.semester === filterSem) && (!filterUE || i.category === filterUE)).map(i => i.chapter).filter(Boolean))].sort();
+  const parts = [...new Set(items.filter(i => (!filterSem || i.semester === filterSem) && (!filterUE || i.category === filterUE) && (!filterChap || i.chapter === filterChap)).map(i => i.part).filter(Boolean))].sort();
 
   const filtered = items.filter(i => {
     const s = search.toLowerCase();
@@ -167,13 +171,14 @@ export default function AdminFlashcards() {
     return matchSearch
       && (!filterSem  || i.semester === filterSem)
       && (!filterUE   || i.category === filterUE)
-      && (!filterChap || i.chapter  === filterChap);
+      && (!filterChap || i.chapter  === filterChap)
+      && (!filterPart || i.part     === filterPart);
   });
 
   const published  = items.filter(i => i.isPublished).length;
   const categories = [...new Set(items.map(i => i.category).filter(Boolean))].length;
-  const hasFilters = search || filterSem || filterUE || filterChap;
-  const clearFilters = () => { setSearch(''); setFilterSem(''); setFilterUE(''); setFilterChap(''); };
+  const hasFilters = search || filterSem || filterUE || filterChap || filterPart;
+  const clearFilters = () => { setSearch(''); setFilterSem(''); setFilterUE(''); setFilterChap(''); setFilterPart(''); };
 
   return (
     <AdminPage
@@ -190,11 +195,12 @@ export default function AdminFlashcards() {
       <Card>
         <Toolbar>
           <SearchInput value={search} onChange={setSearch} placeholder="Rechercher une flashcard…" />
-          <FilterSelect value={filterSem} onChange={v => { setFilterSem(v); setFilterUE(''); setFilterChap(''); }} options={semesters} allLabel="Tous les semestres" />
-          <FilterSelect value={filterUE} onChange={v => { setFilterUE(v); setFilterChap(''); }} options={ues} allLabel="Toutes les UE" />
-          <FilterSelect value={filterChap} onChange={setFilterChap} options={chapters} allLabel="Tous les chapitres" />
-          {(filterSem || filterUE || filterChap) && (
-            <button onClick={() => setModal({ _preset: true, semester: filterSem, category: filterUE, chapter: filterChap })}
+          <FilterSelect value={filterSem} onChange={v => { setFilterSem(v); setFilterUE(''); setFilterChap(''); setFilterPart(''); }} options={semesters} allLabel="Tous les semestres" />
+          <FilterSelect value={filterUE} onChange={v => { setFilterUE(v); setFilterChap(''); setFilterPart(''); }} options={ues} allLabel="Toutes les UE" />
+          <FilterSelect value={filterChap} onChange={v => { setFilterChap(v); setFilterPart(''); }} options={chapters} allLabel="Tous les chapitres" />
+          <FilterSelect value={filterPart} onChange={setFilterPart} options={parts} allLabel="Toutes les parties" />
+          {(filterSem || filterUE || filterChap || filterPart) && (
+            <button onClick={() => setModal({ _preset: true, semester: filterSem, category: filterUE, chapter: filterChap, part: filterPart })}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, color: '#fff', border: 'none', cursor: 'pointer', minHeight: 44, background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow: '0 3px 8px rgba(var(--theme-primary-rgb),0.3)' }}>
               {plusIcon} Ajouter ici
             </button>
@@ -233,6 +239,7 @@ export default function AdminFlashcards() {
             { label: 'Semestre', render: i => i.semester ? <Badge color="#7c3aed">{i.semester}</Badge> : <span style={{ color: '#cbd5e1' }}>—</span> },
             { label: 'UE', maxWidth: 170, render: i => <Badge color="#2563eb">{i.category}</Badge> },
             { label: 'Chapitre', maxWidth: 150, render: i => <span style={{ fontSize: 12, color: C.sub }}>{i.chapter || '—'}</span> },
+            { label: 'Partie', maxWidth: 110, render: i => <span style={{ fontSize: 12, color: C.sub }}>{i.part || '—'}</span> },
             { label: 'Difficulté', render: i => <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge> },
             { label: 'Statut', render: i => <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} /> },
           ]}
@@ -245,7 +252,7 @@ export default function AdminFlashcards() {
                 <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge>
                 <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} />
               </div>
-              {i.chapter && <div style={{ fontSize: 12, color: C.sub }}>{i.chapter}</div>}
+              {i.chapter && <div style={{ fontSize: 12, color: C.sub }}>{i.chapter}{i.part ? ` — ${i.part}` : ''}</div>}
             </>
           )}
         />
@@ -255,12 +262,13 @@ export default function AdminFlashcards() {
         {modal && (
           <FlashModal
             item={modal === 'new' || modal?._preset ? null : modal}
-            preset={modal?._preset ? { semester: modal.semester, category: modal.category, chapter: modal.chapter } : null}
+            preset={modal?._preset ? { semester: modal.semester, category: modal.category, chapter: modal.chapter, part: modal.part } : null}
             onClose={() => setModal(null)}
             onSave={handleSave}
             existingSemesters={[...new Set(items.map(x => x.semester).filter(Boolean))].sort()}
             existingCategories={[...new Set(items.map(x => x.category).filter(Boolean))].sort()}
             existingChapters={[...new Set(items.map(x => x.chapter).filter(Boolean))].sort()}
+            existingParts={[...new Set(items.map(x => x.part).filter(Boolean))].sort()}
           />
         )}
       </AnimatePresence>

@@ -452,13 +452,13 @@ export default function Dashboard() {
                   viewport={{ once:true, margin:'-10px' }}
                   transition={{ duration:0.3, ease:[0.16,1,0.3,1], delay: i * 0.05 }}
                 >
-                  <div style={{ background:C.card, borderRadius:18, boxShadow:clay.sm, border:`1px solid ${C.border}`, padding:'13px 14px', display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ background:C.card, borderRadius:18, boxShadow:clay.sm, border:`1px solid ${C.border}`, padding:'13px 14px', display:'flex', alignItems:'center', gap:10, height:'100%' }}>
                     <div style={{ width:36, height:36, borderRadius:12, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, flexShrink:0 }}>
                       {s.icon}
                     </div>
                     <div style={{ minWidth:0 }}>
                       <p className="nunito" style={{ fontSize:22, fontWeight:900, color:C.text, lineHeight:1.1, fontVariantNumeric:'tabular-nums' }}>{s.val}</p>
-                      <p style={{ fontSize:10, color:C.muted, lineHeight:1.3, marginTop:1 }}>{s.label}</p>
+                      <p style={{ fontSize:10, color:C.muted, lineHeight:1.3, marginTop:1, minHeight:'2.6em' }}>{s.label}</p>
                     </div>
                     <div style={{ width:6, height:6, borderRadius:'50%', background:s.color, boxShadow:`0 0 6px ${s.color}`, marginLeft:'auto', flexShrink:0 }}/>
                   </div>

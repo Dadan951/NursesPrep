@@ -43,10 +43,6 @@ function GlassCard({ children, className = '' }) {
         boxShadow: '0 30px 80px rgba(30,58,95,0.18), 0 2px 0 rgba(255,255,255,0.7) inset',
       }}
     >
-      {/* liseré dégradé */}
-      <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-[28px] overflow-hidden">
-        <div className="h-full w-full" style={{ background: BRAND }} />
-      </div>
       {children}
     </motion.div>
   );
@@ -149,8 +145,8 @@ export default function Login() {
   /* ── Lien retour + logo (partagés) ── */
   const Header = () => (
     <>
-      <div className="absolute top-5 left-5 z-20">
-        <Link to="/" className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">
+      <div className="fixed top-4 left-4 z-30">
+        <Link to="/" className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-white/60">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Accueil
         </Link>

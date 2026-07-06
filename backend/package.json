@@ -12,6 +12,11 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "config": {
+    "mongodbMemoryServer": {
+      "disablePostinstall": "1"
+    }
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.86.1",
     "@sentry/node": "^10.63.0",

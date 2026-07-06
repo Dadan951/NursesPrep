@@ -444,40 +444,46 @@ export function Modal({ title, subtitle, icon, onClose, dirty = false, children,
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
       onClick={requestClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 16, willChange: 'opacity' }}>
       <motion.div
-        initial={{ opacity: 0, y: isMobile ? 80 : 24, scale: isMobile ? 1 : 0.96 }}
+        initial={{ opacity: 0, y: isMobile ? '100%' : 16, scale: isMobile ? 1 : 0.975 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: isMobile ? 80 : 20, scale: isMobile ? 1 : 0.96 }}
-        transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+        exit={{ opacity: 0, y: isMobile ? '100%' : 10, scale: isMobile ? 1 : 0.98 }}
+        transition={isMobile
+          ? { type: 'spring', stiffness: 440, damping: 40, mass: 0.85 }
+          : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         onClick={e => e.stopPropagation()}
         style={{
           background: '#fff', width: '100%', maxWidth: isMobile ? '100%' : maxWidth,
           maxHeight: isMobile ? '94dvh' : '90vh',
-          borderRadius: isMobile ? '24px 24px 0 0' : 26,
+          borderRadius: isMobile ? '26px 26px 0 0' : 28,
           display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-          boxShadow: '0 24px 64px rgba(15,23,42,0.35)',
+          boxShadow: '0 24px 70px -14px rgba(15,23,42,0.42), 0 0 0 1px rgba(15,23,42,0.05)',
+          willChange: 'transform, opacity',
         }}>
 
         {/* Poignée mobile */}
         {isMobile && <div style={{ width: 40, height: 4, borderRadius: 4, background: '#e2e8f0', margin: '10px auto 0', flexShrink: 0 }} />}
 
         {/* Header */}
-        <div style={{ padding: isMobile ? '12px 18px 14px' : '18px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <div style={{ padding: isMobile ? '14px 18px' : '18px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, background: 'linear-gradient(180deg, rgba(var(--theme-primary-rgb),0.05), transparent)' }}>
           {icon && (
-            <div style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow: '0 3px 0 var(--theme-dark), 0 6px 14px rgba(var(--theme-primary-rgb),0.35)' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow: '0 3px 0 var(--theme-dark), 0 6px 16px rgba(var(--theme-primary-rgb),0.4)' }}>
               {icon}
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 className="nunito" style={{ fontSize: 16, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>{title}</h3>
-            {subtitle && <p style={{ fontSize: 11, color: C.sub, marginTop: 1 }}>{subtitle}</p>}
+            <h3 className="nunito" style={{ fontSize: 16.5, fontWeight: 900, color: C.text, lineHeight: 1.2 }}>{title}</h3>
+            {subtitle && <p style={{ fontSize: 11.5, color: C.sub, marginTop: 2 }}>{subtitle}</p>}
           </div>
-          <button onClick={requestClose} aria-label="Fermer"
+          <motion.button onClick={requestClose} aria-label="Fermer"
+            whileHover={{ scale: 1.07, backgroundColor: '#eef2f7' }} whileTap={{ scale: 0.92 }}
+            transition={{ duration: 0.12 }}
             style={{ width: 38, height: 38, borderRadius: 12, background: C.bg, border: `1px solid ${C.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.sub, flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
+          </motion.button>
         </div>
 
         {/* Body */}
@@ -496,7 +502,8 @@ export function Modal({ title, subtitle, icon, onClose, dirty = false, children,
         <AnimatePresence>
           {confirmClose && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+              transition={{ duration: 0.15 }}
+              style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'rgba(255,255,255,0.97)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
               <motion.div initial={{ scale: 0.94, y: 8 }} animate={{ scale: 1, y: 0 }} style={{ textAlign: 'center', maxWidth: 340 }}>
                 <div style={{ width: 52, height: 52, borderRadius: 16, background: '#fffbeb', border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
@@ -520,10 +527,11 @@ export function Modal({ title, subtitle, icon, onClose, dirty = false, children,
 export function ConfirmModal({ title, message, confirmLabel = 'Supprimer', onConfirm, onClose, loading = false }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <motion.div initial={{ scale: 0.92, y: 14 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 14 }}
-        transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, willChange: 'opacity' }}>
+      <motion.div initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         onClick={e => e.stopPropagation()}
         style={{ background: '#fff', borderRadius: 24, padding: 26, width: '100%', maxWidth: 380, textAlign: 'center', boxShadow: '0 24px 64px rgba(15,23,42,0.35)' }}>
         <div style={{ width: 54, height: 54, borderRadius: 18, background: '#fef2f2', border: '1.5px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>

@@ -1138,7 +1138,9 @@ export default function Home() {
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
         <div className="absolute w-[360px] h-[360px] rounded-full pointer-events-none" style={{ top: '-18%', right: '4%', background: 'radial-gradient(circle,rgba(6,182,212,0.3),transparent 65%)', filter: 'blur(46px)' }} />
         <Reveal className="relative max-w-2xl mx-auto px-4 md:px-8 text-center">
-          <NursesLogo size="lg" light />
+          <div className="flex justify-center">
+            <NursesLogo size="lg" light />
+          </div>
           <h2 className="text-3xl md:text-4xl font-black text-white mt-7 mb-4 leading-tight">
             Prêt·e pour tes examens IFSI ?
           </h2>
@@ -1180,14 +1182,14 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <div>
                 <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">Réviser</h4>
-                {[['Quiz', '#fonctionnalites'], ['Flashcards', '#fonctionnalites'], ['Cours & Fiches', '#fonctionnalites'], ['Annales', '#fonctionnalites']].map(([l, h]) => (
-                  <a key={l} href={h} className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">{l}</a>
+                {[['Quiz', '/dashboard/quiz'], ['Flashcards', '/dashboard/flashcards'], ['Cours & Fiches', '/dashboard/cours'], ['Annales', '/dashboard/annales']].map(([l, h]) => (
+                  <Link key={l} to={h} className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">{l}</Link>
                 ))}
               </div>
               <div>
                 <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">Outils</h4>
-                {[['Médicaments', '#fonctionnalites'], ['Cas cliniques', '#fonctionnalites'], ['Fiches IA', '#fonctionnalites'], ['Groupes', '#atouts']].map(([l, h]) => (
-                  <a key={l} href={h} className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">{l}</a>
+                {[['Médicaments', '/dashboard/medicaments'], ['Cas cliniques', '/dashboard/exercises'], ['Fiches IA', '/dashboard/cours'], ['Groupes', '/dashboard/groups']].map(([l, h]) => (
+                  <Link key={l} to={h} className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">{l}</Link>
                 ))}
               </div>
               <div>
@@ -1206,12 +1208,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-slate-900 pt-6 flex flex-col md:flex-row justify-between items-center gap-3">
-            <p className="text-xs text-slate-600">© 2026 Nurses Prép — Tous droits réservés</p>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="#f43f5e"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-              <span>Fait avec soin pour les étudiants IFSI — France</span>
-            </div>
+          <div className="border-t border-slate-900 pt-6">
+            <p className="text-xs text-slate-600 text-center md:text-left">© 2026 Nurses Prép — Tous droits réservés</p>
           </div>
         </div>
       </footer>

@@ -27,6 +27,7 @@ const formatUser = (u) => ({
   id: u._id, name: u.name, email: u.email,
   role: u.role, subscription: u.subscription,
   progress: u.progress, avatar: u.avatar || '',
+  onboardingCompleted: u.onboardingCompleted || false,
   createdAt: u.createdAt,
 });
 
@@ -254,6 +255,16 @@ exports.logout = async (req, res) => {
 /* ── GET /auth/me ────────────────────────────────────────────────────────── */
 exports.getMe = async (req, res) => {
   res.json({ user: formatUser(req.user) });
+};
+
+/* ── POST /auth/onboarding-complete ──────────────────────────────────────── */
+exports.completeOnboarding = async (req, res) => {
+  try {
+    await User.updateOne({ _id: req.user._id }, { $set: { onboardingCompleted: true } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 /* ── PUT /auth/avatar ────────────────────────────────────────────────────── */

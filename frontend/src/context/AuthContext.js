@@ -69,8 +69,14 @@ export function AuthProvider({ children }) {
     } catch {}
   };
 
+  // Marque la visite guidée comme vue (optimiste + persistance serveur)
+  const completeOnboarding = async () => {
+    setUser(u => (u ? { ...u, onboardingCompleted: true } : u));
+    try { await axios.post(`${API_URL}/auth/onboarding-complete`); } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, logout, refreshUser, completeOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

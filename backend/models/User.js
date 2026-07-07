@@ -56,6 +56,7 @@ const userSchema = new mongoose.Schema({
   pushSubscription: { type: mongoose.Schema.Types.Mixed, default: null },
   pushEnabled: { type: Boolean, default: false },
   emailVerified:      { type: Boolean, default: false },
+  onboardingCompleted:{ type: Boolean, default: false },
   verificationCode:   { type: String },
   verificationExpires:{ type: Date },
   resetCode:          { type: String },

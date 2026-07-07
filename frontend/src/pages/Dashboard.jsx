@@ -6,12 +6,13 @@
  * Colors: Indigo #4F46E5 · Violet #7C3AED · Teal #0891b2 · Pink #EC4899
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
+import OnboardingTour from '../components/OnboardingTour';
 
 /* ─── Design tokens ───────────────────────────────────────────────────────── */
 const C = {
@@ -264,9 +265,17 @@ const fade = (delay = 0) => ({ initial: { opacity: 0, y: 20 }, animate: { opacit
    MAIN
    ════════════════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, refreshUser, completeOnboarding } = useAuth();
   const p = user?.progress || {};
   const isMobile = useIsMobile();
+
+  /* ── Visite guidée au premier login ── */
+  const [showTour, setShowTour] = useState(false);
+  const tourSeen = useRef(false);
+  useEffect(() => {
+    if (!tourSeen.current && user && user.onboardingCompleted === false) setShowTour(true);
+  }, [user]);
+  const finishTour = () => { tourSeen.current = true; setShowTour(false); completeOnboarding(); };
 
   const [greeting,      setGreeting]      = useState('');
   const [streak,        setStreak]        = useState(p.streak || 0);
@@ -356,6 +365,8 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+
+      {showTour && <OnboardingTour name={(user?.name || '').split(' ')[0]} onFinish={finishTour} />}
 
       <style>{`
         @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-20px,14px) scale(1.05)} 70%{transform:translate(14px,-18px) scale(0.97)} }

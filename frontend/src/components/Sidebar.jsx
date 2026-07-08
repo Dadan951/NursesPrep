@@ -91,6 +91,18 @@ const I = {
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
     </svg>
   ),
+  logs: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </svg>
+  ),
+  community: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/>
+      <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>
+    </svg>
+  ),
 };
 
 /* ─── Sections (structure V2) ────────────────────────────────────────────── */
@@ -131,17 +143,29 @@ const STUDENT_SECTIONS = [
 
 const ADMIN_SECTIONS = [
   {
-    label: 'Administration',
+    label: 'Général',
     links: [
-      { to: '/admin',             label: 'Dashboard',      exact: true, icon: I.dashboard  },
-      { to: '/admin/users',       label: 'Utilisateurs',               icon: I.users      },
-      { to: '/admin/quizzes',     label: 'Quiz',                       icon: I.bookOpen   },
-      { to: '/admin/flashcards',  label: 'Flashcards',                 icon: I.brain      },
-      { to: '/admin/exercises',   label: 'Exercices',                  icon: I.dumbbell   },
-      { to: '/admin/annales',     label: 'Annales',                    icon: I.scrollText },
-      { to: '/admin/medicaments', label: 'Médicaments',                icon: I.pill       },
-      { to: '/admin/lessons',     label: 'Cours & Fiches',             icon: I.fileText   },
-      { to: '/admin/tickets',     label: 'Tickets Support',            icon: I.lifebuoy   },
+      { to: '/admin',        label: 'Dashboard',    exact: true, icon: I.dashboard },
+      { to: '/admin/users',  label: 'Utilisateurs',              icon: I.users     },
+      { to: '/admin/logs',   label: 'Journaux',                  icon: I.logs      },
+    ],
+  },
+  {
+    label: 'Contenu',
+    links: [
+      { to: '/admin/quizzes',     label: 'Quiz',           icon: I.bookOpen   },
+      { to: '/admin/flashcards',  label: 'Flashcards',     icon: I.brain      },
+      { to: '/admin/exercises',   label: 'Exercices',      icon: I.dumbbell   },
+      { to: '/admin/annales',     label: 'Annales',        icon: I.scrollText },
+      { to: '/admin/medicaments', label: 'Médicaments',    icon: I.pill       },
+      { to: '/admin/lessons',     label: 'Cours & Fiches', icon: I.fileText   },
+    ],
+  },
+  {
+    label: 'Communauté',
+    links: [
+      { to: '/admin/groups',  label: 'Groupes',         icon: I.community },
+      { to: '/admin/tickets', label: 'Tickets Support', icon: I.lifebuoy  },
     ],
   },
 ];

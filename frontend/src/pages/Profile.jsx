@@ -275,7 +275,7 @@ function AvatarCropModal({ src, onConfirm, onCancel, loading }) {
 
 /* ─── Main ───────────────────────────────────────────────────────────────────── */
 export default function Profile() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { toggleTheme, isDark, colorTheme, setColorTheme, THEMES } = useTheme();
   const isAdmin = user?.role === 'admin';
 
@@ -287,6 +287,26 @@ export default function Profile() {
   const [showPw, setShowPw] = useState({ current:false, next:false, confirm:false });
   const [toast,  setToast]  = useState({ msg:'', type:'success' });
   const [preview, setPreview] = useState(null);
+
+  // Suppression de compte (RGPD)
+  const [showDelete, setShowDelete]       = useState(false);
+  const [delPassword, setDelPassword]     = useState('');
+  const [delConfirm, setDelConfirm]       = useState('');
+  const [delLoading, setDelLoading]       = useState(false);
+  const canDelete = delConfirm.trim().toUpperCase() === 'SUPPRIMER'
+    && (!user?.hasPassword || delPassword.length > 0);
+
+  const handleDeleteAccount = async () => {
+    if (!canDelete) return;
+    setDelLoading(true);
+    try {
+      await axios.delete(`${API_URL}/auth/account`, { data: { password: delPassword } });
+      logout(); // token effacé + user = null → redirection auto vers /login
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Erreur lors de la suppression', 'error');
+      setDelLoading(false);
+    }
+  };
 
   const push = usePushNotifications();
   const handleTogglePush = async () => {
@@ -372,6 +392,70 @@ export default function Profile() {
       <AnimatePresence>{toast.msg && <Toast key="toast" msg={toast.msg} type={toast.type}/>}</AnimatePresence>
       <AnimatePresence>
         {preview && <AvatarCropModal src={preview} loading={avatarLoading} onConfirm={confirmAvatar} onCancel={() => setPreview(null)}/>}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDelete && (
+          <motion.div key="delete-overlay"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            onClick={() => !delLoading && setShowDelete(false)}
+            style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(15,23,42,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <motion.div
+              initial={{ scale:0.92, opacity:0, y:12 }} animate={{ scale:1, opacity:1, y:0 }} exit={{ scale:0.95, opacity:0, y:8 }}
+              transition={{ duration:0.2, ease:[0.16,1,0.3,1] }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ width:'100%', maxWidth:440, background:'#fff', borderRadius:24, overflow:'hidden', boxShadow:'0 24px 60px rgba(0,0,0,0.3)' }}>
+              <div style={{ padding:'20px 24px', background:'#fff5f5', borderBottom:'1px solid #fee2e2', display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ width:40, height:40, borderRadius:14, background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ fontSize:15, fontWeight:800, color:'#dc2626' }}>Supprimer définitivement le compte</p>
+                  <p style={{ fontSize:11, color:'#f87171', marginTop:2 }}>Cette action est irréversible</p>
+                </div>
+              </div>
+
+              <div style={{ padding:'22px 24px' }}>
+                <p style={{ fontSize:12.5, color:C.sub, lineHeight:1.65, marginBottom:18 }}>
+                  Toutes tes données seront <strong style={{ color:'#dc2626' }}>effacées immédiatement</strong> : progression, quiz, flashcards, fiches, fichiers, messages de groupe et abonnement. Aucune récupération possible.
+                </p>
+
+                {user?.hasPassword && (
+                  <div style={{ marginBottom:16 }}>
+                    <label style={labelStyle}>Mot de passe</label>
+                    <input type="password" value={delPassword} onChange={(e) => setDelPassword(e.target.value)}
+                      placeholder="Confirme avec ton mot de passe" disabled={delLoading}
+                      style={inputStyle} />
+                  </div>
+                )}
+
+                <div style={{ marginBottom:20 }}>
+                  <label style={labelStyle}>Tape <strong style={{ color:'#dc2626' }}>SUPPRIMER</strong> pour confirmer</label>
+                  <input type="text" value={delConfirm} onChange={(e) => setDelConfirm(e.target.value)}
+                    placeholder="SUPPRIMER" disabled={delLoading} autoComplete="off"
+                    style={inputStyle} />
+                </div>
+
+                <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+                  <button onClick={() => setShowDelete(false)} disabled={delLoading}
+                    style={{ padding:'10px 18px', borderRadius:12, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:12.5, fontWeight:700, color:C.text, cursor:delLoading?'default':'pointer' }}>
+                    Annuler
+                  </button>
+                  <button onClick={handleDeleteAccount} disabled={!canDelete || delLoading}
+                    style={{ padding:'10px 20px', borderRadius:12, border:'none', fontSize:12.5, fontWeight:700, color:'#fff',
+                      background: (!canDelete || delLoading) ? '#fca5a5' : '#dc2626',
+                      cursor: (!canDelete || delLoading) ? 'not-allowed' : 'pointer',
+                      boxShadow: (!canDelete || delLoading) ? 'none' : '0 3px 0 #991b1b' }}>
+                    {delLoading ? 'Suppression…' : 'Supprimer mon compte'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
@@ -746,6 +830,7 @@ export default function Profile() {
                       La suppression de votre compte est définitive. Toutes vos données (quiz, flashcards, fiches) seront effacées sans possibilité de récupération.
                     </p>
                     <motion.button whileHover={{ y:-2 }} whileTap={{ scale:0.97 }}
+                      onClick={() => { setDelPassword(''); setDelConfirm(''); setShowDelete(true); }}
                       style={{ padding:'9px 20px', borderRadius:14, border:'1.5px solid #fecaca', background:'#fff', fontSize:12, fontWeight:700, color:'#ef4444', cursor:'pointer', boxShadow:'0 2px 0 #fecaca' }}>
                       Supprimer mon compte
                     </motion.button>

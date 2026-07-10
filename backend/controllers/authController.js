@@ -28,6 +28,7 @@ const formatUser = (u) => ({
   role: u.role, subscription: u.subscription,
   progress: u.progress, avatar: u.avatar || '',
   onboardingCompleted: u.onboardingCompleted || false,
+  hasPassword: !!u.password, // pour savoir si on doit exiger le mot de passe (les comptes Google n'en ont pas)
   createdAt: u.createdAt,
 });
 
@@ -254,7 +255,10 @@ exports.logout = async (req, res) => {
 
 /* ── GET /auth/me ────────────────────────────────────────────────────────── */
 exports.getMe = async (req, res) => {
-  res.json({ user: formatUser(req.user) });
+  // req.user est chargé sans le mot de passe (middleware protect) : on relit le
+  // document complet pour exposer hasPassword de façon fiable (suppression RGPD)
+  const full = await User.findById(req.user._id);
+  res.json({ user: formatUser(full || req.user) });
 };
 
 /* ── POST /auth/onboarding-complete ──────────────────────────────────────── */
@@ -262,6 +266,79 @@ exports.completeOnboarding = async (req, res) => {
   try {
     await User.updateOne({ _id: req.user._id }, { $set: { onboardingCompleted: true } });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── DELETE /auth/account — suppression RGPD (droit à l'effacement) ───────── */
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Compte introuvable' });
+
+    // Sécurité : si le compte a un mot de passe, on l'exige et on le vérifie.
+    // (les comptes Google n'ont pas de mot de passe → confirmation gérée côté client)
+    if (user.password) {
+      const { password } = req.body;
+      if (!password) return res.status(400).json({ message: 'Mot de passe requis pour confirmer' });
+      const valid = await user.comparePassword(password);
+      if (!valid) return res.status(401).json({ message: 'Mot de passe incorrect' });
+    }
+
+    // Annulation de l'abonnement Stripe (non bloquant — ne doit pas empêcher la suppression)
+    if (user.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY
+        && process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder') {
+      try {
+        const stripe = new (require('stripe'))(process.env.STRIPE_SECRET_KEY);
+        await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+      } catch (e) {
+        console.error('[DeleteAccount] Annulation Stripe échouée:', e.message);
+      }
+    }
+
+    // Effacement des données personnelles liées
+    const QuizAttempt      = require('../models/QuizAttempt');
+    const FlashcardAttempt = require('../models/FlashcardAttempt');
+    const RevisionSheet    = require('../models/RevisionSheet');
+    const UserFile         = require('../models/UserFile');
+    const Ticket           = require('../models/Ticket');
+    const Group            = require('../models/Group');
+    const GroupPost        = require('../models/GroupPost');
+
+    await Promise.all([
+      QuizAttempt.deleteMany({ user: userId }),
+      FlashcardAttempt.deleteMany({ user: userId }),
+      RevisionSheet.deleteMany({ owner: userId }),
+      UserFile.deleteMany({ owner: userId }),
+      Ticket.deleteMany({ user: userId }),
+      GroupPost.deleteMany({ author: userId }),
+    ]);
+
+    // Retirer l'utilisateur de tous les groupes (membres, en attente) et des likes
+    await Group.updateMany({}, { $pull: { members: userId, pendingMembers: userId } });
+    await GroupPost.updateMany({}, { $pull: { likes: userId } });
+
+    // Groupes qu'il a créés : transférer à un membre restant, sinon supprimer le groupe
+    const createdGroups = await Group.find({ creator: userId });
+    for (const g of createdGroups) {
+      if (g.members && g.members.length > 0) {
+        g.creator = g.members[0];
+        await g.save();
+      } else {
+        await GroupPost.deleteMany({ group: g._id });
+        await Group.deleteOne({ _id: g._id });
+      }
+    }
+
+    // Journaux d'activité contenant ses données personnelles (email, IP)
+    await ActivityLog.deleteMany({ $or: [{ user: userId }, { userEmail: user.email }] });
+
+    // Enfin, le compte lui-même
+    await User.deleteOne({ _id: userId });
+
+    res.json({ success: true, message: 'Compte supprimé définitivement' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

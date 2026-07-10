@@ -2,6 +2,7 @@ const router = require('express').Router();
 const {
   register, login, logout, getMe, updateProfile, updateAvatar, ping,
   verifyEmail, resendCode, forgotPassword, resetPassword, completeOnboarding,
+  deleteAccount,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
@@ -122,5 +123,6 @@ router.post('/onboarding-complete', protect, completeOnboarding);
 router.put('/profile',           protect, updateProfile);
 router.post('/ping',             protect, ping);
 router.put('/avatar',            protect, updateAvatar);
+router.delete('/account',        protect, deleteAccount);
 
 module.exports = router;

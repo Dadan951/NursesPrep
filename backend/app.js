@@ -2,13 +2,60 @@
    Isolée de server.js pour être importable dans les tests (supertest). */
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const passport = require('passport');
 const Sentry = require('@sentry/node');
 
 const app = express();
 
-app.use(cors());
+// Derrière le proxy Railway → indispensable pour lire la vraie IP client
+// (sans ça tous les utilisateurs partagent l'IP du proxy et le rate limiter les bloque ensemble)
+app.set('trust proxy', 1);
+
+// En-têtes de sécurité HTTP (anti-clickjacking, anti-sniffing MIME, etc.)
+app.use(helmet({
+  // Le frontend (autre origine) doit pouvoir charger des fichiers servis par l'API
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+// CORS restreint aux origines autorisées
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'https://www.nursesprep.fr',
+  'https://www.nursesprep.fr',
+  'https://nursesprep.fr',
+  'http://localhost:3000',
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()) : []),
+];
+app.use(cors({
+  origin(origin, cb) {
+    // Pas d'origine (apps mobiles, curl, webhooks serveur-à-serveur) → autorisé
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) return cb(null, true);
+    return cb(null, false); // origine non autorisée : le navigateur bloquera (pas d'erreur 500)
+  },
+  credentials: true,
+}));
+
 app.use(passport.initialize());
+
+// Limiteur anti-brute-force sur les routes d'authentification sensibles
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // fenêtre de 15 minutes
+  max: 30,                  // 30 tentatives max par IP sur cette fenêtre
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Trop de tentatives. Réessaie dans quelques minutes.' },
+  skip: () => process.env.NODE_ENV === 'test', // ne pas limiter pendant les tests Jest
+});
+app.use([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+  '/api/auth/resend-code',
+], authLimiter);
 
 // ⚠️ Webhook Stripe — raw body AVANT express.json()
 app.use('/api/subscription/webhook', express.raw({ type: 'application/json' }));

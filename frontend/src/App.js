@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
@@ -6,45 +7,57 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicRoute from './components/PublicRoute';
 
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Quiz from './pages/Quiz';
-import QuizPlay from './pages/QuizPlay';
-import Flashcards from './pages/Flashcards';
-import Exercises from './pages/Exercises';
-import Subscription from './pages/Subscription';
-import Profile from './pages/Profile';
-import Groups from './pages/Groups';
-import GroupDetail from './pages/GroupDetail';
-import Cours from './pages/Cours';
-import Annales from './pages/Annales';
-import Support from './pages/Support';
+// Chargement à la demande : chaque page devient un "chunk" séparé,
+// téléchargé uniquement quand l'utilisateur visite la route correspondante.
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Quiz = lazy(() => import('./pages/Quiz'));
+const QuizPlay = lazy(() => import('./pages/QuizPlay'));
+const Flashcards = lazy(() => import('./pages/Flashcards'));
+const Exercises = lazy(() => import('./pages/Exercises'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Groups = lazy(() => import('./pages/Groups'));
+const GroupDetail = lazy(() => import('./pages/GroupDetail'));
+const Cours = lazy(() => import('./pages/Cours'));
+const Annales = lazy(() => import('./pages/Annales'));
+const Support = lazy(() => import('./pages/Support'));
 
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminQuizzes from './pages/admin/AdminQuizzes';
-import AdminFlashcards from './pages/admin/AdminFlashcards';
-import AdminExercises from './pages/admin/AdminExercises';
-import AdminGroups from './pages/admin/AdminGroups';
-import AdminLessons from './pages/admin/AdminLessons';
-import Medicaments from './pages/Medicaments';
-import MedicamentDetail from './pages/MedicamentDetail';
-import AdminMedicaments from './pages/admin/AdminMedicaments';
-import AdminAnnales from './pages/admin/AdminAnnales';
-import AdminTickets from './pages/admin/AdminTickets';
-import AdminLogs from './pages/admin/AdminLogs';
-import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
-import History from './pages/History';
-import CGU from './pages/CGU';
-import Confidentialite from './pages/Confidentialite';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminQuizzes = lazy(() => import('./pages/admin/AdminQuizzes'));
+const AdminFlashcards = lazy(() => import('./pages/admin/AdminFlashcards'));
+const AdminExercises = lazy(() => import('./pages/admin/AdminExercises'));
+const AdminGroups = lazy(() => import('./pages/admin/AdminGroups'));
+const AdminLessons = lazy(() => import('./pages/admin/AdminLessons'));
+const Medicaments = lazy(() => import('./pages/Medicaments'));
+const MedicamentDetail = lazy(() => import('./pages/MedicamentDetail'));
+const AdminMedicaments = lazy(() => import('./pages/admin/AdminMedicaments'));
+const AdminAnnales = lazy(() => import('./pages/admin/AdminAnnales'));
+const AdminTickets = lazy(() => import('./pages/admin/AdminTickets'));
+const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
+const GoogleAuthSuccess = lazy(() => import('./pages/GoogleAuthSuccess'));
+const History = lazy(() => import('./pages/History'));
+const CGU = lazy(() => import('./pages/CGU'));
+const Confidentialite = lazy(() => import('./pages/Confidentialite'));
+
+// Affiché brièvement le temps que le chunk d'une page se télécharge
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-blue-50">
+      <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
     <ThemeProvider>
       <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public — redirige vers dashboard si déjà connecté */}
           <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
@@ -89,6 +102,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
       <Analytics />
     </ThemeProvider>

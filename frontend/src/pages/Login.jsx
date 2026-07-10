@@ -177,9 +177,9 @@ export default function Login() {
               </motion.div>
             </div>
 
-            <AnimatePresence mode="wait">
+            <div>
               {mode === 'forgot-email' && (
-                <motion.div key="email-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div key="email-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h2 className="text-xl font-bold text-slate-800 text-center mb-1">Mot de passe oublié ?</h2>
                   <p className="text-xs text-slate-400 text-center mb-6">Entre ton email pour recevoir un code</p>
                   <form onSubmit={handleForgotEmail} className="space-y-4">
@@ -206,7 +206,7 @@ export default function Login() {
               )}
 
               {mode === 'forgot-code' && (
-                <motion.div key="code-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <motion.div key="code-step" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <h2 className="text-xl font-bold text-slate-800 text-center mb-1">
                     {forgotSuccess ? 'Mot de passe modifié !' : 'Nouveau mot de passe'}
                   </h2>
@@ -255,7 +255,7 @@ export default function Login() {
                   )}
                 </motion.div>
               )}
-            </AnimatePresence>
+            </div>
 
             <button
               onClick={() => { setMode('login'); setForgotError(''); setForgotEmail(''); setForgotCode(''); setNewPwd(''); }}

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -42,6 +42,7 @@ const GoogleAuthSuccess = lazy(() => import('./pages/GoogleAuthSuccess'));
 const History = lazy(() => import('./pages/History'));
 const CGU = lazy(() => import('./pages/CGU'));
 const Confidentialite = lazy(() => import('./pages/Confidentialite'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Affiché brièvement le temps que le chunk d'une page se télécharge
 function PageLoader() {
@@ -99,8 +100,8 @@ function App() {
           {/* Google OAuth callback */}
           <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 — page inconnue */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
       </BrowserRouter>

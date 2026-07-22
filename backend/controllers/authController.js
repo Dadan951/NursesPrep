@@ -23,9 +23,17 @@ async function log(action, req, user = null, extraEmail = '') {
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+// Réforme UE 2026 — garde ce fichier synchronisé avec CURRENT_ACADEMIC_YEAR dans frontend/src/pages/Register.jsx
+const CURRENT_ACADEMIC_YEAR = '2026-2027'; // ← à mettre à jour chaque année
+const VALID_STUDY_YEARS = ['1ere', '2eme', '3eme'];
+function computeProgramVersion(academicYear, studyYear) {
+  return (academicYear === CURRENT_ACADEMIC_YEAR && studyYear === '1ere') ? 'reforme_2026' : 'ancien';
+}
+
 const formatUser = (u) => ({
   id: u._id, name: u.name, email: u.email,
   role: u.role, subscription: u.subscription,
+  academicYear: u.academicYear || '', studyYear: u.studyYear || '', programVersion: u.programVersion || 'ancien',
   progress: u.progress, avatar: u.avatar || '',
   onboardingCompleted: u.onboardingCompleted || false,
   hasPassword: !!u.password, // pour savoir si on doit exiger le mot de passe (les comptes Google n'en ont pas)
@@ -38,11 +46,16 @@ const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 /* ── POST /auth/register ─────────────────────────────────────────────────── */
 exports.register = async (req, res) => {
   try {
-    const { name, email: emailAddr, password } = req.body;
+    const { name, email: emailAddr, password, studyYear } = req.body;
     if (!name || !emailAddr || !password)
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     if (password.length < 6)
       return res.status(400).json({ message: 'Le mot de passe doit faire au moins 6 caractères' });
+    if (!studyYear || !VALID_STUDY_YEARS.includes(studyYear))
+      return res.status(400).json({ message: "Année d'études requise" });
+
+    const academicYear   = CURRENT_ACADEMIC_YEAR;
+    const programVersion = computeProgramVersion(academicYear, studyYear);
 
     const existing = await User.findOne({ email: emailAddr });
     if (existing && existing.emailVerified)
@@ -55,12 +68,16 @@ exports.register = async (req, res) => {
       // Compte en attente → on met à jour le code
       existing.name     = name.trim();
       existing.password = password;
+      existing.academicYear    = academicYear;
+      existing.studyYear       = studyYear;
+      existing.programVersion  = programVersion;
       existing.verificationCode    = code;
       existing.verificationExpires = expires;
       await existing.save();
     } else {
       await User.create({
         name: name.trim(), email: emailAddr, password,
+        academicYear, studyYear, programVersion,
         emailVerified: false,
         verificationCode: code,
         verificationExpires: expires,
@@ -407,7 +424,7 @@ exports.ping = async (req, res) => {
 /* ── PUT /auth/profile ───────────────────────────────────────────────────── */
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email: emailAddr, currentPassword, newPassword } = req.body;
+    const { name, email: emailAddr, currentPassword, newPassword, studyYear } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name && name.trim()) user.name = name.trim();
@@ -416,6 +433,12 @@ exports.updateProfile = async (req, res) => {
       const exists = await User.findOne({ email: emailAddr, _id: { $ne: user._id } });
       if (exists) return res.status(400).json({ message: 'Cet email est déjà utilisé' });
       user.email = emailAddr.toLowerCase().trim();
+    }
+
+    if (studyYear && VALID_STUDY_YEARS.includes(studyYear)) {
+      user.studyYear      = studyYear;
+      user.academicYear   = CURRENT_ACADEMIC_YEAR;
+      user.programVersion = computeProgramVersion(CURRENT_ACADEMIC_YEAR, studyYear);
     }
 
     if (newPassword) {

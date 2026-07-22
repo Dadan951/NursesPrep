@@ -17,7 +17,7 @@ const flashIcon = (size = 22) => (
 );
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
-const EMPTY = { front: '', back: '', semester: '', category: '', chapter: '', part: '', difficulty: 'medium', hint: '', isPublished: true };
+const EMPTY = { front: '', back: '', semester: '', programVersion: 'ancien', category: '', chapter: '', part: '', difficulty: 'medium', hint: '', isPublished: true };
 
 /* ─── Modal Flashcard ───────────────────────────────────────────────────── */
 function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], existingCategories = [], existingChapters = [], existingParts = [] }) {
@@ -71,6 +71,12 @@ function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], exi
           <Field label="Semestre">
             <input list="fc-sem-list" value={form.semester || ''} onChange={e => setForm({ ...form, semester: e.target.value })} className={inputCls} placeholder="Ex: Semestre 1" />
             <datalist id="fc-sem-list">{existingSemesters.map(s => <option key={s} value={s} />)}</datalist>
+          </Field>
+          <Field label="Programme">
+            <select value={form.programVersion || 'ancien'} onChange={e => setForm({ ...form, programVersion: e.target.value })} className={inputCls}>
+              <option value="ancien">Ancien programme</option>
+              <option value="reforme_2026">Réforme 2026</option>
+            </select>
           </Field>
           <Field label="Catégorie (UE)" required>
             <input list="fc-cat-list" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} placeholder="Ex: UE 2.4" />

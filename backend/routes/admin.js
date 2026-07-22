@@ -59,6 +59,7 @@ router.post('/seed-s1', require('../seeds/seedSemestre1_route'));
 router.post('/seed-flashcards-s1', require('../seeds/seedFlashcardsSemestre1_route'));
 router.post('/seed-medicaments', require('../seeds/seedMedicaments_route'));
 router.post('/migrate-buprenorphine', require('../seeds/migrateBuprenorphine'));
+router.post('/migrate-program-version-ancien', require('../seeds/migrateProgramVersionAncien'));
 router.post('/seed-cours-files', require('../seeds/seedCours_route'));
 router.post('/seed-cours-zip',   uploadZip.single('zip'), require('../seeds/seedCoursZip_route'));
 router.post('/seed-annales-zip',          uploadZip.single('zip'), require('../seeds/seedAnnalesZip_route'));

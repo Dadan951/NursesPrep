@@ -4,7 +4,10 @@ const FlashcardAttempt = require('../models/FlashcardAttempt');
 
 exports.getAll = async (req, res) => {
   try {
-    const flashcards = await Flashcard.find({ isPublished: true });
+    const flashcards = await Flashcard.find({
+      isPublished: true,
+      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+    });
     res.json(flashcards);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -15,6 +18,8 @@ exports.getOne = async (req, res) => {
   try {
     const fc = await Flashcard.findById(req.params.id);
     if (!fc) return res.status(404).json({ message: 'Flashcard introuvable' });
+    if (req.user.programVersion === 'reforme_2026' && fc.programVersion !== 'reforme_2026')
+      return res.status(404).json({ message: 'Flashcard introuvable' });
     res.json(fc);
   } catch (err) {
     res.status(500).json({ message: err.message });

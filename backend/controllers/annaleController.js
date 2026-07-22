@@ -4,7 +4,10 @@ const Annale = require('../models/Annale');
 
 exports.getAll = async (req, res) => {
   try {
-    const annales = await Annale.find({ isPublished: true })
+    const annales = await Annale.find({
+      isPublished: true,
+      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+    })
       .select('-fileData')
       .sort({ year: -1, semester: 1, subject: 1, createdAt: -1 });
     res.json(annales);
@@ -17,6 +20,8 @@ exports.getOne = async (req, res) => {
   try {
     const annale = await Annale.findById(req.params.id).select('-fileData');
     if (!annale || !annale.isPublished) return res.status(404).json({ message: 'Annale introuvable' });
+    if (req.user.programVersion === 'reforme_2026' && annale.programVersion !== 'reforme_2026')
+      return res.status(404).json({ message: 'Annale introuvable' });
     res.json(annale);
   } catch (err) {
     res.status(500).json({ message: err.message });

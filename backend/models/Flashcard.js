@@ -4,6 +4,7 @@ const flashcardSchema = new mongoose.Schema({
   front: { type: String, required: true },
   back: { type: String, required: true },
   semester: { type: String, default: '', trim: true },
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   category: { type: String, required: true, trim: true },
   chapter:  { type: String, default: '', trim: true },
   part:     { type: String, default: '', trim: true },

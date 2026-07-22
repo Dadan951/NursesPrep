@@ -12,7 +12,10 @@ function todayString() {
 
 exports.getAll = async (req, res) => {
   try {
-    const quizzes = await Quiz.find({ isPublished: true }).select('-questions.options.isCorrect');
+    const quizzes = await Quiz.find({
+      isPublished: true,
+      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+    }).select('-questions.options.isCorrect');
 
     // Récupère tous les attempts de l'utilisateur en une seule requête
     const attempts = await QuizAttempt.find({ user: req.user._id }).select('quiz status score currentQuestion answers completedAt');
@@ -44,6 +47,8 @@ exports.getOne = async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
     if (!quiz) return res.status(404).json({ message: 'Quiz introuvable' });
+    if (req.user.programVersion === 'reforme_2026' && quiz.programVersion !== 'reforme_2026')
+      return res.status(404).json({ message: 'Quiz introuvable' });
     res.json(quiz);
   } catch (err) {
     res.status(500).json({ message: err.message });

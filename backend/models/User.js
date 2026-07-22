@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema({
   googleId:  { type: String, default: null },
   role: { type: String, enum: ['student', 'admin'], default: 'student' },
   subscription:         { type: String, enum: ['free', 'pro', 'premium'], default: 'free' },
+  academicYear:   { type: String, default: '' },                              // ex: '2026-2027'
+  studyYear:      { type: String, enum: ['1ere', '2eme', '3eme', ''], default: '' },
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   stripeCustomerId:     { type: String, default: null },
   stripeSubscriptionId: { type: String, default: null },
   progress: {

@@ -32,6 +32,14 @@ const subConfig = {
   premium: { label:'Premium',  gradient:'linear-gradient(135deg,#7c3aed,#4f46e5)', dark:'#4c1d95' },
 };
 
+// Réforme UE 2026 — garde cette constante synchronisée avec CURRENT_ACADEMIC_YEAR dans backend/controllers/authController.js
+const CURRENT_ACADEMIC_YEAR = '2026-2027';
+const STUDY_YEAR_OPTIONS = [
+  { value:'1ere', label:'1ère année' },
+  { value:'2eme', label:'2ème année' },
+  { value:'3eme', label:'3ème année' },
+];
+
 const inputStyle = {
   width:'100%', padding:'10px 14px', borderRadius:12,
   border:`1.5px solid ${C.border}`, background:C.bg,
@@ -353,6 +361,14 @@ export default function Profile() {
     finally { setInfoLoading(false); }
   };
 
+  const handleStudyYearSave = async (val) => {
+    if (val === user?.studyYear) return;
+    try {
+      await axios.put(`${API_URL}/auth/profile`, { studyYear: val });
+      await refreshUser(); showToast('Année d\'études mise à jour');
+    } catch (err) { showToast(err.response?.data?.message || 'Erreur', 'error'); }
+  };
+
   const handlePwSave = async (e) => {
     e.preventDefault();
     if (pwForm.newPassword !== pwForm.confirm) return showToast('Les mots de passe ne correspondent pas','error');
@@ -625,6 +641,43 @@ export default function Profile() {
                       </motion.button>
                     </div>
                   </form>
+                </SCard>
+              </motion.div>
+
+              {/* Programme d'études */}
+              <motion.div initial={{ opacity:0, x:12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.24 }}>
+                <SCard>
+                  <SCardHeader
+                    icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>}
+                    title="Programme d'études" sub={`Ton année pour ${CURRENT_ACADEMIC_YEAR}`} gradFrom="#0891b2" gradTo="#0284c7"/>
+                  <div style={{ padding:'20px' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
+                      {STUDY_YEAR_OPTIONS.map(opt => {
+                        const active = user?.studyYear === opt.value;
+                        return (
+                          <motion.button key={opt.value} onClick={() => handleStudyYearSave(opt.value)}
+                            whileHover={{ y:-3, boxShadow:active?clay.card:clay.sm }} whileTap={{ scale:0.97 }}
+                            style={{ position:'relative', padding:'16px 10px', borderRadius:16, cursor:'pointer', textAlign:'center',
+                              border:`2px solid ${active?C.indigo:C.border}`,
+                              background: active ? 'rgba(var(--theme-primary-rgb),0.03)' : C.card,
+                              boxShadow: active ? clay.card : clay.sm, transition:'all 0.2s' }}>
+                            <p style={{ fontSize:13, fontWeight:700, color:C.text }}>{opt.label}</p>
+                            {active && (
+                              <div style={{ position:'absolute', top:8, right:8, width:18, height:18, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                                background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow:clay.btn() }}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                    {user?.programVersion === 'reforme_2026' && (
+                      <p style={{ fontSize:11, color:C.sub, marginTop:14 }}>
+                        Tu es sur le <span style={{ fontWeight:700, color:'var(--theme-primary)' }}>nouveau programme (réforme 2026)</span>.
+                      </p>
+                    )}
+                  </div>
                 </SCard>
               </motion.div>
 

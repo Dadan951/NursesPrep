@@ -77,6 +77,14 @@ function StrengthBar({ password }) {
 
 const INPUT = `w-full py-3.5 rounded-2xl border text-[16px] text-slate-800 placeholder-slate-300 focus:outline-none transition-all duration-200`;
 
+// Réforme UE 2026 — garde cette constante synchronisée avec CURRENT_ACADEMIC_YEAR dans backend/controllers/authController.js
+const CURRENT_ACADEMIC_YEAR = '2026-2027';
+const STUDY_YEAR_OPTIONS = [
+  { value: '1ere', label: `${CURRENT_ACADEMIC_YEAR} — 1ère année` },
+  { value: '2eme', label: `${CURRENT_ACADEMIC_YEAR} — 2ème année` },
+  { value: '3eme', label: `${CURRENT_ACADEMIC_YEAR} — 3ème année` },
+];
+
 /* ════════════════════════════════════════════════════════════════════════════
    REGISTER PAGE
 ══════════════════════════════════════════════════════════════════════════════ */
@@ -84,7 +92,7 @@ export default function Register() {
   const { register, verifyEmail } = useAuth();
   const navigate      = useNavigate();
 
-  const [form,    setForm]    = useState({ name: '', email: '', password: '', confirm: '' });
+  const [form,    setForm]    = useState({ name: '', email: '', password: '', confirm: '', studyYear: '' });
   const [touched, setTouched] = useState({ name: false, email: false, password: false, confirm: false });
   const [showPwd, setShowPwd] = useState(false);
   const [showCfm, setShowCfm] = useState(false);
@@ -111,6 +119,7 @@ export default function Register() {
   const emailValid   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
   const pwdValid     = form.password.length >= 6;
   const confirmValid = form.confirm === form.password && form.confirm.length > 0;
+  const studyYearValid = STUDY_YEAR_OPTIONS.some(o => o.value === form.studyYear);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -120,11 +129,12 @@ export default function Register() {
     setTouched({ name: true, email: true, password: true, confirm: true });
     if (!nameValid)    return setError('Le nom doit contenir au moins 2 caractères');
     if (!emailValid)   return setError('Adresse email invalide');
+    if (!studyYearValid) return setError("Choisis ton année d'études");
     if (!pwdValid)     return setError('Le mot de passe doit faire au moins 6 caractères');
     if (!confirmValid) return setError('Les mots de passe ne correspondent pas');
     setLoading(true);
     try {
-      const res = await register(form.name, form.email, form.password);
+      const res = await register(form.name, form.email, form.password, form.studyYear);
       if (res?.needsVerification) {
         setPendingEmail(res.email);
         setStep('verify');
@@ -359,6 +369,25 @@ export default function Register() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Année d'études */}
+            <motion.div variants={item}>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Année d'études</label>
+              <div className="grid grid-cols-3 gap-2">
+                {STUDY_YEAR_OPTIONS.map(opt => {
+                  const active = form.studyYear === opt.value;
+                  return (
+                    <button type="button" key={opt.value}
+                      onClick={() => setForm({ ...form, studyYear: opt.value })}
+                      className={`py-3 px-2 rounded-2xl border text-xs font-semibold text-center transition-all duration-200 ${
+                        active ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white/70 text-slate-500'
+                      }`}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </motion.div>
 

@@ -41,7 +41,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('crée un compte en attente de vérification (201)', async () => {
-    const r = await post('/api/auth/register', { name: 'Test', email: 'new@b.fr', password: 'secret123' });
+    const r = await post('/api/auth/register', { name: 'Test', email: 'new@b.fr', password: 'secret123', studyYear: '1ere' });
     expect(r.status).toBe(201);
     expect(r.body.needsVerification).toBe(true);
 
@@ -55,14 +55,36 @@ describe('POST /api/auth/register', () => {
 
   it('refuse un email déjà vérifié (400)', async () => {
     await User.create({ name: 'X', email: 'dup@b.fr', password: 'secret123', emailVerified: true });
-    const r = await post('/api/auth/register', { name: 'Y', email: 'dup@b.fr', password: 'secret123' });
+    const r = await post('/api/auth/register', { name: 'Y', email: 'dup@b.fr', password: 'secret123', studyYear: '1ere' });
     expect(r.status).toBe(400);
+  });
+
+  it("refuse une année d'études manquante ou invalide (400)", async () => {
+    const r1 = await post('/api/auth/register', { name: 'Test', email: 'noyear@b.fr', password: 'secret123' });
+    expect(r1.status).toBe(400);
+    const r2 = await post('/api/auth/register', { name: 'Test', email: 'badyear@b.fr', password: 'secret123', studyYear: 'nope' });
+    expect(r2.status).toBe(400);
+  });
+
+  it("bascule sur la réforme 2026 uniquement pour '1ère année' (les autres restent 'ancien')", async () => {
+    await post('/api/auth/register', { name: 'Test', email: 'reforme@b.fr', password: 'secret123', studyYear: '1ere' });
+    const reforme = await User.findOne({ email: 'reforme@b.fr' });
+    expect(reforme.programVersion).toBe('reforme_2026');
+    expect(reforme.academicYear).toBe('2026-2027');
+
+    await post('/api/auth/register', { name: 'Test', email: 'ancien2@b.fr', password: 'secret123', studyYear: '2eme' });
+    const ancien2 = await User.findOne({ email: 'ancien2@b.fr' });
+    expect(ancien2.programVersion).toBe('ancien');
+
+    await post('/api/auth/register', { name: 'Test', email: 'ancien3@b.fr', password: 'secret123', studyYear: '3eme' });
+    const ancien3 = await User.findOne({ email: 'ancien3@b.fr' });
+    expect(ancien3.programVersion).toBe('ancien');
   });
 });
 
 describe('Vérification email + connexion', () => {
   it('vérifie avec le bon code puis connecte (200 + token)', async () => {
-    await post('/api/auth/register', { name: 'Test', email: 'v@b.fr', password: 'secret123' });
+    await post('/api/auth/register', { name: 'Test', email: 'v@b.fr', password: 'secret123', studyYear: '1ere' });
     const { verificationCode } = await User.findOne({ email: 'v@b.fr' });
 
     const vr = await post('/api/auth/verify-email', { email: 'v@b.fr', code: verificationCode });
@@ -76,7 +98,7 @@ describe('Vérification email + connexion', () => {
   });
 
   it('refuse un mauvais code de vérification (400)', async () => {
-    await post('/api/auth/register', { name: 'Test', email: 'w@b.fr', password: 'secret123' });
+    await post('/api/auth/register', { name: 'Test', email: 'w@b.fr', password: 'secret123', studyYear: '1ere' });
     const r = await post('/api/auth/verify-email', { email: 'w@b.fr', code: '000000' });
     expect(r.status).toBe(400);
   });
@@ -95,7 +117,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('bloque un compte non vérifié ayant un code en attente (403)', async () => {
-    await post('/api/auth/register', { name: 'Test', email: 'unv@b.fr', password: 'secret123' });
+    await post('/api/auth/register', { name: 'Test', email: 'unv@b.fr', password: 'secret123', studyYear: '1ere' });
     const r = await post('/api/auth/login', { email: 'unv@b.fr', password: 'secret123' });
     expect(r.status).toBe(403);
     expect(r.body.needsVerification).toBe(true);
@@ -132,7 +154,7 @@ describe('Routes protégées', () => {
   });
 
   it('GET /api/auth/me avec token valide → 200', async () => {
-    await post('/api/auth/register', { name: 'Test', email: 'me@b.fr', password: 'secret123' });
+    await post('/api/auth/register', { name: 'Test', email: 'me@b.fr', password: 'secret123', studyYear: '1ere' });
     const { verificationCode } = await User.findOne({ email: 'me@b.fr' });
     const vr = await post('/api/auth/verify-email', { email: 'me@b.fr', code: verificationCode });
     const token = vr.body.token;
@@ -140,5 +162,38 @@ describe('Routes protégées', () => {
     const r = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
     expect(r.status).toBe(200);
     expect(r.body.user.email).toBe('me@b.fr');
+  });
+});
+
+describe('PUT /api/auth/profile — changement d\'année d\'études', () => {
+  const registerAndLogin = async (email, studyYear) => {
+    await post('/api/auth/register', { name: 'Test', email, password: 'secret123', studyYear });
+    const { verificationCode } = await User.findOne({ email });
+    const vr = await post('/api/auth/verify-email', { email, code: verificationCode });
+    return vr.body.token;
+  };
+
+  it("bascule 'ancien' → 'reforme_2026' puis inversement", async () => {
+    const token = await registerAndLogin('switch@b.fr', '2eme');
+    let u = await User.findOne({ email: 'switch@b.fr' });
+    expect(u.programVersion).toBe('ancien');
+
+    let r = await request(app).put('/api/auth/profile').set('Authorization', `Bearer ${token}`).send({ studyYear: '1ere' });
+    expect(r.status).toBe(200);
+    u = await User.findOne({ email: 'switch@b.fr' });
+    expect(u.programVersion).toBe('reforme_2026');
+
+    r = await request(app).put('/api/auth/profile').set('Authorization', `Bearer ${token}`).send({ studyYear: '2eme' });
+    expect(r.status).toBe(200);
+    u = await User.findOne({ email: 'switch@b.fr' });
+    expect(u.programVersion).toBe('ancien');
+  });
+
+  it('ignore une valeur invalide sans modifier le programme actuel', async () => {
+    const token = await registerAndLogin('invalidyear@b.fr', '1ere');
+    const r = await request(app).put('/api/auth/profile').set('Authorization', `Bearer ${token}`).send({ studyYear: 'nope' });
+    expect(r.status).toBe(200);
+    const u = await User.findOne({ email: 'invalidyear@b.fr' });
+    expect(u.programVersion).toBe('reforme_2026'); // inchangé
   });
 });

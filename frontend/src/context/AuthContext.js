@@ -31,8 +31,8 @@ export function AuthProvider({ children }) {
     return u;
   };
 
-  const register = async (name, email, password) => {
-    const res = await axios.post(`${API_URL}/auth/register`, { name, email, password });
+  const register = async (name, email, password, studyYear) => {
+    const res = await axios.post(`${API_URL}/auth/register`, { name, email, password, studyYear });
     // Nouveau compte → affichage détaillé par défaut dans toutes les rubriques
     localStorage.setItem('np-display-mode', 'detail');
     // Si needsVerification → retourner tel quel, la page gère l'étape 2

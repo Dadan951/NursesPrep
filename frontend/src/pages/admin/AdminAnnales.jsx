@@ -24,7 +24,7 @@ const FILE_TYPE_LABELS = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
 };
 
-const EMPTY = { title: '', year: '', semester: '', subject: '', description: '', isPublished: true };
+const EMPTY = { title: '', year: '', semester: '', programVersion: 'ancien', subject: '', description: '', isPublished: true };
 
 /* ─── Modal Annale ──────────────────────────────────────────────────────── */
 function AnnaleModal({ annale, onClose, onSave, existingSemesters = [], existingCategories = [] }) {
@@ -57,6 +57,7 @@ function AnnaleModal({ annale, onClose, onSave, existingSemesters = [], existing
       fd.append('title',       form.title);
       fd.append('year',        form.year);
       fd.append('semester',    form.semester);
+      fd.append('programVersion', form.programVersion || 'ancien');
       fd.append('subject',     form.subject);
       fd.append('description', form.description || '');
       fd.append('isPublished', form.isPublished ? 'true' : 'false');
@@ -103,6 +104,12 @@ function AnnaleModal({ annale, onClose, onSave, existingSemesters = [], existing
           <Field label="Semestre" required>
             <input list="ann-sem-list" value={form.semester} onChange={e => set('semester', e.target.value)} placeholder="Ex: Semestre 1" className={inputCls} />
             <datalist id="ann-sem-list">{existingSemesters.map(s => <option key={s} value={s} />)}</datalist>
+          </Field>
+          <Field label="Programme">
+            <select value={form.programVersion || 'ancien'} onChange={e => set('programVersion', e.target.value)} className={inputCls}>
+              <option value="ancien">Ancien programme</option>
+              <option value="reforme_2026">Réforme 2026</option>
+            </select>
           </Field>
         </div>
 

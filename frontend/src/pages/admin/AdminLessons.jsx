@@ -18,7 +18,7 @@ const lessonIcon = (size = 22) => (
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
 const EMPTY = {
-  title: '', type: 'cours', semester: '', category: '', chapter: '', summary: '',
+  title: '', type: 'cours', semester: '', programVersion: 'ancien', category: '', chapter: '', summary: '',
   content: '', difficulty: 'medium', tags: '', isPublished: true,
 };
 
@@ -61,6 +61,7 @@ function LessonModal({ lesson, onClose, onSave, existingSemesters = [], existing
       fd.append('title',       form.title);
       fd.append('type',        form.type);
       fd.append('semester',    form.semester || '');
+      fd.append('programVersion', form.programVersion || 'ancien');
       fd.append('category',    form.category);
       fd.append('chapter',     form.chapter || '');
       fd.append('summary',     form.summary || '');
@@ -127,6 +128,12 @@ function LessonModal({ lesson, onClose, onSave, existingSemesters = [], existing
           <Field label="Semestre">
             <input list="les-sem-list" value={form.semester || ''} onChange={e => set('semester', e.target.value)} placeholder="Ex: Semestre 1" className={inputCls} />
             <datalist id="les-sem-list">{existingSemesters.map(s => <option key={s} value={s} />)}</datalist>
+          </Field>
+          <Field label="Programme">
+            <select value={form.programVersion || 'ancien'} onChange={e => set('programVersion', e.target.value)} className={inputCls}>
+              <option value="ancien">Ancien programme</option>
+              <option value="reforme_2026">Réforme 2026</option>
+            </select>
           </Field>
           <Field label="Catégorie (UE)" required>
             <input list="les-cat-list" value={form.category} onChange={e => set('category', e.target.value)} placeholder="Ex: UE 2.4" className={inputCls} />

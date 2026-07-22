@@ -5,6 +5,7 @@ const annaleSchema = new mongoose.Schema({
   year:         { type: String, required: true, trim: true },  // ex: "2023-2024"
   semester:     { type: String, required: true, trim: true },  // ex: "Semestre 1"
   subject:      { type: String, required: true, trim: true },  // ex: "UE 2.4"
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   description:  { type: String, default: '' },
   // File attachment
   fileData:     { type: Buffer },

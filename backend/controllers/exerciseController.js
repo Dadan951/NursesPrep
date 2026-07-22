@@ -16,7 +16,10 @@ exports.getQuota = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    const exercises = await Exercise.find({ isPublished: true });
+    const exercises = await Exercise.find({
+      isPublished: true,
+      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+    });
     res.json(exercises);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -27,6 +30,8 @@ exports.getOne = async (req, res) => {
   try {
     const ex = await Exercise.findById(req.params.id);
     if (!ex) return res.status(404).json({ message: 'Exercice introuvable' });
+    if (req.user.programVersion === 'reforme_2026' && ex.programVersion !== 'reforme_2026')
+      return res.status(404).json({ message: 'Exercice introuvable' });
     res.json(ex);
   } catch (err) {
     res.status(500).json({ message: err.message });

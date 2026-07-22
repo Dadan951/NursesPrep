@@ -16,6 +16,7 @@ const quizSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   semester: { type: String, default: '', trim: true },
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   category: { type: String, required: true, trim: true },
   chapter:  { type: String, default: '', trim: true },
   questions: [questionSchema],

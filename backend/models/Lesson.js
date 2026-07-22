@@ -6,6 +6,7 @@ const lessonSchema = new mongoose.Schema({
   content:    { type: String, default: '' },        // text content (optional if file attached)
   summary:    { type: String, default: '' },
   semester:   { type: String, default: '', trim: true },
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   category:   { type: String, required: true, trim: true },
   chapter:    { type: String, default: '', trim: true },
   tags:       [{ type: String }],

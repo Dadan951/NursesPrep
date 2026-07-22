@@ -5,6 +5,7 @@ const exerciseSchema = new mongoose.Schema({
   content: { type: String, required: true },
   answer: { type: String, default: '' },
   semester: { type: String, default: '', trim: true },
+  programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   caseType: { type: String, default: '', trim: true },
   category: { type: String, required: true, trim: true },
   type: { type: String, enum: ['qcm', 'open', 'case_study'], default: 'open' },

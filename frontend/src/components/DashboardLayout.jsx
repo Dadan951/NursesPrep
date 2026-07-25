@@ -50,10 +50,10 @@ export default function DashboardLayout({ children, isAdmin = false }) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
-        <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-blue-100 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+        <header className="lg:hidden sticky top-0 z-30 relative flex items-center justify-center px-4 py-3 bg-white border-b border-blue-100 shadow-sm dark:bg-slate-900 dark:border-slate-700">
           <button
             onClick={() => setOpen(true)}
-            className="w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition flex-shrink-0"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
             aria-label="Ouvrir le menu"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5">
@@ -65,19 +65,21 @@ export default function DashboardLayout({ children, isAdmin = false }) {
           <Link to="/" className="hover:opacity-80 transition-opacity">
             <NursesLogo size="xs" />
           </Link>
-          {/* Mobile search button */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="ml-auto w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0"
-            aria-label="Rechercher"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-          {isAdmin && (
-            <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full">Admin</span>
-          )}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {/* Mobile search button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0"
+              aria-label="Rechercher"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+            {isAdmin && (
+              <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full">Admin</span>
+            )}
+          </div>
         </header>
 
         {children}

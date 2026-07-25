@@ -259,11 +259,11 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
         background:'radial-gradient(circle,var(--theme-secondary),transparent)', opacity:isDark?0.06:0.15, filter:'blur(30px)' }}/>
 
       {/* ── Logo ── */}
-      <div style={{ padding:'14px 16px', borderBottom:`1px solid ${border}`, display:'flex', alignItems:'center', justifyContent:'space-between', position:'relative', zIndex:10 }}>
+      <div style={{ padding:'14px 16px', borderBottom:`1px solid ${border}`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:10 }}>
         <Link to="/" style={{ textDecoration:'none' }} onClick={onClose}>
           <NursesLogo size="sm" />
         </Link>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, position:'absolute', right:16, top:'50%', transform:'translateY(-50%)' }}>
           {isAdmin && (
             <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:6,
               background:'rgba(var(--theme-primary-rgb),0.10)', color:'var(--theme-primary)',

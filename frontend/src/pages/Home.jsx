@@ -562,18 +562,18 @@ function Navbar() {
       <motion.div className="fixed top-0 left-0 right-0 h-[3px] z-[60] origin-left"
         style={{ scaleX: progress, background: 'linear-gradient(90deg,#0891b2,#06b6d4,#6366f1)' }} />
 
-      <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/85 shadow-lg shadow-slate-900/5' : 'bg-transparent'}`}
-        style={{ backdropFilter: scrolled ? 'blur(14px)' : 'none' }}>
+      <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/85 shadow-lg shadow-slate-900/5' : 'bg-white/60'}`}
+        style={{ backdropFilter: 'blur(14px)' }}>
         <nav className={`w-full px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-2.5' : 'py-4'}`}>
           <Link to="/" className="flex-shrink-0">
-            <NursesLogo size="sm" light={!scrolled} />
+            <NursesLogo size="sm" />
           </Link>
 
           {/* Liens desktop */}
           <div className="hidden md:flex items-center gap-1">
             {links.map(l => (
               <a key={l.href} href={l.href}
-                className={`px-3.5 py-2 rounded-xl text-[13px] font-bold transition-colors ${scrolled ? 'text-slate-600 hover:text-cyan-700 hover:bg-cyan-50' : 'text-blue-100/80 hover:text-white hover:bg-white/10'}`}>
+                className="px-3.5 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:text-cyan-700 hover:bg-cyan-50 transition-colors">
                 {l.label}
               </a>
             ))}
@@ -581,7 +581,7 @@ function Navbar() {
 
           <div className="flex items-center gap-2">
             <Link to="/login"
-              className={`hidden sm:block px-4 py-2 rounded-xl text-[13px] font-bold transition-colors ${scrolled ? 'text-slate-600 hover:bg-slate-100' : 'text-white/90 hover:bg-white/10'}`}>
+              className="hidden sm:block px-4 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-slate-100 transition-colors">
               Connexion
             </Link>
             <Link to="/register"
@@ -591,7 +591,7 @@ function Navbar() {
             </Link>
             {/* Burger mobile */}
             <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu"
-              className={`md:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${scrolled ? 'bg-slate-100 text-slate-700' : 'bg-white/10 text-white'}`}>
+              className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 text-slate-700 transition-colors">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 {menuOpen ? <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></> : <><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>}
               </svg>
@@ -687,6 +687,7 @@ export default function Home() {
         @media (prefers-reduced-motion: reduce) {
           .marquee-track { animation: none; }
           html { scroll-behavior: auto; }
+          [style*="float1"], [style*="float2"] { animation: none !important; }
         }
       `}</style>
 
@@ -694,62 +695,66 @@ export default function Home() {
 
       {/* ══════════════ HERO ══════════════ */}
       <section ref={heroRef} className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden px-4"
-        style={{ background: 'linear-gradient(160deg,#020617 0%,#0f172a 35%,#164e8a 80%,#0891b2 130%)' }}>
-        {/* Décor */}
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.10) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="absolute w-[480px] h-[480px] rounded-full pointer-events-none hidden sm:block" style={{ top: '-12%', left: '-8%', background: 'radial-gradient(circle,rgba(8,145,178,0.35),transparent 65%)', filter: 'blur(50px)', animation: 'float1 16s ease-in-out infinite' }} />
-        <div className="absolute w-[380px] h-[380px] rounded-full pointer-events-none" style={{ bottom: '-10%', right: '-6%', background: 'radial-gradient(circle,rgba(99,102,241,0.3),transparent 65%)', filter: 'blur(46px)', animation: 'float2 20s ease-in-out infinite' }} />
+        style={{ background: 'linear-gradient(180deg,#ffffff 0%,#f7fafd 45%,#f1f5fd 100%)' }}>
+        {/* Décor : grain discret + halos de couleur douce */}
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.12) 1px, transparent 1px)', backgroundSize: '32px 32px', maskImage: 'radial-gradient(ellipse 65% 55% at 50% 25%, black 40%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse 65% 55% at 50% 25%, black 40%, transparent 100%)' }} />
+        <div className="absolute w-[560px] h-[560px] rounded-full pointer-events-none hidden sm:block" style={{ top: '-20%', left: '-14%', background: 'radial-gradient(circle,rgba(8,145,178,0.18),transparent 65%)', filter: 'blur(60px)', animation: 'float1 18s ease-in-out infinite' }} />
+        <div className="absolute w-[440px] h-[440px] rounded-full pointer-events-none" style={{ bottom: '-16%', right: '-10%', background: 'radial-gradient(circle,rgba(99,102,241,0.16),transparent 65%)', filter: 'blur(56px)', animation: 'float2 22s ease-in-out infinite' }} />
 
-        {/* ECG discret */}
-        <svg className="absolute bottom-[12%] left-0 right-0 w-full opacity-[0.13] pointer-events-none" viewBox="0 0 320 60" fill="none" preserveAspectRatio="none" style={{ height: 60 }}>
-          <motion.polyline points="0,30 90,30 105,10 115,50 125,18 135,42 145,30 320,30"
-            stroke="#67e8f9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2.4, delay: 0.9, ease: 'easeInOut' }} />
-        </svg>
-
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative z-10 max-w-3xl mx-auto text-center pt-20 pb-14">
-          <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 mb-7">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-xs font-bold text-cyan-200">Plateforme de révision IFSI — France</span>
-          </motion.div>
-
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative z-10 max-w-3xl mx-auto text-center pt-24 pb-14">
           <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-[1.08] mb-6">
+            className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight mb-8">
             Réussis ton diplôme<br />
-            <span style={{ background: 'linear-gradient(90deg,#67e8f9,#06b6d4,#818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <span className="relative inline-block text-cyan-600 pb-2">
               infirmier avec confiance
+              <svg className="absolute left-0 -bottom-1 w-full" height="12" viewBox="0 0 300 12" preserveAspectRatio="none" fill="none">
+                <motion.path d="M3,7 Q40,1 78,7 T153,7 T228,7 T297,6" stroke="#06b6d4" strokeWidth="4" strokeLinecap="round"
+                  initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 0.9, delay: 0.75, ease: 'easeInOut' }} />
+              </svg>
             </span>
           </motion.h1>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.25 }}
-            className="text-blue-100/70 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-9">
+          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 mb-6">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            À jour avec la réforme infirmière 2026
+          </motion.p>
+
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-slate-500 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-9">
             Quiz, flashcards, fiches IA, annales, médicaments et cas cliniques — tout ce dont tu as besoin pour valider tes UE, du S1 au S6.
           </motion.p>
 
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.38 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link to="/register"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-black text-slate-900 shadow-2xl shadow-cyan-500/30 hover:-translate-y-1 transition-transform text-center"
-              style={{ background: 'linear-gradient(135deg,#67e8f9,#06b6d4)' }}>
+              className="group w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-black text-white shadow-xl shadow-cyan-500/25 hover:-translate-y-1 hover:shadow-2xl hover:shadow-cyan-500/35 transition-all flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg,#0891b2,#06b6d4)' }}>
               Commencer gratuitement
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </Link>
             <a href="#fonctionnalites"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-white border border-white/20 bg-white/5 hover:bg-white/10 transition text-center">
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl text-sm font-bold text-slate-700 border border-slate-200 bg-white hover:border-slate-300 hover:-translate-y-0.5 shadow-sm transition-all text-center">
               Découvrir en 30 secondes ↓
             </a>
           </motion.div>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }}
+            className="text-xs text-slate-400 font-semibold mt-3">Sans carte bancaire requise</motion.p>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6, duration: 0.6 }}
-            className="flex items-center justify-center gap-4 md:gap-8 mt-10 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Stars n={5} />
-              <span className="text-xs font-bold text-blue-100">4,9/5 · 240+ avis</span>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65, duration: 0.6 }}
+            className="inline-flex items-center gap-3.5 mt-11 px-5 py-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <div className="flex -space-x-2.5">
+              {[['C', '#0891b2'], ['T', '#8b5cf6'], ['I', '#10b981'], ['L', '#f97316'], ['M', '#f43f5e']].map(([l, c]) => (
+                <div key={l} className="w-8 h-8 rounded-full ring-2 ring-white flex items-center justify-center text-[11px] font-black text-white flex-shrink-0" style={{ background: c }}>{l}</div>
+              ))}
             </div>
-            <span className="hidden sm:block w-1 h-1 rounded-full bg-blue-300/40" />
-            <span className="text-xs font-bold text-blue-100"><Counter target={2400} suffix="+" /> étudiants</span>
-            <span className="hidden sm:block w-1 h-1 rounded-full bg-blue-300/40" />
-            <span className="text-xs font-bold text-blue-100">Sans carte bancaire</span>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <Stars n={5} size={12} />
+                <span className="text-xs font-black text-slate-800">4,6/5</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-semibold leading-snug">240+ avis · <Counter target={800} suffix="+" /> étudiants</p>
+            </div>
           </motion.div>
         </motion.div>
 
@@ -757,14 +762,14 @@ export default function Home() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
           <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 1.6, repeat: Infinity }}
-            className="w-6 h-10 rounded-full border-2 border-white/25 flex items-start justify-center pt-2">
-            <div className="w-1 h-2 rounded-full bg-white/50" />
+            className="w-6 h-10 rounded-full border-2 border-slate-200 flex items-start justify-center pt-2">
+            <div className="w-1 h-2 rounded-full bg-slate-400" />
           </motion.div>
         </motion.div>
       </section>
 
       {/* ══════════════ SCROLLYTELLING ══════════════ */}
-      <div className="pt-16 pb-4 text-center px-4" style={{ background: 'linear-gradient(180deg,#ffffff,#f1f5fd)' }}>
+      <div className="pt-16 pb-4 text-center px-4" style={{ background: '#f1f5fd' }}>
         <Reveal>
           <span className="text-xs font-black text-cyan-600 uppercase tracking-[0.2em]">Visite guidée</span>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-3">Tout ce qu'il te faut,<br className="sm:hidden" /> dans une seule app</h2>
@@ -830,7 +835,7 @@ export default function Home() {
         <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
         <div className="relative max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
-            { v: 2400, s: '+', l: 'Étudiants inscrits' },
+            { v: 800, s: '+', l: 'Étudiants inscrits' },
             { v: 1200, s: '+', l: 'Questions de quiz' },
             { v: 120, s: '+', l: 'Sujets d\'annales' },
             { v: 87, s: '%', l: 'De réussite déclarée' },
@@ -1086,7 +1091,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-3 mb-2">Ils ont réussi avec Nurses Prép</h2>
             <div className="flex justify-center items-center gap-2 mt-3">
               <Stars n={5} />
-              <span className="text-sm font-bold text-slate-700">4,9 / 5</span>
+              <span className="text-sm font-bold text-slate-700">4,6 / 5</span>
               <span className="text-xs text-slate-400">— 240+ avis</span>
             </div>
           </Reveal>

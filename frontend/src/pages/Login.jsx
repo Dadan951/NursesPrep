@@ -406,7 +406,7 @@ export default function Login() {
             Données sécurisées
           </span>
           <span className="w-1 h-1 rounded-full bg-slate-300" />
-          <span>+2 400 étudiants IFSI</span>
+          <span>+800 étudiants IFSI</span>
         </motion.div>
       </div>
     </AuthScene>

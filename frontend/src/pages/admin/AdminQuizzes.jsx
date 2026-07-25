@@ -19,7 +19,7 @@ const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" str
 
 const EMPTY_QUIZ = {
   title: '', description: '', semester: '', programVersion: 'ancien', category: '', chapter: '', difficulty: 'medium', duration: 10, isPublished: true,
-  questions: [{ text: '', explanation: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }] }],
+  questions: [{ text: '', explanation: '', multipleAnswers: false, options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }] }],
 };
 
 /* ─── Modal Quiz ────────────────────────────────────────────────────────── */
@@ -36,9 +36,18 @@ function QuizModal({ quiz, preset, onClose, onSave, existingSemesters = [], exis
   const setQ = (qi, field, value) => { const qs = [...form.questions]; qs[qi] = { ...qs[qi], [field]: value }; setForm({ ...form, questions: qs }); };
   const setOpt = (qi, oi, field, value) => {
     const qs = [...form.questions]; const opts = [...qs[qi].options];
-    if (field === 'isCorrect' && value) opts.forEach((_, i) => { opts[i] = { ...opts[i], isCorrect: i === oi }; });
+    if (field === 'isCorrect' && value && !qs[qi].multipleAnswers) opts.forEach((_, i) => { opts[i] = { ...opts[i], isCorrect: i === oi }; });
     else opts[oi] = { ...opts[oi], [field]: value };
     qs[qi] = { ...qs[qi], options: opts }; setForm({ ...form, questions: qs });
+  };
+  const setMultiple = (qi, value) => {
+    const qs = [...form.questions]; let opts = [...qs[qi].options];
+    if (!value) {
+      // Bascule QCM → QCU : ne garder que la première option correcte pour éviter un état invalide
+      const firstCorrect = opts.findIndex(o => o.isCorrect);
+      opts = opts.map((o, i) => ({ ...o, isCorrect: i === (firstCorrect === -1 ? 0 : firstCorrect) }));
+    }
+    qs[qi] = { ...qs[qi], multipleAnswers: value, options: opts }; setForm({ ...form, questions: qs });
   };
   const addQ = () => { setForm({ ...form, questions: [...form.questions, JSON.parse(JSON.stringify(EMPTY_QUIZ.questions[0]))] }); setTab(form.questions.length); };
   const removeQ = (qi) => { const qs = form.questions.filter((_, i) => i !== qi); setForm({ ...form, questions: qs }); setTab(Math.max(0, tab - 1)); };
@@ -141,12 +150,16 @@ function QuizModal({ quiz, preset, onClose, onSave, existingSemesters = [], exis
             <Field label="Question" required>
               <textarea value={form.questions[tab].text} onChange={e => setQ(tab, 'text', e.target.value)} rows={2} className={`${inputCls} resize-none`} placeholder="Texte de la question…" style={{ background: '#fff' }} />
             </Field>
-            <Field label="Options (sélectionner la bonne réponse)">
+            <Field label="Type de question">
+              <Toggle checked={!!form.questions[tab].multipleAnswers} onChange={v => setMultiple(tab, v)}
+                labels={['QCM — plusieurs bonnes réponses possibles', 'QCU — une seule bonne réponse']} />
+            </Field>
+            <Field label={form.questions[tab].multipleAnswers ? 'Options (sélectionner toutes les bonnes réponses)' : 'Options (sélectionner la bonne réponse)'}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {form.questions[tab].options.map((opt, oi) => (
                   <div key={oi} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <button type="button" onClick={() => setOpt(tab, oi, 'isCorrect', true)} aria-label={`Option ${String.fromCharCode(65 + oi)} correcte`}
-                      style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${opt.isCorrect ? '#10b981' : '#cbd5e1'}`, background: opt.isCorrect ? '#10b981' : '#fff' }}>
+                    <button type="button" onClick={() => setOpt(tab, oi, 'isCorrect', form.questions[tab].multipleAnswers ? !opt.isCorrect : true)} aria-label={`Option ${String.fromCharCode(65 + oi)} correcte`}
+                      style={{ width: 24, height: 24, borderRadius: form.questions[tab].multipleAnswers ? 6 : '50%', flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${opt.isCorrect ? '#10b981' : '#cbd5e1'}`, background: opt.isCorrect ? '#10b981' : '#fff' }}>
                       {opt.isCorrect && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                     </button>
                     <input value={opt.text} onChange={e => setOpt(tab, oi, 'text', e.target.value)}

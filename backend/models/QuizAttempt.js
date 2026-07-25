@@ -6,6 +6,8 @@ const answerSchema = new Schema({
   questionText:  { type: String, default: '' },
   selectedText:  { type: String, default: '' },
   correctText:   { type: String, default: '' },
+  selectedTexts: { type: [String], default: undefined }, // QCM uniquement
+  correctTexts:  { type: [String], default: undefined },  // QCM uniquement
   isCorrect:     { type: Boolean, required: true },
 }, { _id: false });
 

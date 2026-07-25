@@ -41,6 +41,7 @@ const OPT = {
   wrong:   { bg:'#fef2f2',  border:'#fca5a5', text:'#7f1d1d',  badgeBg:'#fecaca', badgeColor:'#991b1b',  shadow:`inset 0 1px 0 rgba(255,255,255,0.9), 0 3px 0 #ef444444, 0 8px 16px #dc262633` },
   dimmed:  { bg:'#f8fafc',  border:'#e2e8f0', text:'#94a3b8',  badgeBg:'#f1f5f9', badgeColor:'#cbd5e1',  shadow:'none' },
   missed:  { bg:'#f0fdf4',  border:'#86efac', text:'#166534',  badgeBg:'#bbf7d0', badgeColor:'#15803d',  shadow:`inset 0 1px 0 rgba(255,255,255,0.9), 0 3px 0 #15803d44, 0 8px 16px #10b98133` },
+  checkedPending: { bg:'#f5f3ff', border:'var(--theme-primary)', text:'#312e81', badgeBg:'var(--theme-primary)', badgeColor:'#fff', shadow:`inset 0 1px 0 rgba(255,255,255,0.9), 0 3px 0 rgba(var(--theme-primary-rgb),0.3), 0 8px 16px rgba(var(--theme-primary-rgb),0.18)` },
 };
 
 /* ─── Fisher-Yates ───────────────────────────────────────────────────────── */
@@ -56,22 +57,24 @@ function shuffleOptions(questions) {
 }
 
 /* ─── Option button ──────────────────────────────────────────────────────── */
-function OptionBtn({ opt, idx, answered, selected, onClick }) {
+// selected : tableau d'indices verrouillés (une fois répondu). preChecked : coché mais pas encore validé (QCM).
+function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick }) {
   const [hovered, setHovered] = useState(false);
   const letter = String.fromCharCode(65 + idx);
+  const isSelected = selected.includes(idx);
 
   let st;
   if (!answered) {
-    st = OPT.idle;
+    st = preChecked ? OPT.checkedPending : OPT.idle;
   } else if (opt.isCorrect) {
     st = OPT.correct;
-  } else if (idx === selected) {
+  } else if (isSelected) {
     st = OPT.wrong;
   } else {
     st = OPT.dimmed;
   }
 
-  const isActive = hovered && !answered;
+  const isActive = hovered && !answered && !preChecked;
 
   return (
     <motion.button
@@ -89,9 +92,9 @@ function OptionBtn({ opt, idx, answered, selected, onClick }) {
         transition:'border-color 0.15s, background 0.15s, box-shadow 0.15s',
       }}
     >
-      {/* Letter badge */}
+      {/* Badge (carré arrondi pour QCM, identique pour QCU — le libellé QCU/QCM est sur la card question) */}
       <div style={{
-        width:32, height:32, borderRadius:10, flexShrink:0,
+        width:32, height:32, borderRadius:multi ? 8 : 10, flexShrink:0,
         background:isActive ? C.indigo : st.badgeBg,
         color:isActive ? '#fff' : st.badgeColor,
         display:'flex', alignItems:'center', justifyContent:'center',
@@ -100,8 +103,10 @@ function OptionBtn({ opt, idx, answered, selected, onClick }) {
       }}>
         {answered && opt.isCorrect
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          : answered && idx === selected && !opt.isCorrect
+          : answered && isSelected && !opt.isCorrect
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          : !answered && preChecked
+          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           : letter
         }
       </div>
@@ -111,16 +116,29 @@ function OptionBtn({ opt, idx, answered, selected, onClick }) {
       </span>
 
       {/* Label "Ta réponse" / "Bonne réponse" */}
-      {answered && idx === selected && opt.isCorrect && (
+      {answered && isSelected && opt.isCorrect && (
         <span style={{ fontSize:10, fontWeight:700, color:'#15803d', background:'#dcfce7', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Ta réponse ✓</span>
       )}
-      {answered && idx === selected && !opt.isCorrect && (
+      {answered && isSelected && !opt.isCorrect && (
         <span style={{ fontSize:10, fontWeight:700, color:'#991b1b', background:'#fee2e2', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Ta réponse</span>
       )}
-      {answered && opt.isCorrect && idx !== selected && (
+      {answered && opt.isCorrect && !isSelected && (
         <span style={{ fontSize:10, fontWeight:700, color:'#15803d', background:'#dcfce7', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Bonne réponse</span>
       )}
     </motion.button>
+  );
+}
+
+/* ─── Badge QCU / QCM ────────────────────────────────────────────────────── */
+function AnswerTypeBadge({ multi }) {
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', fontSize:10, fontWeight:800, letterSpacing:'0.04em',
+      color: multi ? '#7c3aed' : C.indigo, background: multi ? '#f3e8ff' : 'rgba(var(--theme-primary-rgb),0.1)',
+      borderRadius:99, padding:'4px 10px', marginBottom:12,
+    }}>
+      {multi ? 'QCM · plusieurs réponses' : 'QCU · une seule réponse'}
+    </span>
   );
 }
 
@@ -135,7 +153,8 @@ export default function QuizPlay() {
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [loading, setLoading]                     = useState(true);
   const [current, setCurrent]                     = useState(0);
-  const [selected, setSelected]                   = useState(null);
+  const [selected, setSelected]                   = useState([]); // indices verrouillés après réponse (QCU: 1 élément, QCM: plusieurs)
+  const [checked, setChecked]                     = useState([]); // QCM uniquement : cases cochées avant validation
   const [answered, setAnswered]                   = useState(false);
   const [score, setScore]                         = useState(0);
   const [done, setDone]                           = useState(false);
@@ -193,7 +212,7 @@ export default function QuizPlay() {
 
   const handleRestart = () => {
     setCurrent(0); setScore(0); setAnswers([]);
-    setSelected(null); setAnswered(false);
+    setSelected([]); setChecked([]); setAnswered(false);
     setTimeLeft(quiz.duration * 60);
     setShuffledQuestions(shuffleOptions(quiz.questions));
     setResumeModal(false);
@@ -222,20 +241,28 @@ export default function QuizPlay() {
   }, [timeLeft, quiz, done, score, answers, finish, ready]);
 
   /* ── Réponse + auto-scroll ───────────────────────────────────────────── */
-  const handleAnswer = (optIdx) => {
+  // selectedIdxs : tableau d'indices choisis (1 seul pour un QCU, 1+ pour un QCM)
+  const handleAnswer = (selectedIdxs) => {
     if (answered || !quiz) return;
-    const q         = shuffledQuestions[current] || quiz.questions[current];
-    const isCorrect = q.options[optIdx].isCorrect;
-    const correctOpt = q.options.find(o => o.isCorrect);
-    const newScore  = isCorrect ? score + 1 : score;
+    const q           = shuffledQuestions[current] || quiz.questions[current];
+    const correctIdxs = q.options.map((o, i) => o.isCorrect ? i : -1).filter(i => i !== -1);
+    const selSet      = new Set(selectedIdxs);
+    const corrSet     = new Set(correctIdxs);
+    // Tout ou rien : juste seulement si les deux ensembles sont strictement identiques
+    const isCorrect   = selSet.size === corrSet.size && [...selSet].every(i => corrSet.has(i));
+    const selectedTexts = selectedIdxs.map(i => q.options[i].text);
+    const correctTexts  = correctIdxs.map(i => q.options[i].text);
+    const newScore    = isCorrect ? score + 1 : score;
     const newAnswers = [...answers, {
       questionIndex: current,
       questionText:  q.text,
-      selectedText:  q.options[optIdx].text,
-      correctText:   correctOpt?.text || '',
+      ...(q.multipleAnswers
+        ? { selectedTexts, correctTexts }
+        : { selectedText: selectedTexts[0] || '', correctText: correctTexts[0] || '' }),
       isCorrect,
     }];
-    setSelected(optIdx);
+    setSelected(selectedIdxs);
+    setChecked([]);
     setAnswered(true);
     setScore(newScore);
     setAnswers(newAnswers);
@@ -251,13 +278,25 @@ export default function QuizPlay() {
     });
   };
 
+  // Clic sur une option : verrouille immédiatement en QCU, coche/décoche en QCM
+  const handleOptionClick = (idx) => {
+    if (answered || !quiz) return;
+    const q = shuffledQuestions[current] || quiz.questions[current];
+    if (q.multipleAnswers) {
+      setChecked(c => c.includes(idx) ? c.filter(i => i !== idx) : [...c, idx]);
+    } else {
+      handleAnswer([idx]);
+    }
+  };
+
   /* ── Question suivante ───────────────────────────────────────────────── */
   const handleNext = () => {
     if (current + 1 >= quiz.questions.length) {
       finish(score, answers);
     } else {
       setCurrent(c => c + 1);
-      setSelected(null);
+      setSelected([]);
+      setChecked([]);
       setAnswered(false);
       // Scroll en haut de la page pour la nouvelle question
       mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -394,11 +433,12 @@ export default function QuizPlay() {
 
                   {/* Card question */}
                   <div style={{ background:C.card, borderRadius:24, boxShadow:clay.card, border:`1px solid ${C.border}`, padding:'22px 20px', marginBottom:12 }}>
+                    <AnswerTypeBadge multi={!!rq?.multipleAnswers} />
                     <p style={{ fontSize:15, fontWeight:700, color:C.text, fontFamily:'Nunito,sans-serif', lineHeight:1.65, marginBottom:18 }}>{rq?.text}</p>
 
                     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                       {rq?.options.map((opt, oi) => {
-                        const isSel    = opt.text === ans?.selectedText;
+                        const isSel    = ans?.selectedTexts ? ans.selectedTexts.includes(opt.text) : opt.text === ans?.selectedText;
                         const isCorr   = opt.isCorrect;
                         let st = OPT.dimmed;
                         if (isCorr) st = OPT.correct;
@@ -524,7 +564,7 @@ export default function QuizPlay() {
                   ← Retour
                 </motion.button>
                 <motion.button whileTap={{ scale:0.96 }} whileHover={{ scale:1.01 }}
-                  onClick={() => { setCurrent(0); setSelected(null); setAnswered(false); setScore(0); setDone(false); setAnswers([]); setReviewMode(false); setTimeLeft(quiz.duration*60); setShuffledQuestions(shuffleOptions(quiz.questions)); setReady(true); }}
+                  onClick={() => { setCurrent(0); setSelected([]); setChecked([]); setAnswered(false); setScore(0); setDone(false); setAnswers([]); setReviewMode(false); setTimeLeft(quiz.duration*60); setShuffledQuestions(shuffleOptions(quiz.questions)); setReady(true); }}
                   style={{ display:'block', width:'100%', padding:'13px 0', borderRadius:14, border:'none', background:`linear-gradient(135deg,#1e293b,#334155)`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.btn('#334155','#0f172a'), minWidth:0 }}>
                   Recommencer
                 </motion.button>
@@ -611,13 +651,27 @@ export default function QuizPlay() {
 
               {/* Question card */}
               <div style={{ background:C.card, borderRadius:24, boxShadow:clay.card, border:`1px solid ${C.border}`, padding:'22px 20px 20px', marginBottom:14 }}>
+                <AnswerTypeBadge multi={!!q.multipleAnswers} />
                 <p style={{ fontSize:16, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif', lineHeight:1.65, marginBottom:20 }}>{q.text}</p>
 
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {q.options.map((opt, i) => (
-                    <OptionBtn key={i} opt={opt} idx={i} answered={answered} selected={selected} onClick={handleAnswer}/>
+                    <OptionBtn key={i} opt={opt} idx={i} answered={answered} selected={selected}
+                      preChecked={checked.includes(i)} multi={!!q.multipleAnswers} onClick={handleOptionClick}/>
                   ))}
                 </div>
+
+                {q.multipleAnswers && !answered && (
+                  <motion.button onClick={() => handleAnswer(checked)} disabled={checked.length === 0}
+                    whileHover={{ scale: checked.length ? 1.02 : 1 }} whileTap={{ scale: checked.length ? 0.97 : 1 }}
+                    style={{ width:'100%', marginTop:14, padding:'13px 0', borderRadius:16, border:'none',
+                      background: checked.length ? 'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))' : C.border,
+                      color: checked.length ? '#fff' : '#94a3b8', fontSize:14, fontWeight:800, fontFamily:'Nunito,sans-serif',
+                      cursor: checked.length ? 'pointer' : 'not-allowed',
+                      boxShadow: checked.length ? clay.btn() : 'none' }}>
+                    Valider ma réponse
+                  </motion.button>
+                )}
               </div>
 
               {/* ── Feedback (explication + bouton suivant) — ref pour scroll ── */}

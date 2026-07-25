@@ -9,7 +9,8 @@ const questionSchema = new mongoose.Schema({
   text: { type: String, required: true },
   options: [optionSchema],
   explanation: { type: String, default: '' },
-  type: { type: String, enum: ['qcm', 'qroc'], default: 'qcm' }
+  type: { type: String, enum: ['qcm', 'qroc'], default: 'qcm' },
+  multipleAnswers: { type: Boolean, default: false } // false = QCU (une seule bonne réponse), true = QCM (plusieurs)
 });
 
 const quizSchema = new mongoose.Schema({

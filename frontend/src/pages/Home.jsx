@@ -562,7 +562,7 @@ function Navbar() {
       <motion.div className="fixed top-0 left-0 right-0 h-[3px] z-[60] origin-left"
         style={{ scaleX: progress, background: 'linear-gradient(90deg,#0891b2,#06b6d4,#6366f1)' }} />
 
-      <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/85 shadow-lg shadow-slate-900/5' : 'bg-white/60'}`}
+      <header className={`fixed top-0 inset-x-0 z-50 border-b transition-all duration-300 ${scrolled ? 'bg-white/85 border-slate-200 shadow-lg shadow-slate-900/5' : 'bg-white/60 border-slate-200/70 shadow-sm shadow-slate-900/[0.03]'}`}
         style={{ backdropFilter: 'blur(14px)' }}>
         <nav className={`w-full px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${scrolled ? 'py-2.5' : 'py-4'}`}>
           <Link to="/" className="flex-shrink-0">

@@ -21,6 +21,41 @@ async function logSubscriptionEvent(userId, fromPlan, toPlan) {
   try { await SubscriptionEvent.create({ user: userId, fromPlan, toPlan, type }); } catch (_) {}
 }
 
+/* ── Parrainage : coupon Stripe réutilisable pour N mois gratuits ─────────── */
+async function getOrCreateFreeMonthsCoupon(months) {
+  const id = months === 1 ? 'parrainage-1-mois' : `parrainage-${months}-mois`;
+  try {
+    return (await stripe.coupons.retrieve(id)).id;
+  } catch (_) {
+    const coupon = await stripe.coupons.create({
+      id, percent_off: 100,
+      duration: months === 1 ? 'once' : 'repeating',
+      duration_in_months: months === 1 ? undefined : months,
+      name: `Parrainage — ${months} mois gratuit${months > 1 ? 's' : ''}`,
+    });
+    return coupon.id;
+  }
+}
+
+/* Accorde la récompense de parrainage (1 mois gratuit) au parrain d'un utilisateur
+   qui vient de s'abonner pour la première fois. Applique directement le rabais
+   Stripe si le parrain a déjà un abonnement actif, sinon met le mois en attente
+   (appliqué automatiquement à son prochain checkout). */
+async function rewardReferrer(referrerId) {
+  const referrer = await User.findById(referrerId).select('stripeSubscriptionId');
+  if (!referrer) return;
+  if (referrer.stripeSubscriptionId) {
+    try {
+      const couponId = await getOrCreateFreeMonthsCoupon(1);
+      await stripe.subscriptions.update(referrer.stripeSubscriptionId, { coupon: couponId });
+    } catch (err) {
+      console.error('[Parrainage] Échec application coupon parrain:', err.message);
+    }
+  } else {
+    await User.findByIdAndUpdate(referrerId, { $inc: { pendingFreeMonths: 1 } });
+  }
+}
+
 /* ── POST /api/subscription/checkout ────────────────────────────────────── */
 router.post('/checkout', protect, async (req, res) => {
   try {
@@ -29,7 +64,8 @@ router.post('/checkout', protect, async (req, res) => {
     if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder')
       return res.status(503).json({ message: 'Paiement non configuré — contacte l\'administrateur.' });
 
-    const session = await stripe.checkout.sessions.create({
+    const me = await User.findById(req.user._id).select('pendingFreeMonths');
+    const sessionParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: PRICE_IDS[plan], quantity: 1 }],
@@ -38,7 +74,12 @@ router.post('/checkout', protect, async (req, res) => {
       success_url: `${process.env.FRONTEND_URL || 'https://www.nursesprep.fr'}/dashboard/subscription?success=true&plan=${plan}`,
       cancel_url:  `${process.env.FRONTEND_URL || 'https://www.nursesprep.fr'}/dashboard/subscription?canceled=true`,
       locale: 'fr',
-    });
+    };
+    // Mois gratuits gagnés par parrainage, en attente d'un abonnement actif
+    if (me?.pendingFreeMonths > 0) {
+      sessionParams.discounts = [{ coupon: await getOrCreateFreeMonthsCoupon(me.pendingFreeMonths) }];
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     res.json({ url: session.url });
   } catch (err) {
@@ -89,14 +130,29 @@ router.post('/webhook', async (req, res) => {
         const plan   = session.metadata?.plan || 'pro';
         const sub    = await stripe.subscriptions.retrieve(session.subscription);
 
-        const prevUser = await User.findById(userId).select('subscription');
+        const prevUser = await User.findById(userId).select('subscription referredBy referralConverted pendingFreeMonths');
         await User.findByIdAndUpdate(userId, {
           subscription:         plan,
           stripeCustomerId:     session.customer,
           stripeSubscriptionId: session.subscription,
+          ...(prevUser?.pendingFreeMonths > 0 ? { pendingFreeMonths: 0 } : {}), // consommés dans ce checkout
         });
         await logSubscriptionEvent(userId, prevUser?.subscription || 'free', plan);
         console.log(`[Stripe] ✅ ${userId} → plan ${plan}`);
+
+        // Parrainage : première conversion payante d'un utilisateur parrainé
+        // → 1 mois gratuit pour lui ET pour son parrain.
+        if (prevUser?.referredBy && !prevUser.referralConverted) {
+          try {
+            const couponId = await getOrCreateFreeMonthsCoupon(1);
+            await stripe.subscriptions.update(session.subscription, { coupon: couponId });
+          } catch (err) {
+            console.error('[Parrainage] Échec application coupon filleul:', err.message);
+          }
+          await User.findByIdAndUpdate(userId, { referralConverted: true });
+          await rewardReferrer(prevUser.referredBy);
+          console.log(`[Parrainage] 🎁 ${userId} et son parrain ${prevUser.referredBy} récompensés`);
+        }
         break;
       }
 

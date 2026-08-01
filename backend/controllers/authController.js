@@ -44,10 +44,21 @@ const formatUser = (u) => ({
 /* Génère un code à 6 chiffres */
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
+/* Génère un code de parrainage unique (6 caractères alphanumériques) */
+async function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans caractères ambigus (0/O, 1/I)
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    if (!(await User.exists({ referralCode: code }))) return code;
+  }
+  throw new Error('Impossible de générer un code de parrainage unique');
+}
+
 /* ── POST /auth/register ─────────────────────────────────────────────────── */
 exports.register = async (req, res) => {
   try {
-    const { name, email: emailAddr, password, studyYear } = req.body;
+    const { name, email: emailAddr, password, studyYear, referralCode } = req.body;
     if (!name || !emailAddr || !password)
       return res.status(400).json({ message: 'Tous les champs sont requis' });
     if (password.length < 6)
@@ -65,6 +76,10 @@ exports.register = async (req, res) => {
     const code    = genCode();
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 min
 
+    // Parrain (facultatif) — un code invalide ou inexistant est simplement ignoré
+    let referrer = null;
+    if (referralCode) referrer = await User.findOne({ referralCode: referralCode.toUpperCase().trim() });
+
     if (existing && !existing.emailVerified) {
       // Compte en attente → on met à jour le code
       existing.name     = name.trim();
@@ -74,6 +89,8 @@ exports.register = async (req, res) => {
       existing.programVersion  = programVersion;
       existing.verificationCode    = code;
       existing.verificationExpires = expires;
+      if (referrer && !existing.referredBy) existing.referredBy = referrer._id;
+      if (!existing.referralCode) existing.referralCode = await generateReferralCode();
       await existing.save();
     } else {
       await User.create({
@@ -82,6 +99,8 @@ exports.register = async (req, res) => {
         emailVerified: false,
         verificationCode: code,
         verificationExpires: expires,
+        referralCode: await generateReferralCode(),
+        referredBy: referrer?._id || null,
       });
     }
 
@@ -355,6 +374,27 @@ exports.exportData = async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="nursesprep-donnees-${new Date().toISOString().slice(0, 10)}.json"`);
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(data, null, 2));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ── GET /auth/referral — code de parrainage + stats ───────────────────────── */
+exports.getReferralInfo = async (req, res) => {
+  try {
+    let user = await User.findById(req.user._id).select('referralCode pendingFreeMonths');
+    if (!user.referralCode) {
+      user.referralCode = await generateReferralCode();
+      await user.save();
+    }
+    const referredCount   = await User.countDocuments({ referredBy: req.user._id });
+    const convertedCount  = await User.countDocuments({ referredBy: req.user._id, referralConverted: true });
+    res.json({
+      code: user.referralCode,
+      referredCount,
+      convertedCount,
+      pendingFreeMonths: user.pendingFreeMonths || 0,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

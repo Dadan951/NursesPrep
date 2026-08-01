@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -56,6 +56,13 @@ function PageLoader() {
 }
 
 function App() {
+  // Capture le code de parrainage (?ref=CODE) dès l'arrivée sur le site,
+  // consommé par AuthContext.register() au moment de l'inscription.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) localStorage.setItem('np-referral-code', ref.toUpperCase().trim());
+  }, []);
+
   return (
     <AuthProvider>
     <ThemeProvider>

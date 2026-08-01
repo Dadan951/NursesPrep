@@ -299,6 +299,21 @@ export default function Profile() {
   const [toast,  setToast]  = useState({ msg:'', type:'success' });
   const [preview, setPreview] = useState(null);
 
+  // Parrainage
+  const [referral, setReferral] = useState(null);
+  const [referralCopied, setReferralCopied] = useState(false);
+  useEffect(() => {
+    axios.get(`${API_URL}/auth/referral`).then(res => setReferral(res.data)).catch(() => {});
+  }, []);
+  const referralLink = referral ? `https://nursesprep.fr/?ref=${referral.code}` : '';
+  const handleCopyReferral = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink).then(() => {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2000);
+    });
+  };
+
   // Suppression de compte (RGPD)
   const [showDelete, setShowDelete]       = useState(false);
   const [delPassword, setDelPassword]     = useState('');
@@ -929,6 +944,47 @@ export default function Profile() {
                         })}
                       </div>
                     </div>
+                  </div>
+                </SCard>
+              </motion.div>
+
+              {/* Parrainage */}
+              <motion.div initial={{ opacity:0, x:12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.38 }}>
+                <SCard>
+                  <SCardHeader
+                    icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M22 8v6"/><path d="M19 11h6"/></svg>}
+                    title="Parrainage" sub="1 mois gratuit pour toi et ton ami" gradFrom="#d97706" gradTo="#b45309"/>
+                  <div style={{ padding:'20px' }}>
+                    <p style={{ fontSize:11, color:C.sub, lineHeight:1.65, marginBottom:16 }}>
+                      Partage ton lien. Dès que ton ami s'abonne, vous recevez chacun <strong style={{ color:C.text }}>1 mois gratuit</strong>.
+                    </p>
+                    {!referral ? (
+                      <div style={{ height:44, borderRadius:14, background:C.bg, animation:'pulse 1.5s ease-in-out infinite' }}/>
+                    ) : (
+                      <>
+                        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+                          <div style={{ flex:1, minWidth:0, padding:'11px 14px', borderRadius:14, background:C.bg, border:`1.5px solid ${C.border}`, fontSize:12, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:'monospace' }}>
+                            {referralLink}
+                          </div>
+                          <motion.button whileHover={{ y:-2 }} whileTap={{ scale:0.96 }} onClick={handleCopyReferral}
+                            style={{ padding:'0 18px', borderRadius:14, border:'none', background: referralCopied ? '#16a34a' : 'linear-gradient(135deg,#d97706,#b45309)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', flexShrink:0, boxShadow:clay.btn('#d97706','#92400e') }}>
+                            {referralCopied ? '✓ Copié' : 'Copier'}
+                          </motion.button>
+                        </div>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+                          {[
+                            { l:'Invités', v:referral.referredCount },
+                            { l:'Abonnés', v:referral.convertedCount },
+                            { l:'Mois en attente', v:referral.pendingFreeMonths },
+                          ].map((s, i) => (
+                            <div key={i} style={{ textAlign:'center', padding:'10px 6px', borderRadius:14, background:C.bg, border:`1.5px solid ${C.border}` }}>
+                              <p style={{ fontSize:18, fontWeight:900, color:C.text }}>{s.v}</p>
+                              <p style={{ fontSize:10, color:C.sub, marginTop:2 }}>{s.l}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </SCard>
               </motion.div>

@@ -13,6 +13,10 @@ const userSchema = new mongoose.Schema({
   programVersion: { type: String, enum: ['ancien', 'reforme_2026'], default: 'ancien' },
   stripeCustomerId:     { type: String, default: null },
   stripeSubscriptionId: { type: String, default: null },
+  referralCode:      { type: String, unique: true, sparse: true },
+  referredBy:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  referralConverted: { type: Boolean, default: false }, // true une fois la récompense de parrainage accordée
+  pendingFreeMonths: { type: Number, default: 0 },       // mois gratuits gagnés en attendant un abonnement Stripe actif
   progress: {
     quizCompleted: { type: Number, default: 0 },
     flashcardsReviewed: { type: Number, default: 0 },

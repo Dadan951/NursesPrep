@@ -197,3 +197,50 @@ describe('PUT /api/auth/profile — changement d\'année d\'études', () => {
     expect(u.programVersion).toBe('reforme_2026'); // inchangé
   });
 });
+
+describe('Parrainage', () => {
+  const registerAndLogin = async (email, studyYear) => {
+    await post('/api/auth/register', { name: 'Test', email, password: 'secret123', studyYear });
+    const { verificationCode } = await User.findOne({ email });
+    const vr = await post('/api/auth/verify-email', { email, code: verificationCode });
+    return vr.body.token;
+  };
+
+  it('génère un code de parrainage unique à l\'inscription', async () => {
+    await post('/api/auth/register', { name: 'Test', email: 'ref1@b.fr', password: 'secret123', studyYear: '1ere' });
+    const u = await User.findOne({ email: 'ref1@b.fr' });
+    expect(u.referralCode).toMatch(/^[A-Z0-9]{6}$/);
+    expect(u.referredBy).toBeNull();
+  });
+
+  it("lie le filleul au parrain quand un code de parrainage valide est fourni", async () => {
+    await post('/api/auth/register', { name: 'Parrain', email: 'parrain@b.fr', password: 'secret123', studyYear: '1ere' });
+    const parrain = await User.findOne({ email: 'parrain@b.fr' });
+
+    await post('/api/auth/register', {
+      name: 'Filleul', email: 'filleul@b.fr', password: 'secret123', studyYear: '1ere',
+      referralCode: parrain.referralCode,
+    });
+    const filleul = await User.findOne({ email: 'filleul@b.fr' });
+    expect(filleul.referredBy?.toString()).toBe(parrain._id.toString());
+    expect(filleul.referralConverted).toBe(false);
+  });
+
+  it('ignore silencieusement un code de parrainage inconnu', async () => {
+    const r = await post('/api/auth/register', {
+      name: 'Test', email: 'badref@b.fr', password: 'secret123', studyYear: '1ere', referralCode: 'ZZZZZZ',
+    });
+    expect(r.status).toBe(201);
+    const u = await User.findOne({ email: 'badref@b.fr' });
+    expect(u.referredBy).toBeNull();
+  });
+
+  it('GET /api/auth/referral renvoie le code et les statistiques', async () => {
+    const token = await registerAndLogin('refinfo@b.fr', '1ere');
+    const r = await request(app).get('/api/auth/referral').set('Authorization', `Bearer ${token}`);
+    expect(r.status).toBe(200);
+    expect(r.body.code).toMatch(/^[A-Z0-9]{6}$/);
+    expect(r.body.referredCount).toBe(0);
+    expect(r.body.pendingFreeMonths).toBe(0);
+  });
+});

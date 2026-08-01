@@ -133,7 +133,7 @@ function ActionCard3D({ to, label, desc, icon, color, darkColor, grad, noEdge })
         background: `linear-gradient(${grad})`,
         borderRadius: 22,
         padding: isMob ? '18px 14px 16px' : '22px 18px 20px',
-        minHeight: isMob ? 130 : 158,
+        height: isMob ? 130 : 158,
         cursor: 'pointer',
         position: 'relative',
         overflow: 'hidden',
@@ -146,8 +146,8 @@ function ActionCard3D({ to, label, desc, icon, color, darkColor, grad, noEdge })
       <div style={{ width:isMob?38:46, height:isMob?38:46, borderRadius:isMob?12:14, marginBottom:isMob?10:14, background:'rgba(255,255,255,0.22)', border:'1px solid rgba(255,255,255,0.38)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', boxShadow:'0 4px 14px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.5)', flexShrink:0 }}>
         {icon}
       </div>
-      <p style={{ fontSize:isMob?12:13, fontWeight:800, color:'#fff', marginBottom:2, fontFamily:'Nunito,sans-serif', lineHeight:1.2 }}>{label}</p>
-      <p style={{ fontSize:10, color:'rgba(255,255,255,0.72)', marginBottom:isMob?8:14, lineHeight:1.4 }}>{desc}</p>
+      <p style={{ fontSize:isMob?12:13, fontWeight:800, color:'#fff', marginBottom:2, fontFamily:'Nunito,sans-serif', lineHeight:1.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</p>
+      <p style={{ fontSize:10, color:'rgba(255,255,255,0.72)', marginBottom:isMob?8:14, lineHeight:1.4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{desc}</p>
       <div style={{ display:'flex', alignItems:'center', gap:3, color:'rgba(255,255,255,0.92)', fontSize:11, fontWeight:700 }}>
         Ouvrir <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </div>

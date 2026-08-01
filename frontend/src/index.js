@@ -6,7 +6,11 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { initSentry } from './sentry';
 
-initSentry();
+// N'initialise Sentry au démarrage que si le consentement a déjà été donné
+// lors d'une session précédente. Sinon, CookieConsent.jsx s'en charge au clic.
+try {
+  if (localStorage.getItem('np-cookie-consent') === 'accepted') initSentry();
+} catch { /* */ }
 
 /* Écran de secours si l'app plante — évite l'écran blanc */
 function ErrorFallback() {

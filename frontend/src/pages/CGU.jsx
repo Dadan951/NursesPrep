@@ -167,11 +167,18 @@ export default function CGU() {
 
         </div>
 
-        {/* Footer link */}
-        <div className="mt-8 text-center">
-          <Link to="/confidentialite" className="text-sm text-blue-600 hover:underline">
-            Lire aussi notre Politique de confidentialité →
-          </Link>
+        {/* Footer links */}
+        <div className="mt-8 text-center space-y-2">
+          <p>
+            <Link to="/confidentialite" className="text-sm text-blue-600 hover:underline">
+              Lire aussi notre Politique de confidentialité →
+            </Link>
+          </p>
+          <p>
+            <Link to="/mentions-legales" className="text-sm text-blue-600 hover:underline">
+              Voir les Mentions légales →
+            </Link>
+          </p>
         </div>
       </main>
 

@@ -147,13 +147,14 @@ export default function Confidentialite() {
             <ul className="list-disc list-inside space-y-1.5 ml-2">
               <li><strong>Droit d'accès</strong> — obtenir une copie de vos données</li>
               <li><strong>Droit de rectification</strong> — corriger vos données inexactes</li>
-              <li><strong>Droit à l'effacement</strong> — demander la suppression de votre compte et données</li>
-              <li><strong>Droit à la portabilité</strong> — recevoir vos données dans un format structuré</li>
+              <li><strong>Droit à l'effacement</strong> — demander la suppression de votre compte et données (en libre-service depuis Profil &gt; Zone de danger)</li>
+              <li><strong>Droit à la portabilité</strong> — télécharger vos données dans un format structuré (en libre-service depuis Profil &gt; Mes données)</li>
               <li><strong>Droit d'opposition</strong> — vous opposer à certains traitements</li>
               <li><strong>Droit à la limitation</strong> — limiter temporairement un traitement</li>
             </ul>
             <p>
-              Pour exercer ces droits, contactez-nous à{' '}
+              L'effacement et l'export de vos données sont accessibles directement depuis votre espace
+              personnel. Pour les autres droits, contactez-nous à{' '}
               <a href="mailto:contact@nursesprep.fr" className="text-blue-600 underline">contact@nursesprep.fr</a>.
               Nous répondrons dans un délai de <strong>30 jours</strong> maximum.
             </p>
@@ -166,15 +167,29 @@ export default function Confidentialite() {
 
           <Section title="8. Cookies">
             <p>
-              La Plateforme utilise des cookies strictement nécessaires au fonctionnement du service
-              (session utilisateur, préférences d'affichage). Ces cookies ne nécessitent pas votre consentement.
+              La Plateforme utilise des cookies et technologies similaires strictement nécessaires au
+              fonctionnement du service (session utilisateur, préférences d'affichage). Ces cookies ne
+              nécessitent pas votre consentement.
             </p>
             <p>
-              Aucun cookie publicitaire ou de tracking tiers n'est utilisé sur la Plateforme.
+              Elle utilise également, sous réserve de votre consentement recueilli via le bandeau affiché
+              lors de votre première visite, des outils de mesure d'audience et de suivi d'erreurs :
             </p>
+            <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+              {[
+                ['Vercel Analytics', 'Mesure d’audience (pages vues, performance)'],
+                ['Sentry', 'Détection et diagnostic des erreurs techniques'],
+              ].map(([name, role]) => (
+                <div key={name} className="flex flex-col sm:flex-row sm:gap-4 py-1">
+                  <span className="font-semibold text-slate-700 sm:w-40 flex-shrink-0">{name}</span>
+                  <span className="flex-1">{role}</span>
+                </div>
+              ))}
+            </div>
             <p>
-              Vous pouvez configurer votre navigateur pour refuser les cookies, mais cela peut affecter
-              le bon fonctionnement de certaines fonctionnalités.
+              Aucun cookie publicitaire n'est utilisé sur la Plateforme. Vous pouvez à tout moment changer
+              d'avis en effaçant les données de navigation de votre navigateur pour ce site, ce qui
+              réaffichera le bandeau de consentement.
             </p>
           </Section>
 
@@ -214,11 +229,18 @@ export default function Confidentialite() {
 
         </div>
 
-        {/* Footer link */}
-        <div className="mt-8 text-center">
-          <Link to="/cgu" className="text-sm text-blue-600 hover:underline">
-            Lire aussi nos Conditions Générales d'Utilisation →
-          </Link>
+        {/* Footer links */}
+        <div className="mt-8 text-center space-y-2">
+          <p>
+            <Link to="/cgu" className="text-sm text-blue-600 hover:underline">
+              Lire aussi nos Conditions Générales d'Utilisation →
+            </Link>
+          </p>
+          <p>
+            <Link to="/mentions-legales" className="text-sm text-blue-600 hover:underline">
+              Voir les Mentions légales →
+            </Link>
+          </p>
         </div>
       </main>
 

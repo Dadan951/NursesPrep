@@ -1,11 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicRoute from './components/PublicRoute';
+import CookieConsent from './components/CookieConsent';
 
 // Chargement à la demande : chaque page devient un "chunk" séparé,
 // téléchargé uniquement quand l'utilisateur visite la route correspondante.
@@ -43,6 +43,7 @@ const GoogleAuthSuccess = lazy(() => import('./pages/GoogleAuthSuccess'));
 const History = lazy(() => import('./pages/History'));
 const CGU = lazy(() => import('./pages/CGU'));
 const Confidentialite = lazy(() => import('./pages/Confidentialite'));
+const MentionsLegales = lazy(() => import('./pages/MentionsLegales'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Affiché brièvement le temps que le chunk d'une page se télécharge
@@ -67,6 +68,7 @@ function App() {
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/cgu" element={<CGU />} />
           <Route path="/confidentialite" element={<Confidentialite />} />
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
 
           {/* Student */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -106,8 +108,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        <CookieConsent />
       </BrowserRouter>
-      <Analytics />
     </ThemeProvider>
     </AuthProvider>
   );

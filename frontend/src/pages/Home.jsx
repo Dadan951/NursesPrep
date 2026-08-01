@@ -1208,6 +1208,7 @@ export default function Home() {
                 <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">Légal</h4>
                 <Link to="/cgu" className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">CGU</Link>
                 <Link to="/confidentialite" className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">Confidentialité</Link>
+                <Link to="/mentions-legales" className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">Mentions légales</Link>
                 <a href="mailto:contact@nursesprep.fr" className="block text-xs text-slate-500 hover:text-white mb-2.5 transition">Contact</a>
               </div>
             </div>

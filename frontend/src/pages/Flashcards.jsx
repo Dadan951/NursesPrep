@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
@@ -527,6 +527,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, part, prevAttempt }) 
 export default function Flashcards() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isFree   = (user?.subscription || 'free') === 'free';
 
   const [cards,      setCards]      = useState([]);
@@ -554,6 +555,24 @@ export default function Flashcards() {
       setCards(cr.data); setCache('flashcards_list', cr.data); setAttempts(ar.data);
     }).finally(() => setLoading(false));
   }, []);
+
+  /* ── Reprise directe depuis le Dashboard (state.resume) ── */
+  const appliedResume = useRef(false);
+  useEffect(() => {
+    if (appliedResume.current || loading) return;
+    const resume = location.state?.resume;
+    if (!resume) return;
+    appliedResume.current = true;
+    const { semester, ue, chapter, part } = resume;
+    setSelectedSemester(semester);
+    setSelectedUE(ue);
+    setSelectedChapter(chapter);
+    setSelectedPart(part);
+    const a = attempts.find(at => at.semester === semester && at.ue === ue && at.chapter === chapter && (at.part || '') === (part || ''));
+    setChapterAttempt(a || null);
+    if (a?.status === 'in_progress') setResumeModal(true);
+    else setView('parts');
+  }, [loading]); // eslint-disable-line
 
   const attemptMap = {};
   attempts.forEach(a => { attemptMap[`${a.semester}|${a.ue}|${a.chapter}|${a.part || ''}`] = a; });

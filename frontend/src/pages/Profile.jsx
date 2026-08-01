@@ -307,6 +307,26 @@ export default function Profile() {
   const canDelete = delConfirm.trim().toUpperCase() === 'SUPPRIMER'
     && (!user?.hasPassword || delPassword.length > 0);
 
+  const [exportLoading, setExportLoading] = useState(false);
+  const handleExportData = async () => {
+    setExportLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/auth/export-data`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nursesprep-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast('Erreur lors de l\'export', 'error');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!canDelete) return;
     setDelLoading(true);
@@ -909,6 +929,26 @@ export default function Profile() {
                         })}
                       </div>
                     </div>
+                  </div>
+                </SCard>
+              </motion.div>
+
+              {/* Mes données (RGPD) */}
+              <motion.div initial={{ opacity:0, x:12 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.4 }}>
+                <SCard>
+                  <SCardHeader
+                    icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>}
+                    title="Mes données" sub="Droit à la portabilité (RGPD)" gradFrom="#0891b2" gradTo="#0284c7"/>
+                  <div style={{ padding:'20px' }}>
+                    <p style={{ fontSize:11, color:C.sub, lineHeight:1.65, marginBottom:16 }}>
+                      Téléchargez une copie de toutes vos données personnelles (profil, historique de quiz,
+                      flashcards, exercices, fiches, tickets de support) au format JSON.
+                    </p>
+                    <motion.button whileHover={{ y:-2, boxShadow:clay.card }} whileTap={{ scale:0.97 }}
+                      onClick={handleExportData} disabled={exportLoading}
+                      style={{ padding:'9px 20px', borderRadius:14, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:12, fontWeight:700, color:C.text, cursor: exportLoading ? 'default' : 'pointer', boxShadow:clay.sm, opacity: exportLoading ? 0.6 : 1 }}>
+                      {exportLoading ? 'Préparation…' : 'Exporter mes données'}
+                    </motion.button>
                   </div>
                 </SCard>
               </motion.div>

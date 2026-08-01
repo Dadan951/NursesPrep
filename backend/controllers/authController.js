@@ -297,6 +297,69 @@ exports.completeOnboarding = async (req, res) => {
   }
 };
 
+/* ── GET /auth/export-data — export RGPD (droit à la portabilité) ─────────── */
+exports.exportData = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).lean();
+    if (!user) return res.status(404).json({ message: 'Compte introuvable' });
+
+    const QuizAttempt      = require('../models/QuizAttempt');
+    const FlashcardAttempt = require('../models/FlashcardAttempt');
+    const ExerciseAttempt  = require('../models/ExerciseAttempt');
+    const RevisionSheet    = require('../models/RevisionSheet');
+    const Ticket           = require('../models/Ticket');
+    const GroupPost        = require('../models/GroupPost');
+
+    const [quizAttempts, flashcardAttempts, exerciseAttempts, revisionSheets, tickets, groupPosts] = await Promise.all([
+      QuizAttempt.find({ user: userId }).populate('quiz', 'title category chapter').lean(),
+      FlashcardAttempt.find({ user: userId }).lean(),
+      ExerciseAttempt.find({ user: userId }).populate('exercise', 'title category').lean(),
+      RevisionSheet.find({ owner: userId }).select('-content').lean(),
+      Ticket.find({ user: userId }).lean(),
+      GroupPost.find({ author: userId }).select('-reports').lean(),
+    ]);
+
+    const data = {
+      exportedAt: new Date().toISOString(),
+      profil: {
+        nom: user.name,
+        email: user.email,
+        role: user.role,
+        abonnement: user.subscription,
+        anneeAcademique: user.academicYear,
+        anneeEtude: user.studyYear,
+        dateCreationCompte: user.createdAt,
+        progression: user.progress,
+        objectifsQuotidiens: user.goals,
+      },
+      tentativesQuiz: quizAttempts.map(a => ({
+        quiz: a.quiz?.title || 'Quiz supprimé',
+        categorie: a.quiz?.category, chapitre: a.quiz?.chapter,
+        score: a.score, statut: a.status, completeLe: a.completedAt,
+      })),
+      tentativesFlashcards: flashcardAttempts.map(a => ({
+        semestre: a.semester, ue: a.ue, chapitre: a.chapter, partie: a.part,
+        connu: a.known, inconnu: a.unknown, statut: a.status, completeLe: a.completedAt,
+      })),
+      tentativesExercices: exerciseAttempts.map(a => ({
+        exercice: a.exercise?.title || 'Exercice supprimé',
+        categorie: a.exercise?.category,
+        correct: a.isCorrect, completeLe: a.completedAt,
+      })),
+      fichesRevision: revisionSheets.map(s => ({ titre: s.title, creeLe: s.createdAt })),
+      ticketsSupport: tickets.map(t => ({ sujet: t.subject, categorie: t.category, statut: t.status, creeLe: t.createdAt })),
+      messagesGroupe: groupPosts.map(p => ({ contenu: p.content, groupe: p.group, publieLe: p.createdAt })),
+    };
+
+    res.setHeader('Content-Disposition', `attachment; filename="nursesprep-donnees-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 /* ── DELETE /auth/account — suppression RGPD (droit à l'effacement) ───────── */
 exports.deleteAccount = async (req, res) => {
   try {

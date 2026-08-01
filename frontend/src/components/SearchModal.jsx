@@ -28,12 +28,18 @@ const FicheIcon = () => (
     <line x1="9" y1="15" x2="15" y2="15"/>
   </svg>
 );
+const MedicamentIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>
+  </svg>
+);
 
 const TYPE_META = {
-  quiz:      { label: 'Quiz',               Icon: QuizIcon,  color: 'text-blue-500',    bg: 'bg-blue-50'    },
-  flashcard: { label: 'Flashcards',         Icon: CardIcon,  color: 'text-purple-500',  bg: 'bg-purple-50'  },
-  cours:     { label: 'Cours',              Icon: CoursIcon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  fiche:     { label: 'Fiches de révision', Icon: FicheIcon, color: 'text-amber-600',   bg: 'bg-amber-50'   },
+  quiz:        { label: 'Quiz',               Icon: QuizIcon,        color: 'text-blue-500',    bg: 'bg-blue-50'    },
+  flashcard:   { label: 'Flashcards',         Icon: CardIcon,        color: 'text-purple-500',  bg: 'bg-purple-50'  },
+  cours:       { label: 'Cours',              Icon: CoursIcon,       color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  fiche:       { label: 'Fiches de révision', Icon: FicheIcon,       color: 'text-amber-600',   bg: 'bg-amber-50'   },
+  medicament:  { label: 'Médicaments',        Icon: MedicamentIcon,  color: 'text-red-500',     bg: 'bg-red-50'     },
 };
 
 /* ─── Safe highlight (never throws) ─────────────────────────────────────── */
@@ -75,11 +81,12 @@ export default function SearchModal({ open, onClose }) {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [qRes, fcRes, coursRes, ficheRes] = await Promise.allSettled([
+      const [qRes, fcRes, coursRes, ficheRes, drugRes] = await Promise.allSettled([
         axios.get(`${API_URL}/quizzes`,            { headers }),
         axios.get(`${API_URL}/flashcards`,         { headers }),
         axios.get(`${API_URL}/lessons?type=cours`, { headers }),
         axios.get(`${API_URL}/lessons?type=fiche`, { headers }),
+        axios.get(`${API_URL}/drugs`,              { headers }),
       ]);
 
       const safe = (r) => (r.status === 'fulfilled' ? r.value.data : []);
@@ -109,6 +116,12 @@ export default function SearchModal({ open, onClose }) {
           title: f.title || '',
           sub: [f.semester, f.category].filter(Boolean).join(' · '),
           href: '/dashboard/cours',
+        })),
+        ...safe(drugRes).map(d => ({
+          id: d._id || Math.random(), type: 'medicament',
+          title: d.name || '',
+          sub: [d.drugClass?.name, d.genericName].filter(Boolean).join(' · '),
+          href: `/dashboard/medicaments/${d._id}`,
         })),
       ]);
     } catch {
@@ -212,7 +225,7 @@ export default function SearchModal({ open, onClose }) {
                     ref={inputRef}
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder="Quiz, flashcards, cours, fiches…"
+                    placeholder="Quiz, flashcards, cours, fiches, médicaments…"
                     className="flex-1 text-sm text-slate-800 placeholder-slate-400 outline-none bg-transparent min-w-0"
                   />
                   {loading && (

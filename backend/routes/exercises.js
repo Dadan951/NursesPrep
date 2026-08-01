@@ -3,6 +3,7 @@ const ctrl = require('../controllers/exerciseController');
 const { protect, adminOnly } = require('../middleware/auth');
 
 router.get('/quota', protect, ctrl.getQuota);
+router.get('/history', protect, ctrl.getHistory);
 router.get('/', protect, ctrl.getAll);
 router.get('/admin', protect, adminOnly, ctrl.adminGetAll);
 router.get('/:id', protect, ctrl.getOne);

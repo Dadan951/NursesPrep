@@ -1,5 +1,6 @@
 const Exercise = require('../models/Exercise');
 const User = require('../models/User');
+const ExerciseAttempt = require('../models/ExerciseAttempt');
 
 const FREE_EXERCISE_LIMIT = 1;
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -69,6 +70,7 @@ exports.remove = async (req, res) => {
 
 exports.complete = async (req, res) => {
   try {
+    const { exerciseId, isCorrect } = req.body;
     const user = await User.findById(req.user._id).select('subscription monthlyExercise');
 
     // Vérifier quota mensuel pour les free
@@ -85,6 +87,14 @@ exports.complete = async (req, res) => {
       });
     }
 
+    if (exerciseId) {
+      await ExerciseAttempt.findOneAndUpdate(
+        { user: req.user._id, exercise: exerciseId },
+        { $set: { isCorrect: isCorrect === undefined ? null : isCorrect, completedAt: new Date() } },
+        { upsert: true, new: true }
+      );
+    }
+
     // Reset daily si nouveau jour
     const today = new Date().toISOString().split('T')[0];
     await User.updateOne(
@@ -97,6 +107,37 @@ exports.complete = async (req, res) => {
       $set: { 'progress.lastActivity': new Date() }
     });
     res.json({ message: 'Exercice complété' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── GET /api/exercises/history ────────────────────────────────────────────
+// Historique des exercices complétés par l'utilisateur
+exports.getHistory = async (req, res) => {
+  try {
+    const attempts = await ExerciseAttempt.find({ user: req.user._id })
+      .populate('exercise', 'title category semester type difficulty')
+      .sort({ completedAt: -1 })
+      .limit(200);
+
+    const result = attempts
+      .filter(a => a.exercise)
+      .map(a => ({
+        _id:         a._id,
+        exerciseId:  a.exercise._id,
+        title:       a.exercise.title,
+        category:    a.exercise.category || '',
+        chapter:     a.exercise.category || '',
+        semester:    a.exercise.semester || '',
+        difficulty:  a.exercise.difficulty || '',
+        score:       a.isCorrect === false ? 0 : 1,
+        total:       1,
+        pct:         a.isCorrect === false ? 0 : 100,
+        completedAt: a.completedAt,
+      }));
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

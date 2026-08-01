@@ -5,7 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { getCache, setCache } from '../utils/cache';
 import { API_URL, useAuth } from '../context/AuthContext';
-import { useDisplayMode, ViewToggle, SlideLevel, DetailList } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -70,7 +70,8 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
     if (completed || quotaExceeded) return;
     setCompleted(true);
     setShowAnswer(true);
-    try { await axios.post(`${API_URL}/exercises/complete`); onComplete(); } catch {}
+    const isCorrect = ex.type === 'qcm' && selected !== null ? !!ex.options[selected]?.isCorrect : null;
+    try { await axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }); onComplete(); } catch {}
   };
 
   const lines = (ex.content || '').split('\n').filter(l => l.trim());
@@ -335,7 +336,7 @@ export default function Exercises() {
   const [completedCount, setCompletedCount] = useState(0);
   const [quota,          setQuota]          = useState(null);
 
-  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
+  const { mode: displayMode, dir, setDir } = useDisplayMode();
   const [view,             setView]             = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedCaseType, setSelectedCaseType] = useState(null);
@@ -402,11 +403,11 @@ export default function Exercises() {
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45 }}
             style={{ position:'relative', padding:'28px 24px 28px' }}>
 
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Entraîne-toi</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>QCM, questions ouvertes et cas cliniques — comme aux examens IFSI</p>
               </div>
@@ -431,9 +432,6 @@ export default function Exercises() {
                   <p style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{quota.used} / {quota.limit} exercice{quota.limit > 1?'s':''}</p>
                 </div>
               )}
-              <div style={{ marginLeft:'auto', flexShrink:0 }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
           </motion.div>
         </div>

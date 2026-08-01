@@ -182,13 +182,31 @@ function ProgressChart({ data, chartTypes, setChartTypes }) {
                 const isBest = i === bestIdx;
                 const h      = Math.max(d.pct, 6);
                 const typeCfg = TYPE_CFG[d.type];
+                // Évite que la bulle déborde de l'écran pour les barres proches d'un bord
+                const barFrac   = items.length > 1 ? i / (items.length - 1) : 0.5;
+                const align     = barFrac < 0.15 ? 'left' : barFrac > 0.85 ? 'right' : 'center';
+                const slotWidth = containerWidth / items.length;
+                const arrowOffset = Math.max(10, Math.min(slotWidth / 2, 20));
+                // x (et non transform) : le tooltip anime déjà y/scale via Framer Motion, qui
+                // recalcule et écrase tout `transform` CSS statique — x est une valeur motion
+                // à part entière, donc elle se compose correctement avec y/scale.
+                const tooltipPos = align === 'left'
+                  ? { left:0, x:'0%' }
+                  : align === 'right'
+                  ? { left:'auto', right:0, x:'0%' }
+                  : { left:'50%', x:'-50%' };
+                const arrowPos = align === 'left'
+                  ? { left:arrowOffset, transform:'translateX(-50%)' }
+                  : align === 'right'
+                  ? { left:'auto', right:arrowOffset, transform:'translateX(50%)' }
+                  : { left:'50%', transform:'translateX(-50%)' };
                 return (
                   <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', height:'100%', justifyContent:'flex-end', position:'relative' }}
                     onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
                     <AnimatePresence>
                       {isHov && (
                         <motion.div initial={{ opacity:0, y:4, scale:0.9 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, scale:0.9 }}
-                          style={{ position:'absolute', bottom:'100%', marginBottom:8, left:'50%', transform:'translateX(-50%)',
+                          style={{ position:'absolute', bottom:'100%', marginBottom:8, ...tooltipPos,
                             background:'var(--theme-text)', color:'#fff', borderRadius:12, padding:'6px 10px', textAlign:'center',
                             boxShadow:'0 4px 16px rgba(30,27,75,0.3)', pointerEvents:'none', whiteSpace:'nowrap', zIndex:20 }}>
                           <p style={{ fontSize:15, fontWeight:900, color:cfg.from, lineHeight:1 }}>{d.pct}%</p>
@@ -196,7 +214,7 @@ function ProgressChart({ data, chartTypes, setChartTypes }) {
                           {typeCfg && (
                             <p style={{ fontSize:9, color:typeCfg.dot, marginTop:2, fontWeight:700 }}>{typeCfg.icon} {typeCfg.label}</p>
                           )}
-                          <div style={{ position:'absolute', left:'50%', bottom:-5, transform:'translateX(-50%)', width:10, height:5, overflow:'hidden' }}>
+                          <div style={{ position:'absolute', bottom:-5, width:10, height:5, overflow:'hidden', ...arrowPos }}>
                             <div style={{ width:8, height:8, background:'var(--theme-text)', transform:'rotate(45deg)', margin:'0 auto', marginTop:-4 }}/>
                           </div>
                         </motion.div>
@@ -451,6 +469,39 @@ function FlashcardAccordion({ item, navigate }) {
   );
 }
 
+/* ─── ExerciseAccordion ───────────────────────────────────────────────────── */
+function ExerciseAccordion({ item, navigate }) {
+  const sc = scoreColor(item.pct);
+  return (
+    <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }}
+      exit={{ height:0, opacity:0 }} transition={{ duration:0.32, ease:[0.16,1,0.3,1] }}
+      style={{ overflow:'hidden' }}>
+      <div style={{ padding:'0 18px 18px', paddingTop:4 }}>
+        <div style={{ height:1, background:C.border, marginBottom:16 }}/>
+
+        <div style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:16, background:sc.bg, marginBottom:16 }}>
+          <ScoreRing pct={item.pct} size={56}/>
+          <div style={{ flex:1 }}>
+            <p className="nunito" style={{ fontSize:16, fontWeight:900, color:sc.text, lineHeight:1.3 }}>
+              {item.pct === 100 ? 'Exercice complété' : 'Réponse incorrecte'}
+            </p>
+            <p style={{ fontSize:12, fontWeight:600, color:sc.text, marginTop:4 }}>{fmtDate(item.completedAt)}</p>
+          </div>
+        </div>
+
+        <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:0.97 }}
+          onClick={e => { e.stopPropagation(); navigate('/dashboard/exercises'); }}
+          style={{ width:'100%', padding:'12px 0', borderRadius:14, border:'none', cursor:'pointer',
+            background:'linear-gradient(135deg,#0891b2,#0e7490)',
+            color:'#fff', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:clay.btn('#0891b2','#0e7490') }}>
+          Voir les exercices
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Main ────────────────────────────────────────────────────────────────── */
 export default function History() {
   const { token }  = useAuth();
@@ -458,6 +509,7 @@ export default function History() {
 
   const [quizHistory, setQuizHistory] = useState([]);
   const [fcHistory,   setFcHistory]   = useState([]);
+  const [exHistory,   setExHistory]   = useState([]);
   const [loading,     setLoading]     = useState(true);
 
   const [typeFilter,  setTypeFilter]  = useState('all');
@@ -470,31 +522,37 @@ export default function History() {
   useEffect(() => {
     const cachedQ  = getCache('history_quiz');
     const cachedFc = getCache('history_fc');
-    if (cachedQ && cachedFc) {
+    const cachedEx = getCache('history_exercise');
+    if (cachedQ && cachedFc && cachedEx) {
       setQuizHistory(cachedQ);
       setFcHistory(cachedFc);
+      setExHistory(cachedEx);
       setLoading(false);
       return;
     }
     Promise.all([
       axios.get(`${API_URL}/quizzes/history`,    { headers: { Authorization: `Bearer ${token}` } }),
       axios.get(`${API_URL}/flashcards/history`, { headers: { Authorization: `Bearer ${token}` } }),
+      axios.get(`${API_URL}/exercises/history`,  { headers: { Authorization: `Bearer ${token}` } }),
     ])
-      .then(([qRes, fcRes]) => {
+      .then(([qRes, fcRes, exRes]) => {
         const q  = qRes.data.map(h => ({ ...h, type:'quiz' }));
         const fc = fcRes.data.map(h => ({ ...h, type:'flashcard' }));
+        const ex = exRes.data.map(h => ({ ...h, type:'exercise' }));
         setQuizHistory(q);
         setFcHistory(fc);
-        setCache('history_quiz', q);
-        setCache('history_fc',   fc);
+        setExHistory(ex);
+        setCache('history_quiz',     q);
+        setCache('history_fc',       fc);
+        setCache('history_exercise', ex);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
   const history = useMemo(() =>
-    [...quizHistory, ...fcHistory].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
-  [quizHistory, fcHistory]);
+    [...quizHistory, ...fcHistory, ...exHistory].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)),
+  [quizHistory, fcHistory, exHistory]);
 
   const visibleHistory = useMemo(() =>
     typeFilter === 'all' ? history : history.filter(h => h.type === typeFilter),
@@ -556,7 +614,7 @@ export default function History() {
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Progression</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Quiz, flashcards et exercices — tout ton historique</p>
               </div>
@@ -606,7 +664,7 @@ export default function History() {
               { id:'all',       label:'Tout',       count: history.length,     disabled:false },
               { id:'quiz',      label:'Quiz',       count: quizHistory.length, disabled:false },
               { id:'flashcard', label:'Flashcards', count: fcHistory.length,   disabled:false },
-              { id:'exercise',  label:'Exercices',  count: 0,                  disabled:true  },
+              { id:'exercise',  label:'Exercices',  count: exHistory.length,   disabled:false },
             ].map(t => {
               const active = typeFilter === t.id;
               return (
@@ -733,7 +791,7 @@ export default function History() {
                         <p style={{ fontSize:11, color:C.sub, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginTop:2 }}>
                           {item.type === 'flashcard'
                             ? `${item.category}${item.ue ? '' : ''}`
-                            : `${item.category}${item.chapter ? ` · ${item.chapter}` : ''}`}
+                            : `${item.category}${item.chapter && item.chapter !== item.category ? ` · ${item.chapter}` : ''}`}
                         </p>
                       </div>
 
@@ -758,6 +816,8 @@ export default function History() {
                       {isOpen && (
                         item.type === 'quiz'
                           ? <QuizAccordion item={item} token={token} navigate={navigate}/>
+                          : item.type === 'exercise'
+                          ? <ExerciseAccordion item={item} navigate={navigate}/>
                           : <FlashcardAccordion item={item} navigate={navigate}/>
                       )}
                     </AnimatePresence>

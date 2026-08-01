@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import DashboardLayout from '../components/DashboardLayout';
 import UserAvatar from '../components/UserAvatar';
 import { API_URL } from '../context/AuthContext';
+import { clearCache } from '../utils/cache';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -365,6 +366,11 @@ export default function Profile() {
     if (val === user?.studyYear) return;
     try {
       await axios.put(`${API_URL}/auth/profile`, { studyYear: val });
+      // Le contenu (quiz, flashcards, cours, exercices, annales) est filtré côté
+      // serveur selon programVersion — sans ça, les pages garderaient en cache
+      // (jusqu'à 5 min) le catalogue de l'ancienne année après un changement.
+      ['quizzes_list', 'flashcards_list', 'lessons_cours', 'lessons_fiches', 'exercises_list', 'annales_list']
+        .forEach(clearCache);
       await refreshUser(); showToast('Année d\'études mise à jour');
     } catch (err) { showToast(err.response?.data?.message || 'Erreur', 'error'); }
   };

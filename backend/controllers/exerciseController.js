@@ -18,7 +18,7 @@ exports.getAll = async (req, res) => {
   try {
     const exercises = await Exercise.find({
       isPublished: true,
-      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+      programVersion: req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' },
     });
     res.json(exercises);
   } catch (err) {

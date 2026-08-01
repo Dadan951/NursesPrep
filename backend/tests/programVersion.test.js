@@ -31,7 +31,7 @@ afterEach(async () => {
 });
 
 describe('Quiz — filtrage par programVersion', () => {
-  it("un utilisateur 'ancien' voit tout, sans distinction de programme (comportement inchangé)", async () => {
+  it("un utilisateur 'ancien' ne voit que le contenu ancien (le contenu réforme ne lui est pas destiné)", async () => {
     const u = await mkUser({ programVersion: 'ancien' });
     await Quiz.create([
       { title: 'Q ancien',  category: 'UE 2.2' }, // programVersion par défaut = 'ancien'
@@ -39,7 +39,7 @@ describe('Quiz — filtrage par programVersion', () => {
     ]);
     const r = await request(app).get('/api/quizzes').set('Authorization', `Bearer ${token(u._id)}`);
     expect(r.status).toBe(200);
-    expect(r.body.map(q => q.title).sort()).toEqual(['Q ancien', 'Q reforme']);
+    expect(r.body.map(q => q.title)).toEqual(['Q ancien']);
   });
 
   it("un utilisateur 'reforme_2026' ne voit que le contenu réforme", async () => {

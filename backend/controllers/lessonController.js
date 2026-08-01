@@ -33,7 +33,7 @@ exports.getAll = async (req, res) => {
   try {
     const filter = { isPublished: true };
     if (req.query.type) filter.type = req.query.type;
-    if (req.user.programVersion === 'reforme_2026') filter.programVersion = 'reforme_2026';
+    filter.programVersion = req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' };
     const lessons = await Lesson.find(filter)
       .select('-content -fileData')
       .sort('-createdAt');

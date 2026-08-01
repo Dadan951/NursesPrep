@@ -6,7 +6,7 @@ exports.getAll = async (req, res) => {
   try {
     const annales = await Annale.find({
       isPublished: true,
-      ...(req.user.programVersion === 'reforme_2026' ? { programVersion: 'reforme_2026' } : {}),
+      programVersion: req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' },
     })
       .select('-fileData')
       .sort({ year: -1, semester: 1, subject: 1, createdAt: -1 });

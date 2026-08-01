@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../context/AuthContext';
+import { clearCache } from '../utils/cache';
 
 // Réforme UE 2026 — garde cette constante synchronisée avec CURRENT_ACADEMIC_YEAR dans backend/controllers/authController.js
 const CURRENT_ACADEMIC_YEAR = '2026-2027';
@@ -37,6 +38,8 @@ export default function GoogleAuthSuccess() {
     setSaving(true);
     try {
       await axios.put(`${API_URL}/auth/profile`, { studyYear });
+      ['quizzes_list', 'flashcards_list', 'lessons_cours', 'lessons_fiches', 'exercises_list', 'annales_list']
+        .forEach(clearCache);
       window.location.href = '/dashboard';
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur');

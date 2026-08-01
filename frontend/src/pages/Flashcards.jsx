@@ -5,7 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
-import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const C = {
@@ -533,7 +533,7 @@ export default function Flashcards() {
   const [cards,      setCards]      = useState([]);
   const [attempts,   setAttempts]   = useState([]);
   const [loading,    setLoading]    = useState(true);
-  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
+  const { mode: displayMode, dir, setDir } = useDisplayMode();
   const [view,       setView]       = useState('semesters');
   const [quotaModal, setQuotaModal] = useState(false);
 
@@ -851,13 +851,13 @@ export default function Flashcards() {
           <div style={{ position:'absolute', bottom:-20, left:60, width:160, height:160, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,255,255,0.08),transparent)', filter:'blur(32px)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.15),transparent 55%)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'relative', padding:'28px 24px 28px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:6, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:6 }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                   <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="m12 13-3-4.5 3-1.5 3 1.5-3 4.5Z"/>
                 </svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 style={{ fontSize:24, fontWeight:900, color:'#fff', fontFamily:'Nunito,sans-serif', lineHeight:1.1 }}>Flashcards</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Mémorisez les notions clés</p>
               </div>
@@ -873,9 +873,6 @@ export default function Flashcards() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.6)', marginTop:2 }}>{s.l}</p>
                 </div>
               ))}
-              <div style={{ marginLeft:'auto', flexShrink:0 }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
           </div>
         </div>

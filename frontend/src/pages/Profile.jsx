@@ -8,6 +8,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import UserAvatar from '../components/UserAvatar';
 import { API_URL } from '../context/AuthContext';
 import { clearCache } from '../utils/cache';
+import { useDisplayMode } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -286,6 +287,7 @@ function AvatarCropModal({ src, onConfirm, onCancel, loading }) {
 export default function Profile() {
   const { user, refreshUser, logout } = useAuth();
   const { toggleTheme, isDark, colorTheme, setColorTheme, THEMES } = useTheme();
+  const { mode: displayMode, toggle: toggleDisplayMode } = useDisplayMode();
   const isAdmin = user?.role === 'admin';
 
   const [infoForm, setInfoForm] = useState({ name:user?.name||'', email:user?.email||'' });
@@ -864,6 +866,48 @@ export default function Profile() {
                       <p style={{ fontSize:11, color:C.sub, marginTop:10 }}>
                         <span style={{ fontWeight:700, color:'var(--theme-primary)' }}>{THEMES[colorTheme]?.label}</span> — thème actif
                       </p>
+                    </div>
+
+                    {/* ── Mode d'affichage des catalogues ── */}
+                    <div style={{ marginTop:20, paddingTop:20, borderTop:`1px solid ${C.border}` }}>
+                      <p style={{ fontSize:11, fontWeight:700, color:C.sub, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
+                        Mode d'affichage
+                      </p>
+                      <p style={{ fontSize:11, color:C.sub, marginBottom:14 }}>
+                        Quiz, Flashcards, Cours, Annales et Exercices
+                      </p>
+                      <div role="group" aria-label="Mode d'affichage"
+                        style={{ display:'flex', gap:6, padding:4, borderRadius:16, background:C.bg, border:`1.5px solid ${C.border}`, width:'fit-content' }}>
+                        {[
+                          { id:'simple', label:'Simplifié', icon:(
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                              <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                            </svg>
+                          ) },
+                          { id:'detail', label:'Détaillé', icon:(
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                          ) },
+                        ].map(opt => {
+                          const active = displayMode === opt.id;
+                          return (
+                            <motion.button key={opt.id}
+                              onClick={() => { if (!active) toggleDisplayMode(); }}
+                              whileTap={{ scale:0.96 }}
+                              aria-pressed={active}
+                              style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 16px', borderRadius:13, border:'none', cursor:'pointer',
+                                fontSize:12, fontWeight:700, fontFamily:'Nunito,sans-serif',
+                                background: active ? 'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' : 'transparent',
+                                color: active ? '#fff' : C.sub,
+                                boxShadow: active ? clay.btn() : 'none', transition:'all 0.2s' }}>
+                              {opt.icon}{opt.label}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </SCard>

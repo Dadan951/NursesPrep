@@ -11,7 +11,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
-import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens (identiques au Dashboard) ────────────────────────────── */
 const C = {
@@ -356,7 +356,7 @@ export default function Quiz() {
   const [personalQuizzes, setPersonalQuizzes] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [personalLoading, setPersonalLoading] = useState(false);
-  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
+  const { mode: displayMode, dir, setDir } = useDisplayMode();
   const [view, setView]               = useState('semesters');
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedUE, setSelectedUE]             = useState(null);
@@ -435,14 +435,14 @@ export default function Quiz() {
 
           <div style={{ position:'relative', padding:'28px 24px 28px' }}>
             {/* Icon + titre */}
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                 </svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Quiz</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Testez vos connaissances par unité d'enseignement</p>
               </div>
@@ -456,18 +456,19 @@ export default function Quiz() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:2 }}>{s.l}</p>
                 </div>
               ))}
-              <div style={{ marginLeft:'auto', flexShrink:0 }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
 
             {/* Tab bar */}
-            <div style={{ display:'flex', gap:2 }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end' }}>
               {[{ id:'catalogue', label:'Catalogue' }, { id:'personnalises', label:'Mes quiz' }].map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  style={{ padding:'10px 20px', background:'transparent', border:'none', borderBottom:`2.5px solid ${tab===t.id?'#fff':'transparent'}`, color:tab===t.id?'#fff':'rgba(255,255,255,0.55)', fontSize:13, fontWeight:700, cursor:'pointer', transition:'all 0.2s', fontFamily:'Nunito,sans-serif' }}>
+                <motion.button key={t.id} onClick={() => setTab(t.id)}
+                  whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
+                  style={{ padding:'8px 16px', borderRadius:'16px 16px 0 0', border:'none', cursor:'pointer', fontSize:13, fontWeight:700, transition:'all 0.2s',
+                    background: tab===t.id ? C.bg : 'rgba(255,255,255,0.12)',
+                    color: tab===t.id ? C.indigo : 'rgba(255,255,255,0.8)',
+                  }}>
                   {t.label}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>

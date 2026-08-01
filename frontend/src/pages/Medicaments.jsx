@@ -237,7 +237,7 @@ export default function Medicaments() {
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Médicaments</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Classes et molécules pour les examens IFSI</p>
               </div>

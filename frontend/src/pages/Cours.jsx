@@ -5,7 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL, useAuth } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
-import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -1386,7 +1386,7 @@ export default function Cours() {
   const { user } = useAuth();
   const [tab, setTab] = useState('cours');
   const isPro = ['pro','premium'].includes(user?.subscription);
-  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
+  const { mode: displayMode, dir, setDir } = useDisplayMode();
 
   const tabs = [
     { id:'cours',  label:'Cours' },
@@ -1400,30 +1400,27 @@ export default function Cours() {
       <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
 
         {/* ── HERO ── */}
-        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px' }}>
+        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px', display:'flex', flexDirection:'column' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', top:-40, right:-32, width:220, height:220, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,255,255,0.12),transparent)', filter:'blur(40px)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', bottom:-20, left:80, width:160, height:160, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,255,255,0.08),transparent)', filter:'blur(32px)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.15),transparent 55%)', pointerEvents:'none' }} aria-hidden/>
 
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4 }}
-            style={{ position:'relative', padding:'28px 24px 28px' }}>
+            style={{ position:'relative', padding:'28px 24px 0', flex:1, display:'flex', flexDirection:'column' }}>
             <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center',
                 background:'rgba(255,255,255,0.18)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Cours & Fiches</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Consultez les cours, révisez et créez vos fiches</p>
               </div>
             </div>
-            <p style={{ fontSize:13, color:'rgba(196,181,253,0.7)', marginBottom:20, maxWidth:480 }}>
-              Consultez les cours, révisez avec les fiches officielles, créez vos fiches personnelles avec l'IA.
-            </p>
 
             {/* Tabs */}
-            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end', marginTop:'auto' }}>
               {tabs.map(t => (
                 <motion.button key={t.id} onClick={() => setTab(t.id)}
                   whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
@@ -1434,9 +1431,6 @@ export default function Cours() {
                   {t.label}
                 </motion.button>
               ))}
-              <div style={{ marginLeft:'auto', paddingBottom:6, flexShrink:0 }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
           </motion.div>
         </div>

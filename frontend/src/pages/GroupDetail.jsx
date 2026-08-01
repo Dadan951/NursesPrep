@@ -314,7 +314,7 @@ export default function GroupDetail() {
       <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
 
         {/* ── HERO ── */}
-        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden' }}>
+        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'24px 24px', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', top:-60, right:-40, width:220, height:220, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'relative', maxWidth:720, margin:'0 auto', padding:'28px 24px 28px' }}>

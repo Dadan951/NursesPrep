@@ -314,7 +314,7 @@ export default function Groups() {
                     <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
-                    <div>
+                    <div style={{ minWidth:0 }}>
                       <h1 style={{ fontSize:24, fontWeight:900, color:'#fff', fontFamily:'Nunito,sans-serif', lineHeight:1.1, margin:0 }}>Groupes d'étude</h1>
                       <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Collaborez et partagez avec vos camarades IFSI</p>
                     </div>

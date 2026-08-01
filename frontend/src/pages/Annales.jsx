@@ -4,7 +4,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { API_URL } from '../context/AuthContext';
 import { getCache, setCache } from '../utils/cache';
-import { useDisplayMode, ViewToggle, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -246,7 +246,7 @@ export default function Annales() {
   const [loading,  setLoading]  = useState(true);
   const [selected, setSelected] = useState(null);
 
-  const { mode: displayMode, toggle: toggleDisplay, dir, setDir } = useDisplayMode();
+  const { mode: displayMode, dir, setDir } = useDisplayMode();
   const [view,             setView]             = useState('years');
   const [selectedYear,     setSelectedYear]     = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
@@ -308,11 +308,11 @@ export default function Annales() {
 
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45 }}
             style={{ position:'relative', padding:'28px 24px 28px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               </div>
-              <div>
+              <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Annales</h1>
                 <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Sujets d'examens classés par année et semestre</p>
               </div>
@@ -327,9 +327,6 @@ export default function Annales() {
                   <p style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginTop:2 }}>{s.label}</p>
                 </div>
               ))}
-              <div style={{ marginLeft:'auto', flexShrink:0 }}>
-                <ViewToggle mode={displayMode} onToggle={toggleDisplay} />
-              </div>
             </div>
           </motion.div>
         </div>

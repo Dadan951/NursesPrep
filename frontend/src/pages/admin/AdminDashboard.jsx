@@ -277,9 +277,9 @@ export default function AdminDashboard() {
               {/* Activité abonnements (30 derniers jours) */}
               <SCard title="Abonnements — 30 derniers jours" badge={`Churn ≈ ${loading ? '—' : stats?.churnRate30d}%`} delay={0.25}>
                 {loading ? (
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>{[...Array(4)].map((_,i) => <Skel key={i} h={56}/>)}</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(80px,1fr))', gap:10 }}>{[...Array(4)].map((_,i) => <Skel key={i} h={56}/>)}</div>
                 ) : (
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(80px,1fr))', gap:10 }}>
                     {[
                       { l:'Nouveaux', v:stats?.newSubs30d||0, c:'#10b981' },
                       { l:'Upgrades', v:stats?.upgrades30d||0, c:C.indigo },

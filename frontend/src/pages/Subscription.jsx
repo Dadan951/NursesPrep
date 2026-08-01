@@ -180,8 +180,8 @@ function FeatureIcon({ ok, gradient }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: 'rgba(245,158,11,0.12)',
     }}>
-      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="3" strokeLinecap="round">
-        <path d="M12 9v4m0 4h.01"/>
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
       </svg>
     </span>
   );
@@ -318,13 +318,13 @@ export default function Subscription() {
         </AnimatePresence>
 
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)', minHeight: '210px' }}>
+        <div style={{ position: 'relative', overflow: 'hidden', background: 'var(--theme-hero)', minHeight: '200px' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position: 'absolute', top: -50, right: -30, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,0.12),transparent)', filter: 'blur(40px)', pointerEvents: 'none' }}/>
           <div style={{ position: 'absolute', bottom: -40, left: -20, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,0.08),transparent)', filter: 'blur(32px)', pointerEvents: 'none' }}/>
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.15),transparent 55%)', pointerEvents:'none' }} aria-hidden/>
 
-          <div style={{ position: 'relative', zIndex: 10, padding: '28px 24px 30px' }}>
+          <div style={{ position: 'relative', zIndex: 10, padding: '28px 24px 28px' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
               <div>
                 {/* Plan actuel chip */}

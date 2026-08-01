@@ -1407,7 +1407,7 @@ export default function Cours() {
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.15),transparent 55%)', pointerEvents:'none' }} aria-hidden/>
 
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4 }}
-            style={{ position:'relative', padding:'28px 24px 0' }}>
+            style={{ position:'relative', padding:'28px 24px 28px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center',
                 background:'rgba(255,255,255,0.18)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>

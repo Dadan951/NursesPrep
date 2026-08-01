@@ -433,7 +433,7 @@ export default function Quiz() {
           {/* Shine */}
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.15), transparent 55%)', pointerEvents:'none' }} aria-hidden/>
 
-          <div style={{ position:'relative', padding:'28px 24px 0' }}>
+          <div style={{ position:'relative', padding:'28px 24px 28px' }}>
             {/* Icon + titre */}
             <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10, flexWrap:'wrap' }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>

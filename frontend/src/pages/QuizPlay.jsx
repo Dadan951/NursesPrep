@@ -58,7 +58,8 @@ function shuffleOptions(questions) {
 
 /* ─── Option button ──────────────────────────────────────────────────────── */
 // selected : tableau d'indices verrouillés (une fois répondu). preChecked : coché mais pas encore validé (QCM).
-function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick }) {
+// hideResult : mode examen — la réponse est verrouillée mais ni juste ni fausse n'est révélé avant la fin.
+function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick, hideResult }) {
   const [hovered, setHovered] = useState(false);
   const letter = String.fromCharCode(65 + idx);
   const isSelected = selected.includes(idx);
@@ -66,6 +67,8 @@ function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick })
   let st;
   if (!answered) {
     st = preChecked ? OPT.checkedPending : OPT.idle;
+  } else if (hideResult) {
+    st = isSelected ? OPT.checkedPending : OPT.idle;
   } else if (opt.isCorrect) {
     st = OPT.correct;
   } else if (isSelected) {
@@ -101,11 +104,11 @@ function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick })
         fontSize:12, fontWeight:900, fontFamily:'Nunito,sans-serif',
         transition:'all 0.15s',
       }}>
-        {answered && opt.isCorrect
+        {answered && !hideResult && opt.isCorrect
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          : answered && isSelected && !opt.isCorrect
+          : answered && !hideResult && isSelected && !opt.isCorrect
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          : !answered && preChecked
+          : (answered && hideResult && isSelected) || (!answered && preChecked)
           ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
           : letter
         }
@@ -115,15 +118,18 @@ function OptionBtn({ opt, idx, answered, selected, preChecked, multi, onClick })
         {opt.text}
       </span>
 
-      {/* Label "Ta réponse" / "Bonne réponse" */}
-      {answered && isSelected && opt.isCorrect && (
+      {/* Label "Ta réponse" / "Bonne réponse" — masqué en mode examen */}
+      {!hideResult && answered && isSelected && opt.isCorrect && (
         <span style={{ fontSize:10, fontWeight:700, color:'#15803d', background:'#dcfce7', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Ta réponse ✓</span>
       )}
-      {answered && isSelected && !opt.isCorrect && (
+      {!hideResult && answered && isSelected && !opt.isCorrect && (
         <span style={{ fontSize:10, fontWeight:700, color:'#991b1b', background:'#fee2e2', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Ta réponse</span>
       )}
-      {answered && opt.isCorrect && !isSelected && (
+      {!hideResult && answered && opt.isCorrect && !isSelected && (
         <span style={{ fontSize:10, fontWeight:700, color:'#15803d', background:'#dcfce7', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Bonne réponse</span>
+      )}
+      {hideResult && answered && isSelected && (
+        <span style={{ fontSize:10, fontWeight:700, color:'#4338ca', background:'rgba(var(--theme-primary-rgb),0.12)', borderRadius:99, padding:'3px 8px', whiteSpace:'nowrap' }}>Ta réponse</span>
       )}
     </motion.button>
   );
@@ -166,6 +172,7 @@ export default function QuizPlay() {
   const [prevAttempt, setPrevAttempt]             = useState(null);
   const [resumeModal, setResumeModal]             = useState(false);
   const [ready, setReady]                         = useState(false);
+  const [examMode, setExamMode]                   = useState(null); // null = pas encore choisi, true = examen, false = entraînement
 
   // Ref pour le scroll automatique vers l'explication + bouton suivant
   const feedbackRef = useRef(null);
@@ -195,11 +202,16 @@ export default function QuizPlay() {
         setScore(a.score);
         setShuffledQuestions(matched.length > 0 ? matched : shuffleOptions(q.questions));
         setDone(true);
-      } else {
-        setReady(true);
       }
+      // Sinon : ni en cours ni terminé → l'écran de choix du mode s'affiche
+      // (déclenché par examMode === null dans le rendu ci-dessous).
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const chooseMode = (isExam) => {
+    setExamMode(isExam);
+    setReady(true);
+  };
 
   const handleResume = () => {
     if (!prevAttempt) return;
@@ -207,6 +219,7 @@ export default function QuizPlay() {
     setScore(prevAttempt.score);
     setAnswers(prevAttempt.answers || []);
     setResumeModal(false);
+    setExamMode(false); // les tentatives en cours (créées avant ce mode) reprennent en entraînement
     setReady(true);
   };
 
@@ -216,7 +229,8 @@ export default function QuizPlay() {
     setTimeLeft(quiz.duration * 60);
     setShuffledQuestions(shuffleOptions(quiz.questions));
     setResumeModal(false);
-    setReady(true);
+    setExamMode(null);
+    setReady(false);
   };
 
   const saveProgress = useCallback(async (nextIndex, newScore, newAnswers) => {
@@ -564,12 +578,58 @@ export default function QuizPlay() {
                   ← Retour
                 </motion.button>
                 <motion.button whileTap={{ scale:0.96 }} whileHover={{ scale:1.01 }}
-                  onClick={() => { setCurrent(0); setSelected([]); setChecked([]); setAnswered(false); setScore(0); setDone(false); setAnswers([]); setReviewMode(false); setTimeLeft(quiz.duration*60); setShuffledQuestions(shuffleOptions(quiz.questions)); setReady(true); }}
+                  onClick={() => { setCurrent(0); setSelected([]); setChecked([]); setAnswered(false); setScore(0); setDone(false); setAnswers([]); setReviewMode(false); setTimeLeft(quiz.duration*60); setShuffledQuestions(shuffleOptions(quiz.questions)); setExamMode(null); setReady(false); }}
                   style={{ display:'block', width:'100%', padding:'13px 0', borderRadius:14, border:'none', background:`linear-gradient(135deg,#1e293b,#334155)`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.btn('#334155','#0f172a'), minWidth:0 }}>
                   Recommencer
                 </motion.button>
               </div>
             </div>
+          </motion.div>
+        </main>
+      </DashboardLayout>
+    );
+  }
+
+  /* ── Choix du mode (avant de démarrer) ───────────────────────────────── */
+  if (!ready) {
+    return (
+      <DashboardLayout>
+        <main style={{ flex:1, overflowY:'auto', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <motion.div initial={{ opacity:0, scale:0.95, y:16 }} animate={{ opacity:1, scale:1, y:0 }} transition={{ type:'spring', stiffness:280, damping:24 }}
+            style={{ background:C.card, borderRadius:28, padding:'28px 24px', width:'100%', maxWidth:420, boxShadow:clay.card, border:`1px solid ${C.border}`, textAlign:'center' }}>
+            <h2 style={{ fontSize:19, fontWeight:900, color:C.text, fontFamily:'Nunito,sans-serif', marginBottom:6 }}>{quiz.title}</h2>
+            <p style={{ fontSize:13, color:C.muted, lineHeight:1.6, marginBottom:22 }}>
+              Choisis ton mode avant de commencer — {total} question{total>1?'s':''}, {quiz.duration} min.
+            </p>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <motion.button onClick={() => chooseMode(false)} whileHover={{ y:-2, boxShadow:clay.card }} whileTap={{ scale:0.98 }}
+                style={{ textAlign:'left', padding:'16px 18px', borderRadius:18, border:`1.5px solid ${C.border}`, background:C.bg, cursor:'pointer', boxShadow:clay.sm, display:'flex', gap:14, alignItems:'center' }}>
+                <div style={{ width:40, height:40, borderRadius:14, background:'var(--theme-border)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.indigo} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                  <p style={{ fontSize:14, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif' }}>Entraînement</p>
+                  <p style={{ fontSize:11, color:C.muted, marginTop:2 }}>Correction après chaque question</p>
+                </div>
+              </motion.button>
+
+              <motion.button onClick={() => chooseMode(true)} whileHover={{ y:-2, boxShadow:clay.card }} whileTap={{ scale:0.98 }}
+                style={{ textAlign:'left', padding:'16px 18px', borderRadius:18, border:'1.5px solid var(--theme-primary)', background:'rgba(var(--theme-primary-rgb),0.05)', cursor:'pointer', boxShadow:clay.sm, display:'flex', gap:14, alignItems:'center' }}>
+                <div style={{ width:40, height:40, borderRadius:14, background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                </div>
+                <div>
+                  <p style={{ fontSize:14, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif' }}>Examen</p>
+                  <p style={{ fontSize:11, color:C.muted, marginTop:2 }}>Conditions réelles — réponses révélées seulement à la fin</p>
+                </div>
+              </motion.button>
+            </div>
+
+            <button onClick={() => navigate('/dashboard/quiz')}
+              style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.muted, marginTop:18 }}>
+              ← Retour aux quiz
+            </button>
           </motion.div>
         </main>
       </DashboardLayout>
@@ -593,7 +653,12 @@ export default function QuizPlay() {
 
               {/* Left: title + counter */}
               <div>
-                <p style={{ fontSize:11, color:'rgba(255,255,255,0.5)', marginBottom:2, letterSpacing:'0.05em' }}>{quiz.title}</p>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:2 }}>
+                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.5)', letterSpacing:'0.05em' }}>{quiz.title}</p>
+                  {examMode && (
+                    <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.04em', color:'#fff', background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'2px 7px' }}>EXAMEN</span>
+                  )}
+                </div>
                 <p style={{ fontSize:14, fontWeight:800, color:'#fff', fontFamily:'Nunito,sans-serif' }}>
                   Question {current + 1} <span style={{ fontWeight:500, opacity:0.6 }}>/ {total}</span>
                 </p>
@@ -657,7 +722,8 @@ export default function QuizPlay() {
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {q.options.map((opt, i) => (
                     <OptionBtn key={i} opt={opt} idx={i} answered={answered} selected={selected}
-                      preChecked={checked.includes(i)} multi={!!q.multipleAnswers} onClick={handleOptionClick}/>
+                      preChecked={checked.includes(i)} multi={!!q.multipleAnswers} onClick={handleOptionClick}
+                      hideResult={!!examMode}/>
                   ))}
                 </div>
 
@@ -681,8 +747,8 @@ export default function QuizPlay() {
                     initial={{ opacity:0, y:18 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
                     transition={{ type:'spring', stiffness:320, damping:28 }}>
 
-                    {/* Explication */}
-                    {q.explanation && (
+                    {/* Explication — masquée en mode examen, révélée uniquement à la fin */}
+                    {!examMode && q.explanation && (
                       <div style={{ background:C.card, borderRadius:20, boxShadow:clay.card, border:`1px solid ${C.border}`, padding:'18px 20px', marginBottom:12, borderLeft:`4px solid ${C.indigo}` }}>
                         <p style={{ fontSize:12, fontWeight:800, color:C.indigo, marginBottom:8, display:'flex', alignItems:'center', gap:6, fontFamily:'Nunito,sans-serif' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

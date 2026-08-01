@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Stripe = require('stripe');
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
+const SubscriptionEvent = require('../models/SubscriptionEvent');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -9,6 +10,16 @@ const PRICE_IDS = {
   pro:     process.env.STRIPE_PRICE_PRO,
   premium: process.env.STRIPE_PRICE_PREMIUM,
 };
+
+const PLAN_RANK = { free: 0, pro: 1, premium: 2 };
+async function logSubscriptionEvent(userId, fromPlan, toPlan) {
+  if (fromPlan === toPlan) return;
+  const type = fromPlan === 'free' ? 'new'
+    : toPlan === 'free' ? 'canceled'
+    : PLAN_RANK[toPlan] > PLAN_RANK[fromPlan] ? 'upgrade'
+    : 'downgrade';
+  try { await SubscriptionEvent.create({ user: userId, fromPlan, toPlan, type }); } catch (_) {}
+}
 
 /* ── POST /api/subscription/checkout ────────────────────────────────────── */
 router.post('/checkout', protect, async (req, res) => {
@@ -78,11 +89,13 @@ router.post('/webhook', async (req, res) => {
         const plan   = session.metadata?.plan || 'pro';
         const sub    = await stripe.subscriptions.retrieve(session.subscription);
 
+        const prevUser = await User.findById(userId).select('subscription');
         await User.findByIdAndUpdate(userId, {
           subscription:         plan,
           stripeCustomerId:     session.customer,
           stripeSubscriptionId: session.subscription,
         });
+        await logSubscriptionEvent(userId, prevUser?.subscription || 'free', plan);
         console.log(`[Stripe] ✅ ${userId} → plan ${plan}`);
         break;
       }
@@ -93,10 +106,12 @@ router.post('/webhook', async (req, res) => {
         const priceId = sub.items.data[0].price.id;
         const plan   = Object.entries(PRICE_IDS).find(([, id]) => id === priceId)?.[0] || 'pro';
 
+        const prevUser = await User.findOne({ stripeCustomerId: sub.customer }).select('_id subscription');
         await User.findOneAndUpdate(
           { stripeCustomerId: sub.customer },
           { subscription: plan, stripeSubscriptionId: sub.id }
         );
+        if (prevUser) await logSubscriptionEvent(prevUser._id, prevUser.subscription, plan);
         console.log(`[Stripe] 🔄 customer ${sub.customer} → plan ${plan}`);
         break;
       }
@@ -104,10 +119,12 @@ router.post('/webhook', async (req, res) => {
       /* Annulation ou expiration */
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
+        const prevUser = await User.findOne({ stripeCustomerId: sub.customer }).select('_id subscription');
         await User.findOneAndUpdate(
           { stripeCustomerId: sub.customer },
           { subscription: 'free', stripeSubscriptionId: null }
         );
+        if (prevUser) await logSubscriptionEvent(prevUser._id, prevUser.subscription, 'free');
         console.log(`[Stripe] ❌ customer ${sub.customer} → plan free`);
         break;
       }

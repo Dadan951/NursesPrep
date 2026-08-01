@@ -260,9 +260,9 @@ export default function AdminDashboard() {
                 )}
                 <div style={{ marginTop:20, paddingTop:16, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
                   <div>
-                    <p style={{ fontSize:11, color:C.sub }}>Revenu mensuel estimé</p>
+                    <p style={{ fontSize:11, color:C.sub }}>MRR (revenu mensuel récurrent)</p>
                     <p style={{ fontSize:22, fontWeight:900, color:C.text, fontVariantNumeric:'tabular-nums', marginTop:2 }}>
-                      {loading ? '—' : `${((stats?.proUsers||0)*9.99+(stats?.premiumUsers||0)*19.99).toFixed(0)} €`}
+                      {loading ? '—' : `${(stats?.mrr||0).toFixed(0)} €`}
                     </p>
                   </div>
                   <div style={{ textAlign:'right' }}>
@@ -271,6 +271,36 @@ export default function AdminDashboard() {
                       {loading ? '—' : `${engRate}%`}
                     </p>
                   </div>
+                </div>
+              </SCard>
+
+              {/* Activité abonnements (30 derniers jours) */}
+              <SCard title="Abonnements — 30 derniers jours" badge={`Churn ≈ ${loading ? '—' : stats?.churnRate30d}%`} delay={0.25}>
+                {loading ? (
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>{[...Array(4)].map((_,i) => <Skel key={i} h={56}/>)}</div>
+                ) : (
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+                    {[
+                      { l:'Nouveaux', v:stats?.newSubs30d||0, c:'#10b981' },
+                      { l:'Upgrades', v:stats?.upgrades30d||0, c:C.indigo },
+                      { l:'Downgrades', v:stats?.downgrades30d||0, c:'#f59e0b' },
+                      { l:'Annulés', v:stats?.canceled30d||0, c:'#ef4444' },
+                    ].map((s, i) => (
+                      <div key={i} style={{ textAlign:'center', padding:'12px 6px', borderRadius:14, background:C.bg, border:`1.5px solid ${C.border}` }}>
+                        <p style={{ fontSize:20, fontWeight:900, color:s.c, fontVariantNumeric:'tabular-nums' }}>{s.v}</p>
+                        <p style={{ fontSize:10, color:C.sub, marginTop:2 }}>{s.l}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ marginTop:16, paddingTop:14, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between' }}>
+                  <div>
+                    <p style={{ fontSize:11, color:C.sub }}>ARPU</p>
+                    <p style={{ fontSize:15, fontWeight:800, color:C.text, marginTop:2 }}>{loading ? '—' : `${(stats?.arpu||0).toFixed(2)} €`}</p>
+                  </div>
+                  <p style={{ fontSize:10, color:C.sub, maxWidth:200, textAlign:'right', lineHeight:1.5, alignSelf:'flex-end' }}>
+                    Le churn est approximatif tant que peu d'historique est disponible.
+                  </p>
                 </div>
               </SCard>
 

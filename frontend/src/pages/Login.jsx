@@ -129,7 +129,13 @@ export default function Login() {
       if (user.role === 'admin') navigate('/admin');
       else navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Email ou mot de passe incorrect');
+      const data = err.response?.data;
+      if (data?.message === 'account_suspended') {
+        const until = data.suspendedUntil ? new Date(data.suspendedUntil).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+        setError(`Compte suspendu jusqu'au ${until}${data.suspendReason ? ` — ${data.suspendReason}` : ''}`);
+      } else {
+        setError(data?.message || 'Email ou mot de passe incorrect');
+      }
     } finally {
       setLoading(false);
     }

@@ -64,6 +64,13 @@ const userSchema = new mongoose.Schema({
   verificationExpires:{ type: Date },
   resetCode:          { type: String },
   resetExpires:       { type: Date },
+  suspendedUntil:     { type: Date, default: null },
+  suspendReason:      { type: String, default: '' },
+  warnings: [{
+    message:   { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+    read:      { type: Boolean, default: false },
+  }],
   createdAt: { type: Date, default: Date.now }
 });
 

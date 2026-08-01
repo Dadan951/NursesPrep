@@ -38,6 +38,7 @@ const formatUser = (u) => ({
   onboardingCompleted: u.onboardingCompleted || false,
   hasPassword: !!u.password, // pour savoir si on doit exiger le mot de passe (les comptes Google n'en ont pas)
   createdAt: u.createdAt,
+  warnings: (u.warnings || []).filter(w => !w.read).map(w => ({ _id: w._id, message: w.message, createdAt: w.createdAt })),
 });
 
 /* Génère un code à 6 chiffres */
@@ -236,6 +237,14 @@ exports.login = async (req, res) => {
     if (!user || !(await user.comparePassword(password))) {
       await log('login_failed', req, null, emailAddr);
       return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+    }
+
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      return res.status(403).json({
+        message: 'account_suspended',
+        suspendedUntil: user.suspendedUntil,
+        suspendReason: user.suspendReason || '',
+      });
     }
 
     // Bloquer uniquement si le compte a un code de vérification en attente

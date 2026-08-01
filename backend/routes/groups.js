@@ -5,7 +5,7 @@ const {
   getGroups, createGroup, getGroup,
   joinByCode, joinGroup, leaveGroup, deleteGroup,
   getPendingMembers, approveMember, rejectMember,
-  getPosts, createPost, likePost, addComment,
+  getPosts, createPost, likePost, addComment, reportPost,
 } = require('../controllers/groupController');
 
 router.use(protect);
@@ -32,5 +32,6 @@ router.delete('/:id/reject/:userId',     rejectMember);
 router.route('/:id/posts').get(getPosts).post(createPost);
 router.post('/:id/posts/:postId/like',     likePost);
 router.post('/:id/posts/:postId/comments', addComment);
+router.post('/:id/posts/:postId/report',   reportPost);
 
 module.exports = router;

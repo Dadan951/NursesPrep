@@ -31,6 +31,7 @@ const AdminQuizzes = lazy(() => import('./pages/admin/AdminQuizzes'));
 const AdminFlashcards = lazy(() => import('./pages/admin/AdminFlashcards'));
 const AdminExercises = lazy(() => import('./pages/admin/AdminExercises'));
 const AdminGroups = lazy(() => import('./pages/admin/AdminGroups'));
+const AdminModeration = lazy(() => import('./pages/admin/AdminModeration'));
 const AdminLessons = lazy(() => import('./pages/admin/AdminLessons'));
 const Medicaments = lazy(() => import('./pages/Medicaments'));
 const MedicamentDetail = lazy(() => import('./pages/MedicamentDetail'));
@@ -91,6 +92,7 @@ function App() {
           <Route path="/admin/flashcards" element={<AdminRoute><AdminFlashcards /></AdminRoute>} />
           <Route path="/admin/exercises" element={<AdminRoute><AdminExercises /></AdminRoute>} />
           <Route path="/admin/groups" element={<AdminRoute><AdminGroups /></AdminRoute>} />
+          <Route path="/admin/moderation" element={<AdminRoute><AdminModeration /></AdminRoute>} />
           <Route path="/admin/lessons" element={<AdminRoute><AdminLessons /></AdminRoute>} />
           <Route path="/admin/medicaments" element={<AdminRoute><AdminMedicaments /></AdminRoute>} />
           <Route path="/admin/annales" element={<AdminRoute><AdminAnnales /></AdminRoute>} />

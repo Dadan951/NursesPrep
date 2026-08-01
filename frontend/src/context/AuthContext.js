@@ -21,6 +21,21 @@ export function AuthProvider({ children }) {
     }
   }, []); // eslint-disable-line
 
+  // Déconnecte automatiquement un compte suspendu en session active
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      res => res,
+      err => {
+        if (err.response?.data?.message === 'account_suspended') {
+          logout();
+          window.location.href = '/login';
+        }
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
+  }, []); // eslint-disable-line
+
   const login = async (email, password) => {
     const res = await axios.post(`${API_URL}/auth/login`, { email, password });
     const { token: t, user: u } = res.data;

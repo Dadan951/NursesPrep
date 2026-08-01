@@ -111,6 +111,13 @@ router.put('/preferences', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.put('/warnings/read', protect, async (req, res) => {
+  try {
+    await User.updateOne({ _id: req.user._id }, { $set: { 'warnings.$[].read': true } });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/register',         register);
 router.post('/verify-email',     verifyEmail);
 router.post('/resend-code',      resendCode);

@@ -45,8 +45,23 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
   const [loading,      setLoading]      = useState(false);
   const [liked,        setLiked]        = useState(() => post.likes.some(l => (l?._id || l) === currentUserId));
   const [likeCount,    setLikeCount]    = useState(post.likes.length);
+  const [reportOpen,   setReportOpen]   = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSending,setReportSending]= useState(false);
+  const [reported,     setReported]     = useState(() => post.reports?.some(r => (r.reportedBy?._id || r.reportedBy) === currentUserId));
 
   const tc = TYPE_CONFIG[post.type] || TYPE_CONFIG.text;
+
+  const handleReport = async (e) => {
+    e.preventDefault();
+    setReportSending(true);
+    try {
+      await axios.post(`${API_URL}/groups/${groupId}/posts/${post._id}/report`, { reason: reportReason });
+      setReported(true);
+      setReportOpen(false);
+    } catch {}
+    setReportSending(false);
+  };
 
   const handleLike = async () => {
     const next = !liked;
@@ -80,7 +95,7 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
 
       {/* Auteur + type */}
       <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:12 }}>
-        <UserAvatar name={post.author?.name} size="sm" />
+        <UserAvatar name={post.author?.name} avatar={post.author?.avatar} size="sm" />
         <div style={{ flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
             <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{post.author?.name}</span>
@@ -111,7 +126,38 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
           {post.comments.length > 0 && <span>{post.comments.length}</span>}
           Commenter
         </motion.button>
+        <motion.button
+          onClick={() => !reported && setReportOpen(v => !v)}
+          whileTap={{scale:reported?1:0.92}}
+          disabled={reported}
+          style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:500, color:reported?'#f43f5e':C.sub, background:'none', border:'none', cursor:reported?'default':'pointer', padding:0, marginLeft:'auto' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={reported?'currentColor':'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+          {reported ? 'Signalé' : 'Signaler'}
+        </motion.button>
       </div>
+
+      {/* Formulaire de signalement */}
+      <AnimatePresence>
+        {reportOpen && (
+          <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:'auto'}} exit={{opacity:0,height:0}}
+            transition={{duration:0.25}} style={{overflow:'hidden'}}>
+            <form onSubmit={handleReport} style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:8 }}>
+              <p style={{ fontSize:11.5, color:C.sub }}>Pourquoi signales-tu ce message ? (optionnel)</p>
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                <input type="text" value={reportReason} onChange={e => setReportReason(e.target.value)}
+                  placeholder="Motif (spam, propos inappropriés…)"
+                  style={{ flex:1, padding:'8px 12px', fontSize:12, borderRadius:12, border:`1.5px solid ${C.border}`, background:C.bg, color:C.text, outline:'none', fontFamily:'DM Sans,sans-serif' }}/>
+                <motion.button type="submit" disabled={reportSending} whileTap={{scale:0.95}}
+                  style={{ padding:'8px 14px', borderRadius:12, border:'none', background:'#f43f5e', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', opacity:reportSending?0.6:1, flexShrink:0 }}>
+                  Signaler
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Commentaires */}
       <AnimatePresence>
@@ -121,7 +167,7 @@ function Post({ post, groupId, onUpdate, currentUserId }) {
             <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${C.border}`, display:'flex', flexDirection:'column', gap:10 }}>
               {post.comments.map((c, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-                  <UserAvatar name={c.author?.name} size="xs" />
+                  <UserAvatar name={c.author?.name} avatar={c.author?.avatar} size="xs" />
                   <div style={{ background:C.bg, borderRadius:12, padding:'8px 12px', flex:1, border:`1px solid ${C.border}` }}>
                     <span style={{ fontSize:12, fontWeight:700, color:C.text }}>{c.author?.name} </span>
                     <span style={{ fontSize:12, color:C.sub }}>{c.content}</span>
@@ -271,7 +317,7 @@ export default function GroupDetail() {
         <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(255,255,255,0.06) 1px,transparent 1px)', backgroundSize:'24px 24px', pointerEvents:'none' }} aria-hidden/>
           <div style={{ position:'absolute', top:-60, right:-40, width:220, height:220, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} aria-hidden/>
-          <div style={{ position:'relative', maxWidth:720, margin:'0 auto', padding:'28px 24px 24px' }}>
+          <div style={{ position:'relative', maxWidth:720, margin:'0 auto', padding:'28px 24px 28px' }}>
             {/* Back */}
             <motion.button onClick={() => navigate('/dashboard/groups')} whileHover={{x:-2}} whileTap={{scale:0.97}}
               style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.8)', background:'rgba(255,255,255,0.12)', border:'none', borderRadius:99, padding:'5px 12px', cursor:'pointer', marginBottom:16 }}>
@@ -397,7 +443,7 @@ export default function GroupDetail() {
                     <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                       {group.members.map(m => (
                         <div key={m._id} style={{ display:'flex', alignItems:'center', gap:6, background:C.bg, border:`1px solid ${C.border}`, borderRadius:99, padding:'4px 10px' }}>
-                          <UserAvatar name={m.name} size="xs" />
+                          <UserAvatar name={m.name} avatar={m.avatar} size="xs" />
                           <span style={{ fontSize:12, color:C.text, fontWeight:500 }}>{m.name}</span>
                           {(m._id === group.creator?._id || m._id === group.creator) && (
                             <span style={{ fontSize:10, fontWeight:700, color:'var(--theme-primary)' }}>admin</span>

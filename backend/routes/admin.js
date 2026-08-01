@@ -1,7 +1,10 @@
 const router = require('express').Router();
 const multer = require('multer');
 const ctrl = require('../controllers/adminController');
-const { adminGetGroups, adminDeleteGroup } = require('../controllers/groupController');
+const {
+  adminGetGroups, adminDeleteGroup,
+  adminGetGroupPosts, adminGetReports, adminModeratePost,
+} = require('../controllers/groupController');
 const { protect, adminOnly } = require('../middleware/auth');
 const ActivityLog = require('../models/ActivityLog');
 
@@ -53,6 +56,9 @@ router.get('/activity-logs', async (req, res) => {
 
 router.get('/groups', adminGetGroups);
 router.delete('/groups/:id', adminDeleteGroup);
+router.get('/groups/:id/posts', adminGetGroupPosts);
+router.get('/reports', adminGetReports);
+router.post('/posts/:postId/moderate', adminModeratePost);
 
 // ── Seeds Semestre 1 (usage unique, puis peut être retiré) ────────────────
 router.post('/seed-s1', require('../seeds/seedSemestre1_route'));

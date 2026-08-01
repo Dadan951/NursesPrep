@@ -1,5 +1,6 @@
 const Group     = require('../models/Group');
 const GroupPost = require('../models/GroupPost');
+const User      = require('../models/User');
 
 /* helper — generate a 6-char uppercase code */
 function genCode() {
@@ -60,7 +61,7 @@ exports.getGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
       .populate('creator', 'name')
-      .populate('members', 'name')
+      .populate('members', 'name avatar')
       .populate('pendingMembers', 'name email');
 
     if (!group) return res.status(404).json({ message: 'Groupe introuvable' });
@@ -250,9 +251,9 @@ exports.getPosts = async (req, res) => {
     if (!group) return res.status(404).json({ message: 'Groupe introuvable' });
     const isMember = group.members.some(m => m.toString() === req.user._id.toString());
     if (group.isPrivate && !isMember) return res.status(403).json({ message: 'Groupe privé' });
-    const posts = await GroupPost.find({ group: req.params.id })
-      .populate('author', 'name')
-      .populate('comments.author', 'name')
+    const posts = await GroupPost.find({ group: req.params.id, hidden: { $ne: true } })
+      .populate('author', 'name avatar')
+      .populate('comments.author', 'name avatar')
       .sort('-createdAt');
     res.json(posts);
   } catch (err) {
@@ -270,7 +271,7 @@ exports.createPost = async (req, res) => {
       group: req.params.id, author: req.user._id,
       content: req.body.content, type: req.body.type || 'text',
     });
-    await post.populate('author', 'name');
+    await post.populate('author', 'name avatar');
     res.status(201).json(post);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -297,8 +298,23 @@ exports.addComment = async (req, res) => {
     if (!post) return res.status(404).json({ message: 'Post introuvable' });
     post.comments.push({ author: req.user._id, content: req.body.content });
     await post.save();
-    await post.populate('comments.author', 'name');
+    await post.populate('comments.author', 'name avatar');
     res.status(201).json(post.comments[post.comments.length - 1]);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.reportPost = async (req, res) => {
+  try {
+    const post = await GroupPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ message: 'Post introuvable' });
+    const already = post.reports.some(r => r.reportedBy.toString() === req.user._id.toString());
+    if (already) return res.status(400).json({ message: 'Vous avez déjà signalé ce message' });
+    post.reports.push({ reportedBy: req.user._id, reason: (req.body.reason || '').slice(0, 300) });
+    post.reportResolved = false;
+    await post.save();
+    res.status(201).json({ message: 'Message signalé' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -323,6 +339,76 @@ exports.adminDeleteGroup = async (req, res) => {
     await Group.findByIdAndDelete(req.params.id);
     await GroupPost.deleteMany({ group: req.params.id });
     res.json({ message: 'Groupe supprimé' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Modération ───────────────────────────────────────────────────────────────
+exports.adminGetGroupPosts = async (req, res) => {
+  try {
+    const posts = await GroupPost.find({ group: req.params.id })
+      .populate('author', 'name email avatar')
+      .populate('reports.reportedBy', 'name email')
+      .sort('-createdAt');
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.adminGetReports = async (req, res) => {
+  try {
+    const posts = await GroupPost.find({ 'reports.0': { $exists: true }, reportResolved: { $ne: true } })
+      .populate('author', 'name email avatar')
+      .populate('group', 'name')
+      .populate('reports.reportedBy', 'name email')
+      .sort('-createdAt');
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.adminModeratePost = async (req, res) => {
+  try {
+    const { action, suspendDays, warning } = req.body;
+    const post = await GroupPost.findById(req.params.postId);
+    if (!post) return res.status(404).json({ message: 'Post introuvable' });
+
+    if (!['delete', 'kick', 'suspend', 'dismiss'].includes(action)) {
+      return res.status(400).json({ message: 'Action invalide' });
+    }
+
+    if (action === 'dismiss') {
+      post.reportResolved = true;
+      await post.save();
+      return res.json({ message: 'Signalement écarté' });
+    }
+
+    // delete / kick / suspend impliquent tous la suppression du message + un avertissement
+    const authorId = post.author;
+    post.hidden = true;
+    post.reportResolved = true;
+    await post.save();
+
+    if (authorId && warning) {
+      await User.findByIdAndUpdate(authorId, { $push: { warnings: { message: warning } } });
+    }
+
+    if (action === 'kick' && authorId) {
+      await Group.findByIdAndUpdate(post.group, { $pull: { members: authorId } });
+    }
+
+    if (action === 'suspend' && authorId) {
+      const days = Math.max(1, parseInt(suspendDays, 10) || 1);
+      const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      await User.findByIdAndUpdate(authorId, {
+        $set: { suspendedUntil: until, suspendReason: warning || 'Non-respect des règles de la communauté' },
+      });
+    }
+
+    res.json({ message: 'Action appliquée' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

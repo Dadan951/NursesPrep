@@ -34,7 +34,7 @@ exports.getUsers = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const allowed = ['subscription', 'role', 'name'];
+    const allowed = ['subscription', 'role', 'name', 'suspendedUntil'];
     const updates = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
     const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password');

@@ -37,7 +37,9 @@ function EditModal({ user, onClose, onSave }) {
   const initial = { subscription: user.subscription, role: user.role };
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [unsuspending, setUnsuspending] = useState(false);
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  const isSuspended = user.suspendedUntil && new Date(user.suspendedUntil) > new Date();
 
   const handleSave = async () => {
     setSaving(true);
@@ -48,6 +50,17 @@ function EditModal({ user, onClose, onSave }) {
     } catch (e) {
       toast.error(e.response?.data?.message || 'Erreur lors de la mise à jour');
     } finally { setSaving(false); }
+  };
+
+  const handleUnsuspend = async () => {
+    setUnsuspending(true);
+    try {
+      await onSave(user._id, { suspendedUntil: null });
+      toast.success('Suspension levée');
+      onClose();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Erreur lors de la levée de suspension');
+    } finally { setUnsuspending(false); }
   };
 
   return (
@@ -64,6 +77,18 @@ function EditModal({ user, onClose, onSave }) {
       </>}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {isSuspended && (
+          <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: 12 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: '#991b1b', marginBottom: 2 }}>
+              Compte suspendu jusqu'au {new Date(user.suspendedUntil).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </p>
+            {user.suspendReason && <p style={{ fontSize: 11.5, color: '#7f1d1d', marginBottom: 8 }}>{user.suspendReason}</p>}
+            <button onClick={handleUnsuspend} disabled={unsuspending}
+              style={{ padding: '7px 14px', borderRadius: 10, border: 'none', background: '#dc2626', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: unsuspending ? 0.6 : 1 }}>
+              {unsuspending ? 'Levée en cours…' : 'Lever la suspension'}
+            </button>
+          </div>
+        )}
         <Field label="Abonnement">
           <select value={form.subscription} onChange={e => setForm({ ...form, subscription: e.target.value })} className={inputCls}>
             <option value="free">Gratuit</option>

@@ -424,7 +424,7 @@ export default function Quiz() {
       <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
 
         {/* ── HERO ─────────────────────────────────────────────────────── */}
-        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px' }}>
+        <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px', display:'flex', flexDirection:'column' }}>
           {/* Grid texture */}
           <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize:'28px 28px', pointerEvents:'none' }} aria-hidden/>
           {/* Orbs */}
@@ -433,7 +433,7 @@ export default function Quiz() {
           {/* Shine */}
           <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.15), transparent 55%)', pointerEvents:'none' }} aria-hidden/>
 
-          <div style={{ position:'relative', padding:'28px 24px 28px' }}>
+          <div style={{ position:'relative', padding:'28px 24px 0', flex:1, display:'flex', flexDirection:'column' }}>
             {/* Icon + titre */}
             <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
               <div style={{ width:44, height:44, borderRadius:16, background:'rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.3)', flexShrink:0 }}>
@@ -459,7 +459,7 @@ export default function Quiz() {
             </div>
 
             {/* Tab bar */}
-            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end' }}>
+            <div style={{ display:'flex', flexWrap:'wrap', rowGap:10, gap:6, alignItems:'flex-end', marginTop:'auto' }}>
               {[{ id:'catalogue', label:'Catalogue' }, { id:'personnalises', label:'Mes quiz' }].map(t => (
                 <motion.button key={t.id} onClick={() => setTab(t.id)}
                   whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}

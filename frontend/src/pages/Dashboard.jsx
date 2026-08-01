@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from 'framer-motion';
 import { useAuth, API_URL } from '../context/AuthContext';
@@ -40,25 +40,6 @@ const clay = {
     : `inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 0 rgba(0,0,0,0.18), 0 4px 0 var(--theme-dark), 0 8px 20px rgba(var(--theme-primary-rgb),0.27)`,
   pressed: `inset 0 2px 6px rgba(0,0,0,0.15), 0 1px 0 rgba(0,0,0,0.08)`,
 };
-
-/* ─── Animated counter ────────────────────────────────────────────────────── */
-function useCounter(target, delay = 0) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    if (!target) return;
-    const t = setTimeout(() => {
-      let cur = 0;
-      const id = setInterval(() => {
-        cur = Math.min(cur + target / 50, target);
-        setVal(Math.round(cur));
-        if (cur >= target) clearInterval(id);
-      }, 18);
-      return () => clearInterval(id);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [target, delay]);
-  return val;
-}
 
 /* ─── 3D Tilt ─────────────────────────────────────────────────────────────── */
 function Tilt3D({ children, style = {}, className = '', scale = 1.02, depth = 8 }) {
@@ -101,11 +82,12 @@ function useIsMobile() {
 }
 
 /* ─── Clay Card ───────────────────────────────────────────────────────────── */
-function Card({ children, style = {}, className = '' }) {
+function Card({ children, style = {}, className = '', ...rest }) {
   return (
     <div
       className={className}
       style={{ background: C.card, borderRadius: 28, boxShadow: clay.card, border: `1px solid ${C.border}`, ...style }}
+      {...rest}
     >
       {children}
     </div>
@@ -268,6 +250,7 @@ export default function Dashboard() {
   const { user, token, refreshUser, completeOnboarding } = useAuth();
   const p = user?.progress || {};
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   /* ── Visite guidée au premier login ── */
   const [showTour, setShowTour] = useState(false);
@@ -279,13 +262,20 @@ export default function Dashboard() {
 
   const [greeting,      setGreeting]      = useState('');
   const [streak,        setStreak]        = useState(p.streak || 0);
-  const [weeklyData,    setWeeklyData]    = useState([0,0,0,0,0,0,0]);
   const [tipIdx,        setTipIdx]        = useState(0);
   const [dailyGoals,    setDailyGoals]    = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
   const [dailyProgress, setDailyProgress] = useState({ quiz: 0, flashcards: 0, exercises: 0 });
   const [showModal,     setShowModal]     = useState(false);
   const [editGoals,     setEditGoals]     = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
   const [saving,        setSaving]        = useState(false);
+  const [inProgress,    setInProgress]    = useState([]);
+
+  useEffect(() => {
+    if (!token) return;
+    axios.get(`${API_URL}/dashboard/in-progress`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setInProgress(res.data))
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -297,7 +287,6 @@ export default function Dashboard() {
     axios.post(`${API_URL}/auth/ping`, {}, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => {
         if (typeof res.data.streak === 'number') setStreak(res.data.streak);
-        if (Array.isArray(res.data.weeklyActivity)) setWeeklyData(res.data.weeklyActivity);
         refreshUser();
       }).catch(() => {});
   }, []); // eslint-disable-line
@@ -314,11 +303,6 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  const quizVal  = useCounter(p.quizCompleted      || 0,  60);
-  const flashVal = useCounter(p.flashcardsReviewed || 0, 120);
-  const exercVal = useCounter(p.exercisesCompleted || 0, 180);
-  const scoreVal = useCounter(p.totalScore         || 0, 240);
-
   const SUB = {
     free:    { label: 'Gratuit', bg: '#f1f5f9', color: C.muted },
     pro:     { label: 'Pro',     bg: C.indigo,  color: '#fff'  },
@@ -328,13 +312,6 @@ export default function Dashboard() {
 
   const todayStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const today = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
-
-  const STATS = [
-    { label: 'Quiz complétés',   val: quizVal,  color: C.indigo, bg: '#eef2ff', icon: Icon.quiz  },
-    { label: 'Flashcards',       val: flashVal, color: C.violet, bg: '#f5f3ff', icon: Icon.flash },
-    { label: 'Exercices',        val: exercVal, color: C.teal,   bg: '#ecfeff', icon: Icon.exo   },
-    { label: 'Points gagnés',    val: scoreVal, color: C.amber,  bg: '#fffbeb', icon: Icon.star  },
-  ];
 
   const GOALS = [
     { label: 'Quiz',       sublabel: `objectif ${dailyGoals.quizPerDay}`,       value: Math.min(dailyProgress.quiz, dailyGoals.quizPerDay),             max: dailyGoals.quizPerDay,       color: C.indigo },
@@ -361,6 +338,23 @@ export default function Dashboard() {
       setShowModal(false);
     } catch { /* silent */ }
     finally { setSaving(false); }
+  }
+
+  async function dismissWarnings() {
+    try {
+      await axios.put(`${API_URL}/auth/warnings/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      refreshUser();
+    } catch { /* silent */ }
+  }
+
+  function handleResume(item) {
+    if (item.type === 'quiz') {
+      navigate(`/dashboard/quiz/${item.quizId}`);
+    } else {
+      navigate('/dashboard/flashcards', {
+        state: { resume: { semester: item.semester, ue: item.ue, chapter: item.chapter, part: item.part } },
+      });
+    }
   }
 
   return (
@@ -424,84 +418,86 @@ export default function Dashboard() {
                     </motion.div>
                   </div>
                 </div>
-
-                {/* Weekly activity */}
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:600, textAlign:'right' }}>Cette semaine</p>
-                  <div style={{ display:'flex', alignItems:'flex-end', gap:5, height:48 }}>
-                    {['L','M','M','J','V','S','D'].map((day, i) => {
-                      const maxV = Math.max(...weeklyData, 1);
-                      const h = Math.round((weeklyData[i] / maxV) * 100);
-                      const isToday = i === (new Date().getDay() + 6) % 7;
-                      return (
-                        <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                          <motion.div
-                            initial={{ height:0 }} animate={{ height:`${Math.max(h,8)}%` }}
-                            transition={{ delay:0.3 + i*0.05, duration:0.6, ease:[0.16,1,0.3,1] }}
-                            style={{ width:isToday?10:7, borderRadius:4, minHeight:4, background:isToday?'#fff':'rgba(255,255,255,0.3)' }}
-                            title={`${weeklyData[i]}`}
-                          />
-                          <span style={{ fontSize:9, color:isToday?'#fff':'rgba(255,255,255,0.45)', fontWeight:isToday?700:400 }}>{day}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             </Card>
           </motion.div>
 
-          {/* ── STAT CARDS ────────────────────────────────────────────────── */}
-          {isMobile ? (
-            /* Mobile : 2×2 compact, icon + chiffre côte à côte */
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:10 }}>
-              {STATS.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity:0, y:20 }}
-                  whileInView={{ opacity:1, y:0 }}
-                  viewport={{ once:true, margin:'-10px' }}
-                  transition={{ duration:0.3, ease:[0.16,1,0.3,1], delay: i * 0.05 }}
-                >
-                  <div style={{ background:C.card, borderRadius:18, boxShadow:clay.sm, border:`1px solid ${C.border}`, padding:'13px 14px', display:'flex', alignItems:'center', gap:10, height:'100%' }}>
-                    <div style={{ width:36, height:36, borderRadius:12, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, flexShrink:0 }}>
-                      {s.icon}
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <p className="nunito" style={{ fontSize:22, fontWeight:900, color:C.text, lineHeight:1.1, fontVariantNumeric:'tabular-nums' }}>{s.val}</p>
-                      <p style={{ fontSize:10, color:C.muted, lineHeight:1.3, marginTop:1, minHeight:'2.6em' }}>{s.label}</p>
-                    </div>
-                    <div style={{ width:6, height:6, borderRadius:'50%', background:s.color, boxShadow:`0 0 6px ${s.color}`, marginLeft:'auto', flexShrink:0 }}/>
+          {/* ── AVERTISSEMENTS ────────────────────────────────────────────── */}
+          {user?.warnings?.length > 0 && (
+            <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}>
+              <Card style={{ padding:'16px 20px', background:'#fef2f2', border:'1.5px solid #fecaca' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+                  <div style={{ width:34, height:34, borderRadius:11, background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center', color:'#dc2626', flexShrink:0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            /* Desktop : 4 cards avec tilt */
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:14 }}>
-              {STATS.map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity:0, y:32, scale:0.92 }}
-                  whileInView={{ opacity:1, y:0, scale:1 }}
-                  viewport={{ once:true, margin:'-40px' }}
-                  transition={{ type:'spring', stiffness:300, damping:26, delay: i * 0.09 }}
-                >
-                  <Tilt3D depth={6}>
-                    <Card style={{ padding:'22px 24px', cursor:'default' }}>
-                      <div style={{ height:4, borderRadius:99, background:`linear-gradient(90deg, ${s.color}, color-mix(in srgb, ${s.color} 55%, transparent))`, marginBottom:16 }}/>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                        <div style={{ width:42, height:42, borderRadius:14, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', color:s.color, boxShadow:clay.sm }}>
-                          {s.icon}
-                        </div>
-                        <div style={{ width:10, height:10, borderRadius:'50%', background:s.color, boxShadow:`0 0 12px ${s.color}` }}/>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontSize:13, fontWeight:800, color:'#991b1b', marginBottom:6 }}>
+                      {user.warnings.length > 1 ? `Tu as ${user.warnings.length} avertissements` : 'Tu as reçu un avertissement'}
+                    </p>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {user.warnings.map((w, i) => (
+                        <p key={w._id || i} style={{ fontSize:12.5, color:'#7f1d1d', lineHeight:1.5 }}>{w.message}</p>
+                      ))}
+                    </div>
+                    <button onClick={dismissWarnings}
+                      style={{ marginTop:10, padding:'7px 14px', borderRadius:10, border:'none', background:'#dc2626', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                      J'ai compris
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ── REPRENDRE (quiz / flashcards en cours) ──────────────────────── */}
+          {inProgress.length > 0 && (
+            <div>
+              <h2 className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:12, paddingLeft: isMobile ? 2 : 4 }}>
+                Reprendre
+              </h2>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {inProgress.map((item, i) => {
+                  const isQuiz = item.type === 'quiz';
+                  const color  = isQuiz ? C.indigo : C.violet;
+                  const bg     = isQuiz ? '#eef2ff' : '#f5f3ff';
+                  const card = (
+                    <Card
+                      style={{ padding:'14px 16px', cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}
+                      onClick={() => handleResume(item)}
+                    >
+                      <div style={{ width:40, height:40, borderRadius:12, background:bg, color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        {isQuiz ? Icon.quiz : Icon.flash}
                       </div>
-                      <p className="nunito" style={{ fontSize:34, fontWeight:900, color:C.text, lineHeight:1, fontVariantNumeric:'tabular-nums', marginBottom:4 }}>{s.val}</p>
-                      <p style={{ fontSize:12, color:C.muted, fontWeight:500 }}>{s.label}</p>
+                      <div style={{ minWidth:0, flex:1 }}>
+                        <p style={{ fontSize:13, fontWeight:700, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.title}</p>
+                        {item.subtitle && (
+                          <p style={{ fontSize:11, color:C.muted, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.subtitle}</p>
+                        )}
+                        {typeof item.progress === 'number' && (
+                          <div style={{ height:4, borderRadius:99, background:C.border, marginTop:8, overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${item.progress}%`, borderRadius:99, background:color }}/>
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize:12, fontWeight:700, color, flexShrink:0, display:'flex', alignItems:'center', gap:4, whiteSpace:'nowrap' }}>
+                        Reprendre
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                      </span>
                     </Card>
-                  </Tilt3D>
-                </motion.div>
-              ))}
+                  );
+                  return (
+                    <motion.div
+                      key={`${item.type}-${i}`}
+                      initial={{ opacity:0, y:16 }}
+                      whileInView={{ opacity:1, y:0 }}
+                      viewport={{ once:true, margin:'-10px' }}
+                      transition={{ duration:0.3, ease:[0.16,1,0.3,1], delay: i * 0.05 }}
+                    >
+                      {isMobile ? card : <Tilt3D depth={3}>{card}</Tilt3D>}
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -590,40 +586,6 @@ export default function Dashboard() {
 
             {/* RIGHT SIDEBAR */}
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-
-              {/* Streak card */}
-              <ScrollReveal delay={0.08} x={24} y={0}>
-              <Card style={{ padding:'24px', position:'relative', overflow:'hidden' }}>
-                <div style={{ position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'radial-gradient(circle,rgba(249,115,22,0.18),transparent)', pointerEvents:'none' }} aria-hidden/>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-                  {Icon.fire}
-                  <span className="nunito" style={{ fontSize:13, fontWeight:800, color:C.orange }}>Série active</span>
-                </div>
-                <motion.p
-                  className="nunito"
-                  initial={{ scale:0.4, opacity:0 }}
-                  animate={{ scale:1, opacity:1 }}
-                  transition={{ delay:0.5, ...spring }}
-                  style={{ fontSize:60, fontWeight:900, color:C.text, lineHeight:1, fontVariantNumeric:'tabular-nums', marginBottom:4 }}
-                >
-                  {streak}
-                </motion.p>
-                <p style={{ fontSize:12, color:C.muted, marginBottom:16 }}>
-                  {streak === 0 ? 'Reviens demain pour démarrer !' : `jour${streak > 1?'s':''} consécutif${streak > 1?'s':''}`}
-                </p>
-                <div style={{ display:'flex', gap:6 }}>
-                  {Array.from({ length:7 }).map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ scaleY:0 }} animate={{ scaleY:1 }}
-                      transition={{ delay:0.55 + i*0.06, ...spring }}
-                      style={{ flex:1, height:6, borderRadius:99, transformOrigin:'bottom', background:i < streak ? `linear-gradient(135deg,${C.orange},${C.amber})` : 'var(--theme-border)', boxShadow:i < streak ? `0 2px 6px rgba(234,88,12,0.4)` : 'none' }}
-                    />
-                  ))}
-                </div>
-                <p style={{ fontSize:10, color:C.muted, marginTop:6 }}>Objectif : 7 jours</p>
-              </Card>
-              </ScrollReveal>
 
               {/* Tip card */}
               <ScrollReveal delay={0.14} x={24} y={0}>

@@ -5,6 +5,15 @@
 body { font-family: 'DM Sans', system-ui, sans-serif; }
 h1, h2, h3, .nunito { font-family: 'Nunito', sans-serif; }
 
+/* iOS Safari zoome automatiquement toute la page quand on touche un champ dont
+   le texte fait moins de 16px — le zoom reste ensuite "collé" en quittant le
+   champ, donnant l'impression que la page entière est zoomée et déplaçable.
+   Beaucoup de champs du site utilisent 13px en desktop ; on force 16px en
+   dessous de 700px pour éviter ce déclenchement, sans toucher au style desktop. */
+@media (max-width: 700px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
 /* ── DARK MODE OVERRIDES ────────────────────────────────────────────────────── */
 
 .dark {

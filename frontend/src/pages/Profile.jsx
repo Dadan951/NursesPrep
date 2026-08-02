@@ -517,7 +517,7 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      <div style={{ flex:1, overflowY:'auto', background:C.bg }}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', background:C.bg }}>
 
         {/* ── HERO ── */}
         <div style={{ background:'var(--theme-hero)', position:'relative', overflow:'hidden', minHeight:'200px' }}>
@@ -962,15 +962,13 @@ export default function Profile() {
                       <div style={{ height:44, borderRadius:14, background:C.bg, animation:'pulse 1.5s ease-in-out infinite' }}/>
                     ) : (
                       <>
-                        <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-                          <div style={{ flex:1, minWidth:0, padding:'11px 14px', borderRadius:14, background:C.bg, border:`1.5px solid ${C.border}`, fontSize:12, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontFamily:'monospace' }}>
-                            {referralLink}
-                          </div>
-                          <motion.button whileHover={{ y:-2 }} whileTap={{ scale:0.96 }} onClick={handleCopyReferral}
-                            style={{ padding:'0 18px', borderRadius:14, border:'none', background: referralCopied ? '#16a34a' : 'linear-gradient(135deg,#d97706,#b45309)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', flexShrink:0, boxShadow:clay.btn('#d97706','#92400e') }}>
-                            {referralCopied ? '✓ Copié' : 'Copier'}
-                          </motion.button>
+                        <div style={{ width:'100%', maxWidth:'100%', boxSizing:'border-box', padding:'11px 14px', borderRadius:14, background:C.bg, border:`1.5px solid ${C.border}`, fontSize:12, color:C.text, fontFamily:'monospace', wordBreak:'break-all', marginBottom:10 }}>
+                          {referralLink}
                         </div>
+                        <motion.button whileHover={{ y:-2 }} whileTap={{ scale:0.96 }} onClick={handleCopyReferral}
+                          style={{ width:'100%', boxSizing:'border-box', padding:'11px 0', borderRadius:14, border:'none', background: referralCopied ? '#16a34a' : 'linear-gradient(135deg,#d97706,#b45309)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', marginBottom:14, boxShadow:clay.btn('#d97706','#92400e') }}>
+                          {referralCopied ? '✓ Copié' : 'Copier le lien'}
+                        </motion.button>
                         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
                           {[
                             { l:'Invités', v:referral.referredCount },

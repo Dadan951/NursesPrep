@@ -268,13 +268,15 @@ export default function Dashboard() {
   const [showModal,     setShowModal]     = useState(false);
   const [editGoals,     setEditGoals]     = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
   const [saving,        setSaving]        = useState(false);
-  const [inProgress,    setInProgress]    = useState([]);
+  const [inProgress,        setInProgress]        = useState([]);
+  const [loadingInProgress, setLoadingInProgress]  = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) { setLoadingInProgress(false); return; }
     axios.get(`${API_URL}/dashboard/in-progress`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => setInProgress(res.data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingInProgress(false));
   }, [token]);
 
   useEffect(() => {
@@ -365,6 +367,7 @@ export default function Dashboard() {
       <style>{`
         @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-20px,14px) scale(1.05)} 70%{transform:translate(14px,-18px) scale(0.97)} }
         @keyframes floatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,-12px)} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes floatC { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-10px,20px) scale(1.04)} 66%{transform:translate(16px,6px)} }
         @media(max-width:768px){ .blob { animation-play-state: paused !important; display: none; } }
       `}</style>
@@ -450,7 +453,16 @@ export default function Dashboard() {
           )}
 
           {/* ── REPRENDRE (quiz / flashcards en cours) ──────────────────────── */}
-          {inProgress.length > 0 && (
+          {loadingInProgress ? (
+            <div>
+              <div style={{ width:100, height:15, borderRadius:6, background:C.border, marginBottom:12, animation:'pulse 1.4s ease-in-out infinite' }}/>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                {[0, 1].map(i => (
+                  <div key={i} style={{ height:68, borderRadius:16, background:C.card, border:`1px solid ${C.border}`, animation:'pulse 1.4s ease-in-out infinite', animationDelay:`${i*0.1}s` }}/>
+                ))}
+              </div>
+            </div>
+          ) : inProgress.length > 0 && (
             <div>
               <h2 className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:12, paddingLeft: isMobile ? 2 : 4 }}>
                 Reprendre

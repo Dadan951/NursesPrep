@@ -108,14 +108,12 @@ function ActionCard3D({ to, label, desc, icon, color, darkColor, grad, noEdge })
   const sRotX = useSpring(rotX, { stiffness: 500, damping: 32 });
   const sRotY = useSpring(rotY, { stiffness: 500, damping: 32 });
 
-  const shadows = noEdge ? {
-    idle:    `inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.22), 0 14px 30px ${color}55, 0 24px 48px rgba(0,0,0,0.12)`,
-    hovered: `inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 0 rgba(0,0,0,0.18), 0 22px 44px ${color}66, 0 36px 72px rgba(0,0,0,0.18)`,
-    pressed: `inset 0 3px 8px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(0,0,0,0.08), 0 4px 12px ${color}33`,
-  } : {
-    idle:    `inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.22), 0 8px 0 ${darkColor}, 0 14px 30px ${color}55, 0 24px 48px rgba(0,0,0,0.12)`,
-    hovered: `inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 0 rgba(0,0,0,0.18), 0 14px 0 ${darkColor}, 0 22px 44px ${color}66, 0 36px 72px rgba(0,0,0,0.18)`,
-    pressed: `inset 0 3px 8px rgba(0,0,0,0.25), inset 0 -1px 0 rgba(0,0,0,0.08), 0 2px 0 ${darkColor}, 0 4px 12px ${color}33`,
+  // Ombre neutre (pas de teinte couleur concaténée) — identique pour les 8 cartes,
+  // que "color" soit une valeur hexadécimale ou une variable CSS (var(--theme-primary)).
+  const shadows = {
+    idle:    'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.15), 0 4px 14px rgba(0,0,0,0.18)',
+    hovered: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -3px 0 rgba(0,0,0,0.12), 0 10px 24px rgba(0,0,0,0.22)',
+    pressed: 'inset 0 3px 8px rgba(0,0,0,0.22), inset 0 -1px 0 rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.15)',
   };
 
   const cardContent = (
@@ -325,12 +323,12 @@ export default function Dashboard() {
   const ACTIONS = [
     { to: '/dashboard/quiz',         label: 'Quiz',        desc: 'QCM & questions',       icon: Icon.quiz,   grad: `135deg, var(--theme-dark), var(--theme-primary)`, color: C.indigo,  darkColor: 'var(--theme-dark)' },
     { to: '/dashboard/flashcards',   label: 'Flashcards',  desc: 'Mémorisation rapide',   icon: Icon.flash,  grad: `135deg, #6d28d9, ${C.violet}`, color: C.violet,  darkColor: '#4c1d95' },
-    { to: '/dashboard/exercises',    label: 'Exercices',   desc: 'Cas cliniques',         icon: Icon.exo,    grad: `135deg, #0e7490, ${C.teal}`,   color: C.teal,    darkColor: '#164e63', noEdge: true },
-    { to: '/dashboard/cours',        label: 'Cours',       desc: 'Leçons & fiches',       icon: Icon.book,   grad: `135deg, #15803d, #10b981`,     color: '#10b981', darkColor: '#064e3b', noEdge: true },
-    { to: '/dashboard/annales',      label: 'Annales',     desc: 'Sujets passés',         icon: Icon.annale, grad: `135deg, #1d4ed8, #3b82f6`,     color: '#3b82f6', darkColor: '#1e3a8a', noEdge: true },
-    { to: '/dashboard/medicaments',  label: 'Médicaments', desc: 'Base pharma',           icon: Icon.pill,   grad: `135deg, #b91c1c, ${C.red}`,    color: C.red,     darkColor: '#7f1d1d', noEdge: true },
-    { to: '/dashboard/groups',       label: 'Groupes',     desc: 'Réviser ensemble',      icon: Icon.group,  grad: `135deg, #c2410c, ${C.orange}`, color: C.orange,  darkColor: '#7c2d12', noEdge: true },
-    { to: '/dashboard/subscription', label: 'Abonnement',  desc: 'Gérer mon offre',       icon: Icon.card,   grad: `135deg, #be185d, ${C.pink}`,   color: C.pink,    darkColor: '#831843', noEdge: true },
+    { to: '/dashboard/exercises',    label: 'Exercices',   desc: 'Cas cliniques',         icon: Icon.exo,    grad: `135deg, #0e7490, ${C.teal}`,   color: C.teal,    darkColor: '#164e63' },
+    { to: '/dashboard/cours',        label: 'Cours',       desc: 'Leçons & fiches',       icon: Icon.book,   grad: `135deg, #15803d, #10b981`,     color: '#10b981', darkColor: '#064e3b' },
+    { to: '/dashboard/annales',      label: 'Annales',     desc: 'Sujets passés',         icon: Icon.annale, grad: `135deg, #1d4ed8, #3b82f6`,     color: '#3b82f6', darkColor: '#1e3a8a' },
+    { to: '/dashboard/medicaments',  label: 'Médicaments', desc: 'Base pharma',           icon: Icon.pill,   grad: `135deg, #b91c1c, ${C.red}`,    color: C.red,     darkColor: '#7f1d1d' },
+    { to: '/dashboard/groups',       label: 'Groupes',     desc: 'Réviser ensemble',      icon: Icon.group,  grad: `135deg, #c2410c, ${C.orange}`, color: C.orange,  darkColor: '#7c2d12' },
+    { to: '/dashboard/subscription', label: 'Abonnement',  desc: 'Gérer mon offre',       icon: Icon.card,   grad: `135deg, #be185d, ${C.pink}`,   color: C.pink,    darkColor: '#831843' },
   ];
 
   async function saveGoals() {

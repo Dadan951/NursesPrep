@@ -13,6 +13,7 @@ import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from
 import { useAuth, API_URL } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import OnboardingTour from '../components/OnboardingTour';
+import { getCache, setCache } from '../utils/cache';
 
 /* ─── Design tokens ───────────────────────────────────────────────────────── */
 const C = {
@@ -268,13 +269,13 @@ export default function Dashboard() {
   const [showModal,     setShowModal]     = useState(false);
   const [editGoals,     setEditGoals]     = useState({ quizPerDay: 5, flashcardsPerDay: 20, exercisesPerDay: 3 });
   const [saving,        setSaving]        = useState(false);
-  const [inProgress,        setInProgress]        = useState([]);
-  const [loadingInProgress, setLoadingInProgress]  = useState(true);
+  const [inProgress,        setInProgress]        = useState(() => getCache('dashboard_in_progress') || []);
+  const [loadingInProgress, setLoadingInProgress]  = useState(() => getCache('dashboard_in_progress') === null);
 
   useEffect(() => {
     if (!token) { setLoadingInProgress(false); return; }
     axios.get(`${API_URL}/dashboard/in-progress`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => setInProgress(res.data))
+      .then(res => { setInProgress(res.data); setCache('dashboard_in_progress', res.data); })
       .catch(() => {})
       .finally(() => setLoadingInProgress(false));
   }, [token]);

@@ -360,6 +360,21 @@ export default function Dashboard() {
     }
   }
 
+  // Tant que "Reprendre" n'a pas résolu (cache ou réseau), on affiche un seul
+  // écran de chargement plutôt que de laisser le contenu apparaître par
+  // morceaux — sur cache chaud, loadingInProgress est déjà false au tout
+  // premier rendu donc ce chargement ne s'affiche jamais.
+  if (loadingInProgress) {
+    return (
+      <DashboardLayout>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:C.bg }}>
+          <div style={{ width:40, height:40, border:`4px solid ${C.indigo}`, borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }}/>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
 
@@ -368,7 +383,6 @@ export default function Dashboard() {
       <style>{`
         @keyframes floatA { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-20px,14px) scale(1.05)} 70%{transform:translate(14px,-18px) scale(0.97)} }
         @keyframes floatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,-12px)} }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         @keyframes floatC { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-10px,20px) scale(1.04)} 66%{transform:translate(16px,6px)} }
         @media(max-width:768px){ .blob { animation-play-state: paused !important; display: none; } }
       `}</style>
@@ -454,16 +468,7 @@ export default function Dashboard() {
           )}
 
           {/* ── REPRENDRE (quiz / flashcards en cours) ──────────────────────── */}
-          {loadingInProgress ? (
-            <div>
-              <div style={{ width:100, height:15, borderRadius:6, background:C.border, marginBottom:12, animation:'pulse 1.4s ease-in-out infinite' }}/>
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                {[0, 1].map(i => (
-                  <div key={i} style={{ height:68, borderRadius:16, background:C.card, border:`1px solid ${C.border}`, animation:'pulse 1.4s ease-in-out infinite', animationDelay:`${i*0.1}s` }}/>
-                ))}
-              </div>
-            </div>
-          ) : inProgress.length > 0 && (
+          {inProgress.length > 0 && (
             <div>
               <h2 className="nunito" style={{ fontSize:15, fontWeight:800, color:C.text, marginBottom:12, paddingLeft: isMobile ? 2 : 4 }}>
                 Reprendre

@@ -73,9 +73,14 @@ function Tilt3D({ children, style = {}, className = '', scale = 1.02, depth = 8 
 
 /* ─── Mobile detection ───────────────────────────────────────────────────── */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  // Doit correspondre au seuil "lg" (1024px) utilisé par DashboardLayout pour
+  // afficher/masquer la sidebar persistante — sinon, entre 768 et 1023px, la
+  // sidebar disparaît (place gagnée) mais le contenu garde sa mise en page
+  // desktop (colonne fixe 340px + grille 4 colonnes), ce qui la fait déborder
+  // hors écran sur tablette.
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
+    const fn = () => setMobile(window.innerWidth < 1024);
     window.addEventListener('resize', fn, { passive: true });
     return () => window.removeEventListener('resize', fn);
   }, []);

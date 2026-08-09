@@ -581,6 +581,7 @@ const Quiz      = require('../models/Quiz');
 const Flashcard = require('../models/Flashcard');
 const Lesson    = require('../models/Lesson');
 const Exercise  = require('../models/Exercise');
+const Annale    = require('../models/Annale');
 
 async function bulkHandler(Model) {
   return async (req, res) => {
@@ -606,5 +607,6 @@ router.post('/bulk/quizzes',    async (...a) => (await bulkHandler(Quiz))(...a))
 router.post('/bulk/flashcards', async (...a) => (await bulkHandler(Flashcard))(...a));
 router.post('/bulk/lessons',    async (...a) => (await bulkHandler(Lesson))(...a));
 router.post('/bulk/exercises',  async (...a) => (await bulkHandler(Exercise))(...a));
+router.post('/bulk/annales',    async (...a) => (await bulkHandler(Annale))(...a));
 
 module.exports = router;

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { API_URL } from '../../context/AuthContext';
 import {
   AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge,
-  Toolbar, SearchInput, DataTable, Modal, ConfirmModal,
+  Toolbar, SearchInput, BulkBar, DataTable, Modal, ConfirmModal,
   Field, Toggle, inputCls, toast, useDraft, DraftBanner, formatSize, C,
 } from '../../components/admin/adminKit';
 
@@ -27,7 +27,7 @@ const FILE_TYPE_LABELS = {
 const EMPTY = { title: '', year: '', semester: '', programVersion: 'ancien', subject: '', description: '', isPublished: true };
 
 /* ─── Modal Annale ──────────────────────────────────────────────────────── */
-function AnnaleModal({ annale, onClose, onSave, existingSemesters = [], existingCategories = [] }) {
+function AnnaleModal({ annale, onClose, onSave, existingYears = [], existingSemesters = [], existingCategories = [] }) {
   const isNew = !annale;
   const initial = annale ? { ...annale } : { ...EMPTY };
   const [form, setForm] = useState(initial);
@@ -99,7 +99,8 @@ function AnnaleModal({ annale, onClose, onSave, existingSemesters = [], existing
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Année" required>
-            <input value={form.year} onChange={e => set('year', e.target.value)} placeholder="Ex: 2023-2024" className={inputCls} />
+            <input list="ann-year-list" value={form.year} onChange={e => set('year', e.target.value)} placeholder="Ex: 2023-2024" className={inputCls} />
+            <datalist id="ann-year-list">{existingYears.map(y => <option key={y} value={y} />)}</datalist>
           </Field>
           <Field label="Semestre" required>
             <input list="ann-sem-list" value={form.semester} onChange={e => set('semester', e.target.value)} placeholder="Ex: Semestre 1" className={inputCls} />
@@ -173,9 +174,15 @@ export default function AdminAnnales() {
   const [deleting, setDeleting] = useState(null);
   const [delLoading, setDelLoading] = useState(false);
   const [search, setSearch]     = useState('');
+  const [selected, setSelected]     = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const load = () => {
     setLoading(true);
+    setSelected(new Set());
     axios.get(`${API_URL}/annales/admin`)
       .then(r => setItems(r.data))
       .catch(() => toast.error('Impossible de charger les annales'))
@@ -197,6 +204,23 @@ export default function AdminAnnales() {
       load();
     } catch (e) { toast.error(e.response?.data?.message || 'Erreur lors de la suppression'); }
     finally { setDelLoading(false); }
+  };
+
+  const toggleOne = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(a => a._id)));
+  };
+  const bulkAction = async (action, value) => {
+    if (!selected.size) return;
+    setBulkLoading(true);
+    try {
+      await axios.post(`${API_URL}/admin/bulk/annales`, { ids: [...selected], action, value }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(action === 'delete' ? `${selected.size} annale(s) supprimée(s)` : 'Statut mis à jour');
+      setBulkDeleting(false);
+      load();
+    } catch (e) { toast.error(e.response?.data?.message || e.message); }
+    finally { setBulkLoading(false); }
   };
 
   const filtered = items.filter(a =>
@@ -225,9 +249,23 @@ export default function AdminAnnales() {
           <span style={{ marginLeft: 'auto', fontSize: 12, color: C.sub, fontWeight: 600 }}>{filtered.length} / {items.length}</span>
         </Toolbar>
 
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <BulkBar
+              count={selected.size}
+              loading={bulkLoading}
+              onPublish={() => bulkAction('publish', true)}
+              onUnpublish={() => bulkAction('publish', false)}
+              onDelete={() => setBulkDeleting(true)}
+              onClear={() => setSelected(new Set())}
+            />
+          )}
+        </AnimatePresence>
+
         <DataTable
           loading={loading}
           items={filtered}
+          selectable={{ selected, toggleOne, toggleAll }}
           onEdit={a => setModal(a)}
           onDelete={a => setDeleting(a)}
           empty={{
@@ -265,6 +303,7 @@ export default function AdminAnnales() {
             annale={modal === 'new' ? null : modal}
             onClose={() => setModal(null)}
             onSave={handleSave}
+            existingYears={[...new Set(items.map(x => x.year).filter(Boolean))].sort((a, b) => b.localeCompare(a))}
             existingSemesters={[...new Set(items.map(x => x.semester).filter(Boolean))].sort()}
             existingCategories={[...new Set(items.map(x => x.subject).filter(Boolean))].sort()}
           />
@@ -279,6 +318,15 @@ export default function AdminAnnales() {
             onConfirm={() => handleDelete(deleting._id)}
             onClose={() => setDeleting(null)}
             loading={delLoading}
+          />
+        )}
+        {bulkDeleting && (
+          <ConfirmModal
+            title={`Supprimer ${selected.size} annale(s) ?`}
+            message="Cette action est irréversible."
+            onConfirm={() => bulkAction('delete')}
+            onClose={() => setBulkDeleting(false)}
+            loading={bulkLoading}
           />
         )}
       </AnimatePresence>

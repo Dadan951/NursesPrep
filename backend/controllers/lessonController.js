@@ -33,7 +33,6 @@ exports.getAll = async (req, res) => {
   try {
     const filter = { isPublished: true };
     if (req.query.type) filter.type = req.query.type;
-    filter.programVersion = req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' };
     const lessons = await Lesson.find(filter)
       .select('-content -fileData')
       .sort('-createdAt');
@@ -47,8 +46,6 @@ exports.getOne = async (req, res) => {
   try {
     const lesson = await Lesson.findById(req.params.id).select('-fileData');
     if (!lesson || !lesson.isPublished) return res.status(404).json({ message: 'Cours introuvable' });
-    if (req.user.programVersion === 'reforme_2026' && lesson.programVersion !== 'reforme_2026')
-      return res.status(404).json({ message: 'Cours introuvable' });
     res.json(lesson);
   } catch (err) {
     res.status(500).json({ message: err.message });

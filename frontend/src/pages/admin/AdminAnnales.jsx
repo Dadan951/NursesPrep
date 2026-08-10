@@ -49,7 +49,7 @@ function AnnaleModal({ annale, onClose, onSave, existingYears = [], existingSeme
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.year.trim() || !form.semester.trim() || !form.subject.trim()) {
-      return toast.error('Titre, année, semestre et matière sont requis');
+      return toast.error('Titre, université, semestre et matière sont requis');
     }
     setLoading(true);
     try {
@@ -98,8 +98,8 @@ function AnnaleModal({ annale, onClose, onSave, existingYears = [], existingSeme
         </Field>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Année" required>
-            <input list="ann-year-list" value={form.year} onChange={e => set('year', e.target.value)} placeholder="Ex: 2023-2024" className={inputCls} />
+          <Field label="Université" required>
+            <input list="ann-year-list" value={form.year} onChange={e => set('year', e.target.value)} placeholder="Ex: Paris Cité 2024-2025" className={inputCls} />
             <datalist id="ann-year-list">{existingYears.map(y => <option key={y} value={y} />)}</datalist>
           </Field>
           <Field label="Semestre" required>
@@ -239,7 +239,7 @@ export default function AdminAnnales() {
       stats={[
         { value: items.length, label: 'annales' },
         { value: published,    label: 'publiées' },
-        { value: years,        label: 'années' },
+        { value: years,        label: 'universités' },
       ]}
       actions={<HeroBtn onClick={() => setModal('new')}>{plusIcon} Nouvelle annale</HeroBtn>}
     >
@@ -276,7 +276,7 @@ export default function AdminAnnales() {
           }}
           columns={[
             { label: 'Titre', maxWidth: 220, render: a => <span style={{ fontWeight: 700 }} title={a.title}>{a.title}</span> },
-            { label: 'Année', render: a => <Badge color="#4f46e5">{a.year}</Badge> },
+            { label: 'Université', render: a => <Badge color="#4f46e5">{a.year}</Badge> },
             { label: 'Semestre', render: a => <Badge color="#2563eb">{a.semester}</Badge> },
             { label: 'Matière', maxWidth: 180, render: a => <span style={{ fontSize: 12, color: C.sub }} title={a.subject}>{a.subject}</span> },
             { label: 'Fichier', render: a => a.hasFile ? <Badge color="#dc2626">{FILE_TYPE_LABELS[a.fileMimeType] || 'Fichier'}</Badge> : <span style={{ color: '#cbd5e1' }}>—</span> },

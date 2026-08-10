@@ -379,13 +379,13 @@ export default function Annales() {
               </div>
               <div style={{ minWidth:0 }}>
                 <h1 className="nunito" style={{ fontSize:24, fontWeight:900, color:'#fff', lineHeight:1.1 }}>Annales</h1>
-                <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Sujets d'examens classés par année et semestre</p>
+                <p style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:2 }}>Sujets d'examens classés par université et semestre</p>
               </div>
             </div>
             <div style={{ display:'flex', flexWrap:'wrap', rowGap:12, columnGap:20, alignItems:'flex-end' }}>
               {[
                 { val:annales.length, label:'Sujets', color:'#c4b5fd' },
-                { val:years.length,   label:'Années',  color:'#a5b4fc' },
+                { val:years.length,   label:'Universités',  color:'#a5b4fc' },
               ].map(s => (
                 <div key={s.label} style={{ textAlign:'center' }}>
                   <p className="nunito" style={{ fontSize:22, fontWeight:900, color:s.color, fontVariantNumeric:'tabular-nums', lineHeight:1 }}>{s.val}</p>
@@ -419,8 +419,8 @@ export default function Annales() {
                       ) : (
                         <>
                           <div style={{ marginBottom:20 }}>
-                            <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>Années</h2>
-                            <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{years.length} année{years.length>1?'s':''}</p>
+                            <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>Universités</h2>
+                            <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{years.length} université{years.length>1?'s':''}</p>
                           </div>
                           <DetailList
                             items={years.map(yr => {

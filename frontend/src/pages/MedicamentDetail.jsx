@@ -61,6 +61,7 @@ function Term({ word, definition, keyIndex }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const ref = useRef(null);
+  const canHover = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +90,8 @@ function Term({ word, definition, keyIndex }) {
   return (
     <span ref={ref} style={{ position:'relative', display:'inline-block' }}>
       <span
-        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+        onMouseEnter={canHover ? () => setOpen(true) : undefined}
+        onMouseLeave={canHover ? () => setOpen(false) : undefined}
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
         style={{ borderBottom:'1.5px dotted #94a3b8', cursor:'help', fontWeight:600, color:'inherit' }}>
         {word}

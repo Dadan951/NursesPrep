@@ -106,8 +106,7 @@ function SCardHeader({ icon, title, sub, gradFrom = C.indigo, gradTo = C.violet 
   return (
     <div style={{ padding:'16px 20px', borderBottom:`1px solid ${C.border}`, background:C.bg, display:'flex', alignItems:'center', gap:12 }}>
       <div style={{ width:32, height:32, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-        background:`linear-gradient(135deg,${gradFrom},${gradTo})`,
-        boxShadow:clay.btn(gradFrom, gradFrom) }}>
+        background:`linear-gradient(135deg,${gradFrom},${gradTo})` }}>
         {icon}
       </div>
       <div>
@@ -703,7 +702,7 @@ export default function Profile() {
                             <p style={{ fontSize:13, fontWeight:700, color:C.text }}>{opt.label}</p>
                             {active && (
                               <div style={{ position:'absolute', top:8, right:8, width:18, height:18, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                                background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow:clay.btn() }}>
+                                background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' }}>
                                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                               </div>
                             )}
@@ -897,7 +896,7 @@ export default function Profile() {
                           <p style={{ fontSize:11, color:C.sub, marginTop:2 }}>{theme.sub}</p>
                           {theme.active && (
                             <div style={{ position:'absolute', top:12, right:12, width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-                              background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', boxShadow:clay.btn() }}>
+                              background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))' }}>
                               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                             </div>
                           )}

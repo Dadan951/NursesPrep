@@ -428,8 +428,8 @@ export default function MedicamentDetail() {
         {/* ── CONTENT ──────────────────────────────────────────────────────── */}
         <div style={{ padding:'24px 16px' }}>
 
-          {/* TOC mobile */}
-          <div style={{ marginBottom:16, display:'block' }} className="lg:hidden">
+          {/* TOC */}
+          <div style={{ marginBottom:16, display:'block' }}>
             <button onClick={() => setMobileTocOpen(v => !v)}
               style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:700, color:C.indigo,
                 background:C.card, border:`1.5px solid ${C.border}`, padding:'10px 16px', borderRadius:14,
@@ -454,18 +454,8 @@ export default function MedicamentDetail() {
             </AnimatePresence>
           </div>
 
-          {/* Layout 2 colonnes */}
+          {/* Layout */}
           <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
-
-            {/* Sidebar TOC desktop */}
-            <aside style={{ width:220, flexShrink:0, position:'sticky', top:24 }} className="hidden lg:block">
-              <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:20, padding:12, boxShadow:clay.card }}>
-                <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:C.sub, padding:'4px 10px', marginBottom:6 }}>
-                  Sommaire
-                </p>
-                {TOC}
-              </div>
-            </aside>
 
             {/* Contenu principal */}
             <main style={{ flex:1, minWidth:0 }}>

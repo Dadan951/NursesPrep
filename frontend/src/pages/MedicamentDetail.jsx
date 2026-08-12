@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -25,6 +26,106 @@ const clay = {
 
 /* ─── Sections spéciales ─────────────────────────────────────────────────── */
 const SPECIAL = new Set(['Médias', 'Source', 'Général']);
+
+/* ─── Glossaire — termes techniques définis au survol / tap ─────────────── */
+const GLOSSARY = {
+  'effet plafond': "Au-delà d'une certaine dose, l'effet du médicament n'augmente plus : cela limite le risque de surdosage par rapport à un produit sans ce plafond.",
+  'agoniste-antagoniste partiel': "Molécule qui active partiellement un récepteur (effet plus faible qu'un agoniste complet) tout en bloquant l'action d'autres substances sur ce même récepteur.",
+  'agoniste partiel': "Substance qui se lie à un récepteur et l'active, mais avec une efficacité moindre qu'un agoniste complet.",
+  'agoniste complet': "Substance qui se lie à un récepteur et l'active au maximum de son efficacité possible.",
+  'antagoniste': "Substance qui se lie à un récepteur sans l'activer, bloquant ainsi l'action d'autres substances sur ce récepteur.",
+  'palier iii': "Classification de l'OMS pour les antalgiques : le palier III regroupe les opioïdes forts, réservés aux douleurs intenses.",
+  'palier ii': "Classification de l'OMS pour les antalgiques : le palier II regroupe les opioïdes faibles, pour les douleurs modérées.",
+  'demi-vie': "Temps nécessaire pour que la concentration du médicament dans l'organisme diminue de moitié.",
+  'tso': "Traitement de Substitution aux Opioïdes — prise en charge médicale remplaçant un opioïde illicite par un médicament encadré, pour réduire les risques et accompagner le sevrage.",
+  'amm': "Autorisation de Mise sur le Marché — accord officiel obligatoire avant la commercialisation d'un médicament en France.",
+  'ansm': "Agence Nationale de Sécurité du Médicament et des produits de santé — autorité française de surveillance des médicaments.",
+  'rcp': "Résumé des Caractéristiques du Produit — document officiel décrivant précisément un médicament (indications, posologie, effets indésirables…).",
+  'has': "Haute Autorité de Santé — organisme public émettant des recommandations de bonne pratique médicale.",
+  'snc': "Système Nerveux Central — l'ensemble formé par le cerveau et la moelle épinière.",
+  'per os': "Voie d'administration orale, c'est-à-dire par la bouche.",
+  'voie sublinguale': "Administration sous la langue, permettant une absorption rapide directement dans la circulation sanguine.",
+  'dépression respiratoire': "Ralentissement dangereux de la fréquence et/ou de l'amplitude respiratoire, principal risque des opioïdes en cas de surdosage.",
+  'sevrage': "Ensemble des symptômes physiques et psychiques survenant à l'arrêt ou à la diminution d'une substance dont l'organisme est devenu dépendant.",
+  'pharmacocinétique': "Étude du devenir d'un médicament dans l'organisme (absorption, distribution, métabolisme, élimination).",
+  'pharmacodynamie': "Étude des effets d'un médicament sur l'organisme et de son mécanisme d'action.",
+  'biodisponibilité': "Proportion d'une dose de médicament qui atteint la circulation générale sous forme active.",
+};
+const GLOSSARY_RE = new RegExp(
+  '\\b(' + Object.keys(GLOSSARY).sort((a,b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b',
+  'gi'
+);
+
+/* ─── Term — mot souligné en pointillés, définition au survol/tap ───────── */
+function Term({ word, definition, keyIndex }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onScroll = () => setOpen(false);
+    document.addEventListener('click', onDocClick);
+    document.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      document.removeEventListener('click', onDocClick);
+      document.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !ref.current) return;
+    const margin = 10;
+    const tipWidth = Math.min(240, window.innerWidth - 2 * margin);
+    const r = ref.current.getBoundingClientRect();
+    let left = r.left + r.width / 2 - tipWidth / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - margin - tipWidth));
+    setPos({ top: r.bottom + 6, left, width: tipWidth });
+  }, [open]);
+
+  return (
+    <span ref={ref} style={{ position:'relative', display:'inline-block' }}>
+      <span
+        onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        style={{ borderBottom:'1.5px dotted #94a3b8', cursor:'help', fontWeight:600, color:'inherit' }}>
+        {word}
+      </span>
+      {open && pos && createPortal(
+        <AnimatePresence>
+          <motion.div key={`tip-${keyIndex}`}
+            initial={{ opacity:0, y:4, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:4, scale:0.97 }}
+            transition={{ duration:0.15 }}
+            style={{ position:'fixed', zIndex:9999, top:pos.top, left:pos.left, width:pos.width, textAlign:'left',
+              background:'#0f172a', color:'#f1f5f9', fontSize:11.5, fontWeight:500, lineHeight:1.55,
+              padding:'9px 12px', borderRadius:11, boxShadow:'0 10px 28px rgba(0,0,0,0.3)', pointerEvents:'none' }}>
+            {definition}
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
+    </span>
+  );
+}
+
+/* ─── Applique le glossaire sur un fragment de texte brut ───────────────── */
+function glossaryize(str, keyPrefix) {
+  if (!str) return [str];
+  const out = [];
+  let last = 0, m, idx = 0;
+  GLOSSARY_RE.lastIndex = 0;
+  while ((m = GLOSSARY_RE.exec(str)) !== null) {
+    if (m.index > last) out.push(str.slice(last, m.index));
+    const def = GLOSSARY[m[0].toLowerCase()];
+    out.push(<Term key={`${keyPrefix}-g${idx++}`} word={m[0]} definition={def} keyIndex={`${keyPrefix}-g${idx}`}/>);
+    last = m.index + m[0].length;
+  }
+  if (last < str.length) out.push(str.slice(last));
+  return out;
+}
 
 /* ─── Couleurs des parties ───────────────────────────────────────────────── */
 const HEADING_COLORS = [
@@ -58,19 +159,19 @@ function RichContent({ text, partieIndex = 0 }) {
   if (!text) return <span style={{ fontStyle:'italic', color:C.sub }}>Contenu non renseigné</span>;
   const hc = HEADING_COLORS[partieIndex % HEADING_COLORS.length];
 
-  function renderInline(str) {
+  function renderInline(str, keyPrefix = 'i') {
     const parts = [];
     const re = /(__.*?__|\*\*.*?\*\*|\*.*?\*)/g;
     let last = 0, m;
     while ((m = re.exec(str)) !== null) {
-      if (m.index > last) parts.push(str.slice(last, m.index));
+      if (m.index > last) parts.push(...glossaryize(str.slice(last, m.index), `${keyPrefix}-${m.index}`));
       const raw = m[0];
-      if (raw.startsWith('**'))      parts.push(<strong key={m.index} style={{ fontWeight:700, color:'#0f172a' }}>{raw.slice(2,-2)}</strong>);
-      else if (raw.startsWith('__')) parts.push(<span key={m.index} style={{ textDecoration:'underline underline-offset-2', color:'#1e293b' }}>{raw.slice(2,-2)}</span>);
-      else                           parts.push(<em key={m.index} style={{ fontStyle:'italic', color:C.sub }}>{raw.slice(1,-1)}</em>);
+      if (raw.startsWith('**'))      parts.push(<strong key={m.index} style={{ fontWeight:700, color:'#0f172a' }}>{glossaryize(raw.slice(2,-2), `${keyPrefix}-b${m.index}`)}</strong>);
+      else if (raw.startsWith('__')) parts.push(<span key={m.index} style={{ textDecoration:'underline underline-offset-2', color:'#1e293b' }}>{glossaryize(raw.slice(2,-2), `${keyPrefix}-u${m.index}`)}</span>);
+      else                           parts.push(<em key={m.index} style={{ fontStyle:'italic', color:C.sub }}>{glossaryize(raw.slice(1,-1), `${keyPrefix}-e${m.index}`)}</em>);
       last = m.index + raw.length;
     }
-    if (last < str.length) parts.push(str.slice(last));
+    if (last < str.length) parts.push(...glossaryize(str.slice(last), `${keyPrefix}-end`));
     return parts;
   }
 
@@ -90,12 +191,12 @@ function RichContent({ text, partieIndex = 0 }) {
       const headers = rows[0]?.split('|').filter(Boolean).map(c => c.trim()) || [];
       const dataRows = rows.slice(1).filter(r => !/^[|\s\-:]+$/.test(r));
       elements.push(
-        <div key={`table-${i}`} style={{ overflowX:'auto', margin:'16px 0', borderRadius:14, border:`1.5px solid ${C.border}`, boxShadow:clay.sm }}>
-          <table style={{ width:'100%', fontSize:12, borderCollapse:'collapse' }}>
+        <div key={`table-${i}`} style={{ overflowX:'auto', margin:'18px 0', borderRadius:16, border:`1.5px solid ${C.border}`, boxShadow:clay.sm }}>
+          <table style={{ width:'100%', fontSize:13, borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ background:hc.bg }}>
                 {headers.map((h, hi) => (
-                  <th key={hi} style={{ padding:'10px 14px', textAlign:'left', fontWeight:700, color:hc.text, borderBottom:`1.5px solid ${C.border}` }}>
+                  <th key={hi} style={{ padding:'11px 15px', textAlign:'left', fontWeight:700, color:hc.text, borderBottom:`1.5px solid ${C.border}` }}>
                     {renderInline(h)}
                   </th>
                 ))}
@@ -107,7 +208,7 @@ function RichContent({ text, partieIndex = 0 }) {
                 return (
                   <tr key={ri} style={{ background: ri%2===0 ? '#fff' : C.bg }}>
                     {cells.map((cell, ci) => (
-                      <td key={ci} style={{ padding:'8px 14px', color:'#334155', borderBottom:`1px solid ${C.border}`, fontSize:12 }}>
+                      <td key={ci} style={{ padding:'9px 15px', color:'#334155', borderBottom:`1px solid ${C.border}`, fontSize:13 }}>
                         {renderInline(cell)}
                       </td>
                     ))}
@@ -125,10 +226,10 @@ function RichContent({ text, partieIndex = 0 }) {
     const boldOnlyMatch = line.trim().match(/^\*\*(.+)\*\*$/);
     if (boldOnlyMatch) {
       elements.push(
-        <div key={`h-${i}`} style={{ display:'flex', alignItems:'center', gap:10, marginTop:20, marginBottom:8 }}>
+        <div key={`h-${i}`} style={{ display:'flex', alignItems:'center', gap:10, marginTop:24, marginBottom:12 }}>
           <div style={{ height:1, flex:1, borderRadius:2, background:hc.border }}/>
-          <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em',
-            padding:'3px 12px', borderRadius:20, color:hc.text, background:hc.bg, border:`1px solid ${hc.border}` }}>
+          <span style={{ fontSize:11.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em',
+            padding:'4px 13px', borderRadius:20, color:hc.text, background:hc.bg, border:`1px solid ${hc.border}` }}>
             {boldOnlyMatch[1]}
           </span>
           <div style={{ height:1, flex:1, borderRadius:2, background:hc.border }}/>
@@ -142,10 +243,10 @@ function RichContent({ text, partieIndex = 0 }) {
       const items = [];
       while (i < lines.length && lines[i].trim().startsWith('- ')) { items.push(lines[i].trim().slice(2)); i++; }
       elements.push(
-        <ul key={`ul-${i}`} style={{ margin:'8px 0', display:'flex', flexDirection:'column', gap:6, paddingLeft:4 }}>
+        <ul key={`ul-${i}`} style={{ margin:'10px 0', display:'flex', flexDirection:'column', gap:9, paddingLeft:4 }}>
           {items.map((item, ii) => (
-            <li key={ii} style={{ display:'flex', alignItems:'flex-start', gap:10, fontSize:13, color:'#334155' }}>
-              <span style={{ flexShrink:0, width:16, height:16, borderRadius:'50%', marginTop:2,
+            <li key={ii} style={{ display:'flex', alignItems:'flex-start', gap:10, fontSize:15.5, color:'#334155', lineHeight:1.65 }}>
+              <span style={{ flexShrink:0, width:16, height:16, borderRadius:'50%', marginTop:3,
                 display:'flex', alignItems:'center', justifyContent:'center',
                 background:hc.bg, border:`1.5px solid ${hc.border}` }}>
                 <span style={{ width:6, height:6, borderRadius:'50%', background:hc.text, display:'block' }}/>
@@ -160,7 +261,7 @@ function RichContent({ text, partieIndex = 0 }) {
 
     // Paragraphe normal
     elements.push(
-      <p key={`p-${i}`} style={{ fontSize:13, color:'#334155', lineHeight:1.7, margin:'6px 0' }}>
+      <p key={`p-${i}`} style={{ fontSize:15.5, color:'#334155', lineHeight:1.85, margin:'10px 0' }}>
         {renderInline(line)}
       </p>
     );
@@ -202,27 +303,23 @@ function PartieBlock({ partieNum, title, content, id, color, partieIndex }) {
     <motion.div id={id}
       initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}
       transition={{ duration:0.5, ease:[0.16,1,0.3,1] }}
-      style={{ marginBottom:20, scrollMarginTop:24 }}>
-      <div style={{ background:C.card, borderRadius:20, border:`1.5px solid ${C.border}`, boxShadow:clay.card, overflow:'hidden' }}>
-        {/* Bandeau coloré */}
-        <div style={{ height:4, background:`linear-gradient(90deg,${color},${color}80)` }}/>
-        <div style={{ padding:'20px 22px' }}>
+      style={{ marginBottom:28, scrollMarginTop:24 }}>
+      <div style={{ position:'relative', background:C.card, borderRadius:24, borderTop:`1.5px solid ${C.border}`, borderRight:`1.5px solid ${C.border}`, borderBottom:`1.5px solid ${C.border}`,
+        borderLeft:`5px solid ${color}`, boxShadow:clay.card }}>
+        {/* Voile de couleur en fond */}
+        <div style={{ position:'absolute', inset:0, borderRadius:'inherit', background:`radial-gradient(ellipse 420px 200px at 100% 0%,${color}12,transparent 70%)`, pointerEvents:'none' }} aria-hidden/>
+        <div style={{ position:'relative', padding:'26px 26px 28px' }}>
           {/* Header */}
-          <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:18 }}>
-            <div style={{ flexShrink:0, width:44, height:44, borderRadius:14, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-              background:`linear-gradient(135deg,${color},${color}cc)`, boxShadow:`0 4px 12px ${color}40` }}>
-              <span style={{ fontSize:9, color:'rgba(255,255,255,0.8)', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em', lineHeight:1 }}>P.</span>
-              <span style={{ fontSize:20, fontWeight:900, color:'#fff', lineHeight:1 }}>{partieNum}</span>
-            </div>
-            <div style={{ paddingTop:4 }}>
-              <p style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.1em', color:C.sub, marginBottom:2 }}>Partie {partieNum}</p>
-              <h2 style={{ fontSize:16, fontWeight:800, color:C.text, lineHeight:1.3 }}>{title}</h2>
-            </div>
+          <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:18 }}>
+            <span style={{ flexShrink:0, width:48, height:48, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+              background:`linear-gradient(135deg,${color},${color}cc)`, boxShadow:`0 0 0 4px ${color}18, 0 6px 16px ${color}50`,
+              fontSize:19, fontWeight:800, color:'#fff' }}>
+              {partieNum}
+            </span>
+            <h2 className="nunito" style={{ fontSize:21, fontWeight:800, color:C.text, lineHeight:1.3 }}>{title}</h2>
           </div>
           {/* Contenu */}
-          <div style={{ paddingLeft:58 }}>
-            <RichContent text={content} partieIndex={partieIndex}/>
-          </div>
+          <RichContent text={content} partieIndex={partieIndex}/>
         </div>
       </div>
     </motion.div>
@@ -232,15 +329,16 @@ function PartieBlock({ partieNum, title, content, id, color, partieIndex }) {
 /* ─── SectionBlock (générique) ───────────────────────────────────────────── */
 function SectionBlock({ icon, title, color = C.indigo, children }) {
   return (
-    <div style={{ background:C.card, borderRadius:20, border:`1.5px solid ${C.border}`, boxShadow:clay.card, overflow:'hidden', marginBottom:20 }}>
-      <div style={{ height:4, background:`linear-gradient(90deg,${color},${color}60)` }}/>
-      <div style={{ padding:'20px 22px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
-          <div style={{ width:40, height:40, borderRadius:13, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+    <div style={{ position:'relative', background:C.card, borderRadius:24, borderTop:`1.5px solid ${C.border}`, borderRight:`1.5px solid ${C.border}`, borderBottom:`1.5px solid ${C.border}`,
+      borderLeft:`5px solid ${color}`, boxShadow:clay.card, marginBottom:28 }}>
+      <div style={{ position:'absolute', inset:0, borderRadius:'inherit', background:`radial-gradient(ellipse 420px 200px at 100% 0%,${color}12,transparent 70%)`, pointerEvents:'none' }} aria-hidden/>
+      <div style={{ position:'relative', padding:'26px 26px 28px' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+          <div style={{ width:44, height:44, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
             background:`linear-gradient(135deg,${color}20,${color}10)`, border:`1.5px solid ${color}35` }}>
             {icon}
           </div>
-          <h2 style={{ fontSize:16, fontWeight:800, color:C.text }}>{title}</h2>
+          <h2 className="nunito" style={{ fontSize:21, fontWeight:800, color:C.text }}>{title}</h2>
         </div>
         {children}
       </div>
@@ -403,12 +501,12 @@ export default function MedicamentDetail() {
               </span>
             </div>
 
-            <h1 className="nunito" style={{ fontSize:30, fontWeight:900, color:'#fff', lineHeight:1.15, marginBottom:4 }}>{drug.name}</h1>
+            <h1 className="nunito" style={{ fontSize:'clamp(24px, 6vw, 30px)', fontWeight:900, color:'#fff', lineHeight:1.15, marginBottom:4, wordBreak:'break-word' }}>{drug.name}</h1>
             {drug.genericName && (
               <p style={{ fontSize:13, fontStyle:'italic', color:'rgba(196,181,253,0.7)', marginBottom:12 }}>{drug.genericName}</p>
             )}
             {drug.description && (
-              <p style={{ fontSize:13, lineHeight:1.7, maxWidth:640, marginBottom:12 }}>
+              <p style={{ fontSize:13.5, lineHeight:1.75, maxWidth:640, marginBottom:12 }}>
                 {renderHeroInline(drug.description)}
               </p>
             )}
@@ -461,22 +559,21 @@ export default function MedicamentDetail() {
             <main style={{ flex:1, minWidth:0 }}>
 
               {/* Introduction */}
-              <div ref={el => { sectionRefs.current[0] = el; }} style={{ scrollMarginTop:24, marginBottom:20 }}>
-                <div style={{ background:C.card, borderRadius:20, border:`1.5px solid ${C.border}`, boxShadow:clay.card, overflow:'hidden' }}>
-                  <div style={{ height:4, background:`linear-gradient(90deg,${classColor},${classColor}60)` }}/>
-                  <div style={{ padding:'20px 22px' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
-                      <div style={{ width:40, height:40, borderRadius:13, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+              <div ref={el => { sectionRefs.current[0] = el; }} style={{ scrollMarginTop:24, marginBottom:28 }}>
+                <div style={{ position:'relative', background:C.card, borderRadius:24, borderTop:`1.5px solid ${C.border}`, borderRight:`1.5px solid ${C.border}`, borderBottom:`1.5px solid ${C.border}`,
+                  borderLeft:`5px solid ${classColor}` , boxShadow:clay.card }}>
+                  <div style={{ position:'absolute', inset:0, borderRadius:'inherit', background:`radial-gradient(ellipse 420px 200px at 100% 0%,${classColor}12,transparent 70%)`, pointerEvents:'none' }} aria-hidden/>
+                  <div style={{ position:'relative', padding:'26px 26px 28px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+                      <div style={{ width:44, height:44, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
                         background:`linear-gradient(135deg,${classColor}25,${classColor}12)`, border:`1.5px solid ${classColor}35` }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={classColor} strokeWidth="2.5" strokeLinecap="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={classColor} strokeWidth="2.5" strokeLinecap="round">
                           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
                       </div>
-                      <h2 style={{ fontSize:16, fontWeight:800, color:C.text }}>Introduction</h2>
+                      <h2 className="nunito" style={{ fontSize:21, fontWeight:800, color:C.text }}>Introduction</h2>
                     </div>
-                    <div style={{ paddingLeft:52 }}>
-                      <RichContent text={drug.description} partieIndex={-1}/>
-                    </div>
+                    <RichContent text={drug.description} partieIndex={-1}/>
                   </div>
                 </div>
               </div>
@@ -503,7 +600,7 @@ export default function MedicamentDetail() {
                     icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>}
                     title="Médias & Ressources pédagogiques">
                     {mediasSection.content && (
-                      <div style={{ marginBottom:16, paddingLeft:52, borderLeft:'2px solid #ddd6fe' }}>
+                      <div style={{ marginBottom:16 }}>
                         <RichContent text={mediasSection.content} partieIndex={2}/>
                       </div>
                     )}

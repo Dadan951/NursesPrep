@@ -458,7 +458,7 @@ export default function MedicamentDetail() {
   const hasMedias      = !!mediasSection;
 
   const tocItems = [
-    { label:'Introduction', sublabel:null, badge:'·', refIdx:0 },
+    { label:'Introduction', sublabel:null, badge:'>', refIdx:0 },
     ...displaySections.map((s, i) => ({ label:`Partie ${i+1}`, sublabel:s.title, badge:i+1, refIdx:i+1 })),
     ...(hasMedias      ? [{ label:'Médias',        sublabel:null, badge:'▶', refIdx:displaySections.length+1 }] : []),
     ...(hasMindMap     ? [{ label:'Carte mentale', sublabel:null, badge:'⬡', refIdx:displaySections.length+(hasMedias?2:1) }] : []),

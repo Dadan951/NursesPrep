@@ -178,6 +178,14 @@ export default function QuizPlay() {
   const feedbackRef = useRef(null);
   const mainRef     = useRef(null);
 
+  // Anti "ghost click" mobile : ignore les clics sur les options juste après le passage
+  // à l'écran de jeu (le tap sur "Entraînement"/"Examen" peut sinon être interprété comme
+  // un clic sur l'option affichée au même endroit une fois l'écran basculé).
+  const clickGuardUntil = useRef(0);
+  useEffect(() => {
+    if (ready) clickGuardUntil.current = Date.now() + 500;
+  }, [ready]);
+
   /* ── Chargement ─────────────────────────────────────────────────────── */
   useEffect(() => {
     Promise.all([
@@ -295,6 +303,7 @@ export default function QuizPlay() {
   // Clic sur une option : verrouille immédiatement en QCU, coche/décoche en QCM
   const handleOptionClick = (idx) => {
     if (answered || !quiz) return;
+    if (Date.now() < clickGuardUntil.current) return;
     const q = shuffledQuestions[current] || quiz.questions[current];
     if (q.multipleAnswers) {
       setChecked(c => c.includes(idx) ? c.filter(i => i !== idx) : [...c, idx]);
@@ -367,7 +376,7 @@ export default function QuizPlay() {
 
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <motion.button onClick={handleResume} whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
-                style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn() }}>
+                style={{ width:'100%', padding:'13px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
                 ▶ Reprendre où je me suis arrêté
               </motion.button>
               <motion.button onClick={handleRestart} whileTap={{ scale:0.97 }}
@@ -615,9 +624,9 @@ export default function QuizPlay() {
               </motion.button>
 
               <motion.button onClick={() => chooseMode(true)} whileHover={{ y:-2, boxShadow:clay.card }} whileTap={{ scale:0.98 }}
-                style={{ textAlign:'left', padding:'16px 18px', borderRadius:18, border:'1.5px solid var(--theme-primary)', background:'rgba(var(--theme-primary-rgb),0.05)', cursor:'pointer', boxShadow:clay.sm, display:'flex', gap:14, alignItems:'center' }}>
-                <div style={{ width:40, height:40, borderRadius:14, background:'linear-gradient(135deg,var(--theme-dark),var(--theme-primary))', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                style={{ textAlign:'left', padding:'16px 18px', borderRadius:18, border:`1.5px solid ${C.border}`, background:C.bg, cursor:'pointer', boxShadow:clay.sm, display:'flex', gap:14, alignItems:'center' }}>
+                <div style={{ width:40, height:40, borderRadius:14, background:'var(--theme-border)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.indigo} strokeWidth="2" strokeLinecap="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
                 </div>
                 <div>
                   <p style={{ fontSize:14, fontWeight:800, color:C.text, fontFamily:'Nunito,sans-serif' }}>Examen</p>

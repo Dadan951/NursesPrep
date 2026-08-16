@@ -509,7 +509,8 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, part, prevAttempt }) 
                 <motion.button onClick={() => handleAnswer('right')} whileTap={{ scale:0.96 }}
                   style={{ padding:'15px 0', borderRadius:16, border:'none',
                     background:`linear-gradient(135deg,${C.green},#059669)`, color:'#fff',
-                    fontSize:13, fontWeight:800, cursor:'pointer', boxShadow:clay.btn(C.green,'#065f46'),
+                    fontSize:13, fontWeight:800, cursor:'pointer',
+                    boxShadow:`inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.22), 0 8px 0 #065f46`,
                     display:'flex', alignItems:'center', justifyContent:'center', gap:7, minWidth:0 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Je savais !

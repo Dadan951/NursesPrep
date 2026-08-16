@@ -259,7 +259,6 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
   const [view, setView]                           = useState('semesters');
   const [selectedSemester, setSelectedSemester]   = useState(null);
   const [selectedUE, setSelectedUE]               = useState(null);
-  const [selectedChapter, setSelectedChapter]     = useState(null);
 
   useEffect(() => {
     const cached = getCache('lessons_cours');
@@ -267,22 +266,21 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
     axios.get(`${API_URL}/lessons?type=cours`).then(r => { setLessons(r.data); setCache('lessons_cours', r.data); }).finally(() => setLoading(false));
   }, []);
 
+  // Structure à 3 niveaux (semestre → UE → cours) : les chapitres ne sont plus une étape de
+  // navigation séparée, on accède directement aux cours d'une UE.
   const structure = {};
   lessons.forEach(l => {
-    const sem  = (l.semester || 'Non classé').trim();
-    const ue   = (l.category || 'Autre').trim();
-    const chap = (l.chapter  || 'Général').trim();
+    const sem = (l.semester || 'Non classé').trim();
+    const ue  = (l.category || 'Autre').trim();
     if (!structure[sem]) structure[sem] = {};
-    if (!structure[sem][ue]) structure[sem][ue] = {};
-    if (!structure[sem][ue][chap]) structure[sem][ue][chap] = [];
-    structure[sem][ue][chap].push(l);
+    if (!structure[sem][ue]) structure[sem][ue] = [];
+    structure[sem][ue].push(l);
   });
 
   const semesters      = Object.keys(structure).sort();
   const ues            = selectedSemester ? Object.keys(structure[selectedSemester] || {}).sort() : [];
-  const chapters       = (selectedSemester && selectedUE) ? Object.keys(structure[selectedSemester]?.[selectedUE] || {}).sort() : [];
-  const currentLessons = (selectedSemester && selectedUE && selectedChapter) ? (structure[selectedSemester]?.[selectedUE]?.[selectedChapter] || []) : [];
-  const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedUE(null); setSelectedChapter(null); };
+  const currentLessons = (selectedSemester && selectedUE) ? (structure[selectedSemester]?.[selectedUE] || []) : [];
+  const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedUE(null); };
 
   const openLesson = async (lesson) => {
     if (isFree) {
@@ -355,7 +353,7 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                   </div>
                   <DetailList
                     items={semesters.map(sem => {
-                      const total = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat().length;
+                      const total = Object.values(structure[sem]).flat().length;
                       return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} UE · ${total} cours` };
                     })}
                     onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
@@ -376,16 +374,15 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                 </div>
                 <DetailList
                   items={ues.map(ue => {
-                    const total   = Object.values(structure[selectedSemester][ue]).flat().length;
-                    const chCount = Object.keys(structure[selectedSemester][ue]).length;
-                    return { key: ue, label: ue, sub: `${chCount} chapitre${chCount>1?'s':''} · ${total} cours` };
+                    const total = structure[selectedSemester][ue].length;
+                    return { key: ue, label: ue, sub: `${total} cours` };
                   })}
-                  onPick={ue => { setDir(1); setSelectedUE(ue); setView('chapters'); }}
+                  onPick={ue => { setDir(1); setSelectedUE(ue); setView('lessons'); }}
                 />
               </>
             )}
 
-            {view === 'chapters' && selectedSemester && selectedUE && (
+            {view === 'lessons' && selectedSemester && selectedUE && (
               <>
                 <CoursBreadcrumb items={[
                   { label:'Cours', onClick:() => { setDir(-1); reset(); } },
@@ -394,28 +391,6 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                 ]}/>
                 <div style={{ marginBottom:20 }}>
                   <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedUE}</h2>
-                  <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{chapters.length} chapitre{chapters.length>1?'s':''}</p>
-                </div>
-                <DetailList
-                  items={chapters.map(chap => ({
-                    key: chap, label: chap,
-                    sub: `${structure[selectedSemester][selectedUE][chap].length} cours`,
-                  }))}
-                  onPick={chap => { setDir(1); setSelectedChapter(chap); setView('lessons'); }}
-                />
-              </>
-            )}
-
-            {view === 'lessons' && selectedSemester && selectedUE && selectedChapter && (
-              <>
-                <CoursBreadcrumb items={[
-                  { label:'Cours', onClick:() => { setDir(-1); reset(); } },
-                  { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
-                  { label:selectedUE, onClick:() => { setDir(-1); setSelectedChapter(null); setView('chapters'); } },
-                  { label:selectedChapter }
-                ]}/>
-                <div style={{ marginBottom:20 }}>
-                  <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedChapter}</h2>
                   <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{currentLessons.length} cours</p>
                 </div>
                 <DetailList
@@ -454,7 +429,7 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                 {semesters.map((sem, idx) => {
                   const pal     = COURS_PALETTE[idx % COURS_PALETTE.length];
                   const ueCount = Object.keys(structure[sem]).length;
-                  const total   = Object.values(structure[sem]).flatMap(ue => Object.values(ue)).flat().length;
+                  const total   = Object.values(structure[sem]).flat().length;
                   return (
                     <motion.button key={sem}
                       onClick={() => { setSelectedSemester(sem); setView('ues'); }}
@@ -493,12 +468,11 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:14 }}>
               {ues.map((ue, idx) => {
-                const pal     = COURS_PALETTE[idx % COURS_PALETTE.length];
-                const total   = Object.values(structure[selectedSemester][ue]).flat().length;
-                const chCount = Object.keys(structure[selectedSemester][ue]).length;
+                const pal   = COURS_PALETTE[idx % COURS_PALETTE.length];
+                const total = structure[selectedSemester][ue].length;
                 return (
                   <motion.button key={ue}
-                    onClick={() => { setSelectedUE(ue); setView('chapters'); }}
+                    onClick={() => { setSelectedUE(ue); setView('lessons'); }}
                     whileHover={{ y:-4 }} whileTap={{ scale:0.97 }}
                     transition={{ type:'spring', stiffness:300, damping:22 }}
                     style={{ position:'relative', overflow:'hidden', borderRadius:18, padding:'20px 16px', textAlign:'left', border:'none', cursor:'pointer',
@@ -506,7 +480,7 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                       boxShadow:`0 4px 0 ${pal.dark}, 0 8px 24px ${pal.from}50` }}>
                     <div style={{ position:'absolute', top:-12, right:-12, width:60, height:60, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(12px)' }}/>
                     <h3 style={{ fontWeight:800, color:'#fff', fontSize:13, marginBottom:4, position:'relative' }}>{ue}</h3>
-                    <p style={{ color:'rgba(255,255,255,0.75)', fontSize:11, marginBottom:12, position:'relative' }}>{chCount} chap. · {total} cours</p>
+                    <p style={{ color:'rgba(255,255,255,0.75)', fontSize:11, marginBottom:12, position:'relative' }}>{total} cours</p>
                     <div style={{ display:'flex', justifyContent:'flex-end', position:'relative' }}>
                       <div style={{ width:28, height:28, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -519,9 +493,9 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
           </motion.div>
         )}
 
-        {/* CHAPTERS */}
-        {view === 'chapters' && selectedSemester && selectedUE && (
-          <motion.div key="chaps" initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }} transition={{ duration:0.3 }}>
+        {/* LESSONS LIST */}
+        {view === 'lessons' && selectedSemester && selectedUE && (
+          <motion.div key="lessons-view" initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }} transition={{ duration:0.3 }}>
             <CoursBreadcrumb items={[
               { label:'Cours', onClick:reset },
               { label:selectedSemester, onClick:() => { setSelectedUE(null); setView('ues'); } },
@@ -529,45 +503,6 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
             ]}/>
             <div style={{ marginBottom:20 }}>
               <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedUE}</h2>
-              <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{chapters.length} chapitre{chapters.length>1?'s':''}</p>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:12 }}>
-              {chapters.map((chap, idx) => {
-                const pal   = COURS_PALETTE[idx % COURS_PALETTE.length];
-                const count = structure[selectedSemester][selectedUE][chap].length;
-                return (
-                  <motion.button key={chap}
-                    onClick={() => { setSelectedChapter(chap); setView('lessons'); }}
-                    whileHover={{ y:-3 }} whileTap={{ scale:0.98 }}
-                    style={{ background:C.card, borderRadius:16, border:`1.5px solid ${C.border}`, boxShadow:clay.card,
-                      padding:'16px', textAlign:'left', cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
-                    <div style={{ width:44, height:44, borderRadius:14, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                      background:`linear-gradient(135deg,${pal.from},${pal.to})`, boxShadow:`0 3px 0 ${pal.dark}` }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <h3 style={{ fontSize:13, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{chap}</h3>
-                      <p style={{ fontSize:11, color:C.sub, marginTop:2 }}>{count} cours</p>
-                    </div>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0 }}><polyline points="9 18 15 12 9 6"/></svg>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* LESSONS LIST */}
-        {view === 'lessons' && selectedSemester && selectedUE && selectedChapter && (
-          <motion.div key="lessons-view" initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }} transition={{ duration:0.3 }}>
-            <CoursBreadcrumb items={[
-              { label:'Cours', onClick:reset },
-              { label:selectedSemester, onClick:() => { setSelectedUE(null); setSelectedChapter(null); setView('ues'); } },
-              { label:selectedUE, onClick:() => { setSelectedChapter(null); setView('chapters'); } },
-              { label:selectedChapter }
-            ]}/>
-            <div style={{ marginBottom:20 }}>
-              <h2 style={{ fontSize:20, fontWeight:900, color:C.text }}>{selectedChapter}</h2>
               <p style={{ fontSize:13, color:C.sub, marginTop:2 }}>{currentLessons.length} cours</p>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>

@@ -271,20 +271,54 @@ function TreatmentBlock({ items, color }) {
 }
 
 /* ─── Bloc L'ESSENTIEL À RETENIR ──────────────────────────────────────────── */
-function EssentialsBlock({ items, color }) {
+/* Chaque point est cochable/décochable ("je sais" / "pas encore"), état conservé
+   par cours dans le navigateur (localStorage) pour retrouver sa progression au retour. */
+function essentialsStorageKey(lessonId) { return `cours_essentials_${lessonId}`; }
+
+function EssentialsBlock({ items, color, lessonId }) {
+  const [checked, setChecked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(essentialsStorageKey(lessonId)) || '[]'); }
+    catch { return []; }
+  });
+
   if (!items?.length) return <span style={{ fontStyle:'italic', color:C.sub }}>Contenu non renseigné</span>;
+
+  const toggle = (i) => {
+    setChecked(prev => {
+      const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
+      try { localStorage.setItem(essentialsStorageKey(lessonId), JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const doneCount = checked.length;
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-      {items.map((item, i) => (
-        <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'12px 14px', borderRadius:14,
-          background:`${color}0c`, border:`1.5px solid ${color}25` }}>
-          <span style={{ flexShrink:0, width:26, height:26, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center',
-            background:color, color:'#fff', fontSize:12, fontWeight:800 }}>
-            ✓
-          </span>
-          <span style={{ fontSize:14.5, fontWeight:600, color:C.text, lineHeight:1.6, marginTop:2 }}>{renderInline(item, `es-${i}`)}</span>
-        </div>
-      ))}
+    <div>
+      <p style={{ fontSize:12, fontWeight:700, color:C.sub, marginBottom:14 }}>
+        {doneCount}/{items.length} point{items.length>1?'s':''} su{doneCount>1?'s':''} — clique sur un point pour le cocher/décocher
+      </p>
+      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+        {items.map((item, i) => {
+          const isChecked = checked.includes(i);
+          return (
+            <motion.button key={i} onClick={() => toggle(i)} whileTap={{ scale:0.98 }}
+              style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'12px 14px', borderRadius:14,
+                width:'100%', textAlign:'left', border:`1.5px solid ${isChecked ? color+'25' : C.border}`, cursor:'pointer',
+                background: isChecked ? `${color}0c` : C.bg, transition:'background 0.15s, border-color 0.15s' }}>
+              <span style={{ flexShrink:0, width:26, height:26, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center',
+                background: isChecked ? color : 'transparent', border: isChecked ? 'none' : `1.5px solid ${C.sub}55`,
+                color:'#fff', fontSize:12, fontWeight:800, transition:'background 0.15s' }}>
+                {isChecked && '✓'}
+              </span>
+              <span style={{ fontSize:14.5, fontWeight:600, lineHeight:1.6, marginTop:2,
+                color: isChecked ? C.text : C.sub, textDecoration: isChecked ? 'none' : 'none' }}>
+                {renderInline(item, `es-${i}`)}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -446,7 +480,7 @@ export default function CoursDetail() {
                   {s.kind === 'treatments'
                     ? <TreatmentBlock items={s.treatments} color={color}/>
                     : s.kind === 'essentials'
-                      ? <EssentialsBlock items={s.items} color={color}/>
+                      ? <EssentialsBlock items={s.items} color={color} lessonId={lesson._id}/>
                       : <RichContent text={s.content} color={color}/>}
                 </SectionCard>
               );

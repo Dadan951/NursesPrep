@@ -22,6 +22,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Groups = lazy(() => import('./pages/Groups'));
 const GroupDetail = lazy(() => import('./pages/GroupDetail'));
 const Cours = lazy(() => import('./pages/Cours'));
+const CoursDetail = lazy(() => import('./pages/CoursDetail'));
 const Annales = lazy(() => import('./pages/Annales'));
 const Support = lazy(() => import('./pages/Support'));
 
@@ -89,6 +90,7 @@ function App() {
           <Route path="/dashboard/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
           <Route path="/dashboard/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
           <Route path="/dashboard/cours" element={<ProtectedRoute><Cours /></ProtectedRoute>} />
+          <Route path="/dashboard/cours/:id" element={<ProtectedRoute><CoursDetail /></ProtectedRoute>} />
           <Route path="/dashboard/medicaments" element={<ProtectedRoute><Medicaments /></ProtectedRoute>} />
           <Route path="/dashboard/medicaments/:id" element={<ProtectedRoute><MedicamentDetail /></ProtectedRoute>} />
           <Route path="/dashboard/annales" element={<ProtectedRoute><Annales /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth, API_URL } from '../context/AuthContext';
@@ -179,9 +179,10 @@ function ClassGroup({ cls, drugs, searchQuery, delay }) {
 ══════════════════════════════════════════════════════════════════════════════ */
 export default function Medicaments() {
   const { token } = useAuth();
+  const [searchParams] = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [drugs,   setDrugs]   = useState([]);
-  const [search,  setSearch]  = useState('');
+  const [search,  setSearch]  = useState(() => searchParams.get('q') || '');
   const [loading, setLoading] = useState(true);
   const searchRef = useRef(null);
 

@@ -249,6 +249,7 @@ function QuotaModal({ type, onClose }) {
 /* ─── CoursTab ───────────────────────────────────────────────────────────────── */
 function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isFree   = (user?.subscription || 'free') === 'free';
   const [lessons, setLessons]   = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -289,6 +290,8 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
       if (!viewed.includes(lesson._id) && viewed.length >= 1) { setQuotaModal(true); return; }
       addViewed('cours', lesson._id);
     }
+    // Cours au format riche (sections structurées) → page dédiée façon fiche médicament
+    if (lesson.sections?.length > 0) { navigate(`/dashboard/cours/${lesson._id}`); return; }
     setFetching(true);
     try { const { data } = await axios.get(`${API_URL}/lessons/${lesson._id}`); setSelected(data); }
     finally { setFetching(false); }

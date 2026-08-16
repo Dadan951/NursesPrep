@@ -433,7 +433,7 @@ function SwipeGame({ cards, onExit, semester, ue, chapter, part, prevAttempt }) 
                   Continuer
                 </motion.button>
                 <motion.button onClick={onExit} whileTap={{ scale:0.96 }}
-                  style={{ display:'block', width:'100%', padding:'12px 0', borderRadius:14, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:clay.btn(), minWidth:0 }}>
+                  style={{ display:'block', width:'100%', padding:'12px 0', borderRadius:14, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.22), 0 8px 0 var(--theme-dark)', minWidth:0 }}>
                   Quitter
                 </motion.button>
               </div>
@@ -713,7 +713,7 @@ export default function Flashcards() {
             <p style={{ fontSize:11, color:C.muted, marginBottom:24 }}>{pct}% complété · {a.known} connu · {a.unknown} à revoir</p>
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               <motion.button onClick={handleResume} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
-                style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:clay.btn(), display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -3px 0 rgba(0,0,0,0.22), 0 8px 0 var(--theme-dark)', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 Reprendre où je me suis arrêté
               </motion.button>

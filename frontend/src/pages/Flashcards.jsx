@@ -86,11 +86,26 @@ function Breadcrumb({ items }) {
     <nav style={{ display:'flex', alignItems:'center', gap:6, marginBottom:20, flexWrap:'wrap' }}>
       {items.map((item, i) => (
         <span key={i} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {i > 0 && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>}
-          {item.onClick
-            ? <button onClick={item.onClick} style={{ fontSize:12, fontWeight:600, color:C.indigo, background:'none', border:'none', cursor:'pointer', padding:0 }}>{item.label}</button>
-            : <span style={{ fontSize:12, fontWeight:700, color:C.text }}>{item.label}</span>
-          }
+          {i > 0 && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          )}
+          {item.onClick ? (
+            <button onClick={item.onClick} style={{
+              fontSize:12, fontWeight:600, color:C.indigo, background:'rgba(var(--theme-primary-rgb),0.07)',
+              border:`1px solid ${C.border}`, padding:'3px 12px', borderRadius:20, cursor:'pointer',
+            }}>
+              {item.label}
+            </button>
+          ) : (
+            <span style={{
+              fontSize:12, fontWeight:700, color:C.text, padding:'3px 12px',
+              background:C.card, border:`1px solid ${C.border}`, borderRadius:20, boxShadow:clay.sm,
+            }}>
+              {item.label}
+            </span>
+          )}
         </span>
       ))}
     </nav>

@@ -266,18 +266,22 @@ function ExBreadcrumb({ items }) {
       {items.map((item, i) => (
         <span key={i} style={{ display:'flex', alignItems:'center', gap:6 }}>
           {i > 0 && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           )}
           {item.onClick ? (
-            <motion.button onClick={item.onClick}
-              whileHover={{ color:C.indigo }}
-              style={{ fontSize:12, fontWeight:600, color:C.sub, background:'transparent', border:'none', cursor:'pointer', padding:'3px 8px', borderRadius:8 }}>
+            <button onClick={item.onClick} style={{
+              fontSize:12, fontWeight:600, color:C.indigo, background:'rgba(var(--theme-primary-rgb),0.07)',
+              border:`1px solid ${C.border}`, padding:'3px 12px', borderRadius:20, cursor:'pointer',
+            }}>
               {item.label}
-            </motion.button>
+            </button>
           ) : (
-            <span style={{ fontSize:12, fontWeight:700, color:C.text, padding:'3px 10px', borderRadius:10, background:C.card, boxShadow:clay.sm }}>
+            <span style={{
+              fontSize:12, fontWeight:700, color:C.text, padding:'3px 12px',
+              background:C.card, border:`1px solid ${C.border}`, borderRadius:20, boxShadow:clay.sm,
+            }}>
               {item.label}
             </span>
           )}

@@ -50,21 +50,12 @@ const TYPE_CFG = {
   },
 };
 
-const DIFF_STYLE = {
-  easy:   { background:'rgba(74,222,128,0.18)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.35)' },
-  medium: { background:'rgba(251,191,36,0.18)', color:'#fbbf24', border:'1px solid rgba(251,191,36,0.35)' },
-  hard:   { background:'rgba(248,113,113,0.18)', color:'#f87171', border:'1px solid rgba(248,113,113,0.35)' },
-};
-const DIFF_LABEL = { easy:'Facile', medium:'Moyen', hard:'Difficile' };
-
 /* ─── Exercise Card ──────────────────────────────────────────────────────────── */
 function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected,   setSelected]   = useState(null);
   const [completed,  setCompleted]  = useState(false);
   const cfg  = TYPE_CFG[ex.type] || TYPE_CFG.open;
-  const diff = DIFF_STYLE[ex.difficulty] || DIFF_STYLE.medium;
-  const diffLabel = DIFF_LABEL[ex.difficulty] || 'Moyen';
 
   const handleComplete = async () => {
     if (completed || quotaExceeded) return;
@@ -96,9 +87,6 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
           <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20,
             background:'rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.9)', border:'1px solid rgba(255,255,255,0.25)' }}>
             {cfg.label}
-          </span>
-          <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20, ...diff }}>
-            {diffLabel}
           </span>
           {completed && (
             <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20, display:'flex', alignItems:'center', gap:4,

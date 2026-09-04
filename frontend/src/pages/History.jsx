@@ -36,12 +36,6 @@ const TYPE_CFG = {
 };
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
-const DIFF = {
-  easy:   { bg:'#d1fae5', text:'#065f46', label:'Facile' },
-  medium: { bg:'#fef3c7', text:'#92400e', label:'Moyen' },
-  hard:   { bg:'#fee2e2', text:'#991b1b', label:'Difficile' },
-};
-
 function scoreColor(pct) {
   if (pct >= 80) return { ring:'#10b981', text:'#065f46', bg:'#ecfdf5', label:'Réussi' };
   if (pct >= 60) return { ring:'#f59e0b', text:'#92400e', bg:'#fffbeb', label:'Passable' };
@@ -751,7 +745,6 @@ export default function History() {
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {filtered.map((item, i) => {
-                const diff   = DIFF[item.difficulty] || DIFF.medium;
                 const sc     = scoreColor(item.pct);
                 const isOpen = openId === item._id;
                 const tCfg   = TYPE_CFG[item.type];
@@ -781,9 +774,6 @@ export default function History() {
                           )}
                           {item.semester && (
                             <span style={{ fontSize:10, fontWeight:700, color:C.indigo, background:`${C.indigo}14`, padding:'2px 8px', borderRadius:20 }}>{item.semester}</span>
-                          )}
-                          {item.type === 'quiz' && item.difficulty && (
-                            <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:diff.bg, color:diff.text }}>{diff.label}</span>
                           )}
                         </div>
                         <p style={{ fontSize:13, fontWeight:700, color:isOpen ? C.indigo : C.text,

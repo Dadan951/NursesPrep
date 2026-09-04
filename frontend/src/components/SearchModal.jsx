@@ -96,7 +96,6 @@ export default function SearchModal({ open, onClose }) {
           id: q._id || Math.random(), type: 'quiz',
           title: q.title || '',
           sub: [q.category, q.chapter, q.semester].filter(Boolean).join(' · '),
-          badge: q.difficulty,
           href: `/dashboard/quiz/${q._id}`,
         })),
         ...safe(fcRes).map(f => ({
@@ -293,15 +292,6 @@ export default function SearchModal({ open, onClose }) {
                                       <p className="text-xs text-slate-400 truncate">{highlight(item.sub, query)}</p>
                                     )}
                                   </div>
-                                  {item.badge && (
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                                      item.badge === 'easy' ? 'bg-emerald-100 text-emerald-700' :
-                                      item.badge === 'hard' ? 'bg-red-100 text-red-700' :
-                                                              'bg-amber-100 text-amber-700'
-                                    }`}>
-                                      {item.badge === 'easy' ? 'Facile' : item.badge === 'hard' ? 'Difficile' : 'Moyen'}
-                                    </span>
-                                  )}
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                                     stroke={isActive ? '#94a3b8' : 'transparent'}
                                     strokeWidth="2" strokeLinecap="round" className="flex-shrink-0">

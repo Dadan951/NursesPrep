@@ -48,12 +48,6 @@ const PALETTE = [
   { from: '#be185d', to: '#9333ea', dark: '#701a75' },
 ];
 
-const DIFF = {
-  easy:   { label: 'Facile',    bg: '#dcfce7', color: '#15803d' },
-  medium: { label: 'Moyen',     bg: '#fef9c3', color: '#854d0e' },
-  hard:   { label: 'Difficile', bg: '#fee2e2', color: '#991b1b' },
-};
-
 const sp = { type: 'spring', stiffness: 300, damping: 24 };
 
 /* ─── Breadcrumb ─────────────────────────────────────────────────────────── */
@@ -580,10 +574,10 @@ export default function Quiz() {
                         const a      = quiz.attempt;
                         const isDone = a?.status === 'completed';
                         const pct    = isDone ? Math.round((a.score / a.totalQuestions) * 100) : null;
-                        const diff   = DIFF[quiz.difficulty] || DIFF.medium;
+                        const qCount = quiz.questionsCount ?? quiz.questions?.length ?? 0;
                         return {
                           key: quiz._id, label: quiz.title,
-                          sub: `${quiz.questions?.length || 0} question${(quiz.questions?.length||0)>1?'s':''} · ${quiz.duration} min · ${diff.label}`,
+                          sub: `${qCount} question${qCount>1?'s':''} · ${quiz.duration} min`,
                           done: isDone,
                           right: isDone
                             ? <DetailBadge color={pct>=60?'#15803d':'#991b1b'} bg={pct>=60?'#dcfce7':'#fee2e2'}>{pct>=60?'✓':'✗'} {a.score}/{a.totalQuestions}</DetailBadge>
@@ -745,7 +739,7 @@ export default function Quiz() {
                       const isResume = a?.status === 'in_progress';
                       const pct     = isDone ? Math.round((a.score / a.totalQuestions) * 100) : null;
                       const barColor = pct >= 60 ? C.green : C.red;
-                      const diff    = DIFF[quiz.difficulty] || DIFF.medium;
+                      const qCount  = quiz.questionsCount ?? quiz.questions?.length ?? 0;
                       return (
                         <motion.div key={quiz._id}
                           initial={{ opacity:0, y:16, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }}
@@ -765,7 +759,6 @@ export default function Quiz() {
                                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                                   {isDone && <Chip label={`${pct>=60?'✓':'✗'} ${a.score}/${a.totalQuestions}`} bg={pct>=60?'#dcfce7':'#fee2e2'} color={pct>=60?'#15803d':'#991b1b'}/>}
                                   {isResume && <Chip label={`● Q${a.currentQuestion+1}/${a.totalQuestions}`} bg='#fef9c3' color='#854d0e'/>}
-                                  <Chip label={diff.label} bg={diff.bg} color={diff.color}/>
                                 </div>
                               </div>
 
@@ -795,7 +788,7 @@ export default function Quiz() {
                                 <div style={{ display:'flex', gap:14 }}>
                                   <span style={{ fontSize:11, color:C.muted, display:'flex', alignItems:'center', gap:4 }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/></svg>
-                                    {quiz.questions?.length||0} q.
+                                    {qCount} q.
                                   </span>
                                   <span style={{ fontSize:11, color:C.muted, display:'flex', alignItems:'center', gap:4 }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>

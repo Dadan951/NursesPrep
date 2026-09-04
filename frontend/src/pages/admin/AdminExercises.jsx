@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '../../context/AuthContext';
 import {
-  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge,
   Toolbar, SearchInput, FilterPills, BulkBar, DataTable, Modal, ConfirmModal,
   Field, Toggle, inputCls, toast, useDraft, DraftBanner, C,
 } from '../../components/admin/adminKit';
@@ -19,7 +19,7 @@ const exoIcon = (size = 22) => (
 );
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
-const EMPTY = { title: '', content: '', answer: '', semester: '', programVersion: 'ancien', caseType: '', category: '', type: 'open', difficulty: 'medium', isPublished: true, options: [] };
+const EMPTY = { title: '', content: '', answer: '', semester: '', programVersion: 'ancien', caseType: '', category: '', type: 'open', isPublished: true, options: [] };
 const QCM_OPT = [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }];
 
 const TYPE_BADGE = {
@@ -70,7 +70,6 @@ function ExModal({ item, onClose, onSave, existingSemesters = [], existingCatego
     { value: 'qcm',        label: 'QCM' },
     { value: 'case_study', label: 'Cas clinique' },
   ];
-  const diffColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
 
   return (
     <Modal
@@ -127,21 +126,6 @@ function ExModal({ item, onClose, onSave, existingSemesters = [], existingCatego
           <Field label="Catégorie (UE)" required>
             <input list="ex-cat-list" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className={inputCls} placeholder="Ex: UE 4.4" />
             <datalist id="ex-cat-list">{existingCategories.map(c => <option key={c} value={c} />)}</datalist>
-          </Field>
-          <Field label="Difficulté">
-            <div style={{ display: 'flex', gap: 6 }}>
-              {Object.entries(DIFF_BADGE).map(([val, d]) => (
-                <button key={val} type="button" onClick={() => setForm({ ...form, difficulty: val })}
-                  style={{
-                    flex: 1, padding: '10px 4px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 42,
-                    border: `1.5px solid ${form.difficulty === val ? 'transparent' : C.border}`,
-                    background: form.difficulty === val ? diffColors[val] : '#fff',
-                    color: form.difficulty === val ? '#fff' : '#94a3b8',
-                  }}>
-                  {d.label}
-                </button>
-              ))}
-            </div>
           </Field>
         </div>
 
@@ -298,7 +282,6 @@ export default function AdminExercises() {
             { label: 'Titre', maxWidth: 240, render: i => <span style={{ fontWeight: 700 }} title={i.title}>{i.title}</span> },
             { label: 'Type', render: i => <Badge color={TYPE_BADGE[i.type]?.color}>{TYPE_BADGE[i.type]?.label}</Badge> },
             { label: 'Catégorie', maxWidth: 150, render: i => <Badge color="#64748b">{i.category}</Badge> },
-            { label: 'Difficulté', render: i => <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge> },
             { label: 'Statut', render: i => <PubBadge ok={i.isPublished} labels={['Publié', 'Masqué']} /> },
           ]}
           renderCard={i => (
@@ -307,7 +290,6 @@ export default function AdminExercises() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <Badge color={TYPE_BADGE[i.type]?.color}>{TYPE_BADGE[i.type]?.label}</Badge>
                 <Badge color="#64748b">{i.category}</Badge>
-                <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge>
                 <PubBadge ok={i.isPublished} labels={['Publié', 'Masqué']} />
               </div>
             </>

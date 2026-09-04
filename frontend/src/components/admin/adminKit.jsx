@@ -204,11 +204,6 @@ export function Badge({ color = '#64748b', children, style }) {
   );
 }
 
-export const DIFF_BADGE = {
-  easy:   { label: 'Facile',    color: '#059669' },
-  medium: { label: 'Moyen',     color: '#d97706' },
-  hard:   { label: 'Difficile', color: '#dc2626' },
-};
 export function PubBadge({ ok, labels = ['Publié', 'Brouillon'] }) {
   return <Badge color={ok ? '#059669' : '#64748b'}>{ok ? labels[0] : labels[1]}</Badge>;
 }

@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '../../context/AuthContext';
 import {
-  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge,
   Toolbar, SearchInput, FilterSelect, BulkBar, DataTable, Modal, ConfirmModal,
   Field, Toggle, inputCls, toast, useDraft, DraftBanner, C,
 } from '../../components/admin/adminKit';
@@ -17,7 +17,7 @@ const flashIcon = (size = 22) => (
 );
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
-const EMPTY = { front: '', back: '', semester: '', programVersion: 'ancien', category: '', chapter: '', part: '', difficulty: 'medium', hint: '', isPublished: true };
+const EMPTY = { front: '', back: '', semester: '', programVersion: 'ancien', category: '', chapter: '', part: '', hint: '', isPublished: true };
 
 /* ─── Modal Flashcard ───────────────────────────────────────────────────── */
 function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], existingCategories = [], existingChapters = [], existingParts = [] }) {
@@ -91,11 +91,6 @@ function FlashModal({ item, preset, onClose, onSave, existingSemesters = [], exi
             <datalist id="fc-part-list">{existingParts.map(p => <option key={p} value={p} />)}</datalist>
           </Field>
         </div>
-        <Field label="Difficulté">
-          <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
-            <option value="easy">Facile</option><option value="medium">Moyen</option><option value="hard">Difficile</option>
-          </select>
-        </Field>
         <Field label="Indice (optionnel)">
           <input value={form.hint} onChange={e => setForm({ ...form, hint: e.target.value })} className={inputCls} placeholder="Indice pour aider…" />
         </Field>
@@ -246,7 +241,6 @@ export default function AdminFlashcards() {
             { label: 'UE', maxWidth: 170, render: i => <Badge color="#2563eb">{i.category}</Badge> },
             { label: 'Chapitre', maxWidth: 150, render: i => <span style={{ fontSize: 12, color: C.sub }}>{i.chapter || '—'}</span> },
             { label: 'Partie', maxWidth: 110, render: i => <span style={{ fontSize: 12, color: C.sub }}>{i.part || '—'}</span> },
-            { label: 'Difficulté', render: i => <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge> },
             { label: 'Statut', render: i => <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} /> },
           ]}
           renderCard={i => (
@@ -255,7 +249,6 @@ export default function AdminFlashcards() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                 {i.semester && <Badge color="#7c3aed">{i.semester}</Badge>}
                 <Badge color="#2563eb">{i.category}</Badge>
-                <Badge color={DIFF_BADGE[i.difficulty]?.color}>{DIFF_BADGE[i.difficulty]?.label}</Badge>
                 <PubBadge ok={i.isPublished} labels={['Publiée', 'Masquée']} />
               </div>
               {i.chapter && <div style={{ fontSize: 12, color: C.sub }}>{i.chapter}{i.part ? ` — ${i.part}` : ''}</div>}

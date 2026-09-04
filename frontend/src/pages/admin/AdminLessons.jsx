@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '../../context/AuthContext';
 import {
-  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge,
   Toolbar, SearchInput, FilterPills, BulkBar, DataTable, Modal, ConfirmModal,
   Field, Toggle, inputCls, toast, useDraft, DraftBanner, formatSize, C,
 } from '../../components/admin/adminKit';
@@ -19,7 +19,7 @@ const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" str
 
 const EMPTY = {
   title: '', type: 'cours', semester: '', programVersion: 'ancien', category: '', chapter: '', summary: '',
-  content: '', difficulty: 'medium', tags: '', isPublished: true,
+  content: '', tags: '', isPublished: true,
 };
 
 const FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.txt';
@@ -66,7 +66,6 @@ function LessonModal({ lesson, onClose, onSave, existingSemesters = [], existing
       fd.append('chapter',     form.chapter || '');
       fd.append('summary',     form.summary || '');
       fd.append('content',     form.content || '');
-      fd.append('difficulty',  form.difficulty);
       fd.append('isPublished', form.isPublished ? 'true' : 'false');
       fd.append('tags', JSON.stringify(form.tags.split(',').map(t => t.trim()).filter(Boolean)));
       if (selectedFile) fd.append('file', selectedFile);
@@ -142,11 +141,6 @@ function LessonModal({ lesson, onClose, onSave, existingSemesters = [], existing
           <Field label="Chapitre">
             <input list="les-chap-list" value={form.chapter} onChange={e => set('chapter', e.target.value)} placeholder="Ex: Chapitre 3" className={inputCls} />
             <datalist id="les-chap-list">{existingChapters.map(c => <option key={c} value={c} />)}</datalist>
-          </Field>
-          <Field label="Difficulté">
-            <select value={form.difficulty} onChange={e => set('difficulty', e.target.value)} className={inputCls}>
-              <option value="easy">Facile</option><option value="medium">Moyen</option><option value="hard">Difficile</option>
-            </select>
           </Field>
         </div>
 
@@ -340,7 +334,6 @@ export default function AdminLessons() {
             ) },
             { label: 'Type', render: l => <Badge color={l.type === 'fiche' ? '#7c3aed' : '#2563eb'}>{l.type === 'fiche' ? 'Fiche' : 'Cours'}</Badge> },
             { label: 'Catégorie', maxWidth: 130, render: l => <Badge color="#64748b">{l.category}</Badge> },
-            { label: 'Difficulté', render: l => <Badge color={DIFF_BADGE[l.difficulty]?.color || DIFF_BADGE.medium.color}>{DIFF_BADGE[l.difficulty]?.label || 'Moyen'}</Badge> },
             { label: 'Fichier', render: l => l.hasFile
               ? <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>{FILE_TYPE_LABELS[l.fileMimeType] || 'Fichier'} · {formatSize(l.fileSize)}</span>
               : <span style={{ fontSize: 11, color: '#94a3b8' }}>Texte seul</span> },

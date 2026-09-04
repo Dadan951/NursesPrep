@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '../../context/AuthContext';
 import {
-  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge, DIFF_BADGE,
+  AdminPage, HeroBtn, PrimaryBtn, GhostBtn, Card, Badge, PubBadge,
   Toolbar, SearchInput, FilterSelect, BulkBar, DataTable, Modal, ConfirmModal,
   Field, Toggle, inputCls, toast, useDraft, DraftBanner, C,
 } from '../../components/admin/adminKit';
@@ -18,7 +18,7 @@ const quizIcon = (size = 22) => (
 const plusIcon = <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 
 const EMPTY_QUIZ = {
-  title: '', description: '', semester: '', programVersion: 'ancien', category: '', chapter: '', difficulty: 'medium', duration: 10, isPublished: true,
+  title: '', description: '', semester: '', programVersion: 'ancien', category: '', chapter: '', duration: 10, isPublished: true,
   questions: [{ text: '', explanation: '', multipleAnswers: false, options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }, { text: '', isCorrect: false }, { text: '', isCorrect: false }] }],
 };
 
@@ -107,11 +107,6 @@ function QuizModal({ quiz, preset, onClose, onSave, existingSemesters = [], exis
           <input list="chap-list" value={form.chapter} onChange={e => setForm({ ...form, chapter: e.target.value })} className={inputCls} placeholder="Ex: Système cardio-vasculaire" />
           <datalist id="chap-list">{existingChapters.map(c => <option key={c} value={c} />)}</datalist>
         </Field>
-        <Field label="Difficulté">
-          <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
-            <option value="easy">Facile</option><option value="medium">Moyen</option><option value="hard">Difficile</option>
-          </select>
-        </Field>
         <Field label="Durée (min)">
           <input type="number" inputMode="numeric" value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} className={inputCls} min={1} />
         </Field>
@@ -194,7 +189,6 @@ export default function AdminQuizzes() {
   const [delLoading, setDelLoading] = useState(false);
   const [search, setSearch]     = useState('');
   const [filterSem, setFilterSem]   = useState('');
-  const [filterDiff, setFilterDiff] = useState('');
   const [filterUE, setFilterUE]     = useState('');
   const [filterChap, setFilterChap] = useState('');
   const [selected, setSelected]     = useState(new Set());
@@ -255,15 +249,14 @@ export default function AdminQuizzes() {
     const matchSearch = q.title.toLowerCase().includes(s) || (q.category || '').toLowerCase().includes(s) || (q.chapter || '').toLowerCase().includes(s);
     return matchSearch
       && (!filterSem  || q.semester   === filterSem)
-      && (!filterDiff || q.difficulty === filterDiff)
       && (!filterUE   || q.category   === filterUE)
       && (!filterChap || q.chapter    === filterChap);
   });
 
   const published = quizzes.filter(q => q.isPublished).length;
   const totalQ = quizzes.reduce((acc, q) => acc + (q.questions?.length || 0), 0);
-  const hasFilters = search || filterSem || filterDiff || filterUE || filterChap;
-  const clearFilters = () => { setSearch(''); setFilterSem(''); setFilterDiff(''); setFilterUE(''); setFilterChap(''); };
+  const hasFilters = search || filterSem || filterUE || filterChap;
+  const clearFilters = () => { setSearch(''); setFilterSem(''); setFilterUE(''); setFilterChap(''); };
 
   return (
     <AdminPage
@@ -281,7 +274,6 @@ export default function AdminQuizzes() {
         <Toolbar>
           <SearchInput value={search} onChange={setSearch} placeholder="Rechercher un quiz…" />
           <FilterSelect value={filterSem} onChange={v => { setFilterSem(v); setFilterUE(''); setFilterChap(''); }} options={semesters} allLabel="Tous les semestres" />
-          <FilterSelect value={filterDiff} onChange={setFilterDiff} options={[{ value: 'easy', label: 'Facile' }, { value: 'medium', label: 'Moyen' }, { value: 'hard', label: 'Difficile' }]} allLabel="Toutes difficultés" />
           <FilterSelect value={filterUE} onChange={v => { setFilterUE(v); setFilterChap(''); }} options={ues} allLabel="Toutes les UE" />
           <FilterSelect value={filterChap} onChange={setFilterChap} options={chapters} allLabel="Tous les chapitres" />
           {(filterSem || filterUE || filterChap) && (
@@ -323,7 +315,6 @@ export default function AdminQuizzes() {
             { label: 'Semestre', render: q => q.semester ? <Badge color="#7c3aed">{q.semester}</Badge> : <span style={{ color: '#cbd5e1' }}>—</span> },
             { label: 'UE', maxWidth: 180, render: q => <Badge color="#2563eb">{q.category}</Badge> },
             { label: 'Chapitre', maxWidth: 160, render: q => <span style={{ fontSize: 12, color: C.sub }} title={q.chapter}>{q.chapter || '—'}</span> },
-            { label: 'Difficulté', render: q => <Badge color={DIFF_BADGE[q.difficulty]?.color}>{DIFF_BADGE[q.difficulty]?.label}</Badge> },
             { label: 'Questions', render: q => <span style={{ fontWeight: 700 }}>{q.questions?.length || 0}</span> },
             { label: 'Durée', render: q => <span style={{ fontSize: 12, color: C.sub }}>{q.duration} min</span> },
             { label: 'Statut', render: q => <PubBadge ok={q.isPublished} /> },
@@ -334,7 +325,6 @@ export default function AdminQuizzes() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                 {q.semester && <Badge color="#7c3aed">{q.semester}</Badge>}
                 <Badge color="#2563eb">{q.category}</Badge>
-                <Badge color={DIFF_BADGE[q.difficulty]?.color}>{DIFF_BADGE[q.difficulty]?.label}</Badge>
                 <PubBadge ok={q.isPublished} />
               </div>
               <div style={{ fontSize: 12, color: C.sub }}>

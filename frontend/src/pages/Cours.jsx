@@ -45,13 +45,6 @@ const FICHE_COLORS = [
   { bg:'#fdf2f8', border:'#fbcfe8', accent:'#db2777', light:'#fce7f3', text:'#500724' },
 ];
 
-const DIFF_STYLE = {
-  easy:   { background:'#d1fae5', color:'#065f46' },
-  medium: { background:'#fef3c7', color:'#92400e' },
-  hard:   { background:'#fee2e2', color:'#991b1b' },
-};
-const DIFF_LABEL = { easy:'Facile', medium:'Moyen', hard:'Difficile' };
-
 const FILE_ICON_COLOR = {
   'application/pdf':'#ef4444',
   'image/jpeg':'#10b981','image/png':'#10b981','image/webp':'#10b981',
@@ -312,9 +305,6 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
             <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:8 }}>
               <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, color:'#fff', background:cc }}>{selected.category}</span>
               {selected.chapter && <span style={{ fontSize:11, color:C.sub, fontWeight:500 }}>{selected.chapter}</span>}
-              {DIFF_STYLE[selected.difficulty] && (
-                <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, ...DIFF_STYLE[selected.difficulty] }}>{DIFF_LABEL[selected.difficulty]}</span>
-              )}
             </div>
             <h1 style={{ fontSize:20, fontWeight:800, color:C.text }}>{selected.title}</h1>
             {selected.summary && <p style={{ fontSize:13, color:C.sub, marginTop:4 }}>{selected.summary}</p>}
@@ -397,7 +387,7 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                   items={currentLessons.map(lesson => ({
                     key: lesson._id,
                     label: lesson.title,
-                    sub: lesson.summary || (DIFF_LABEL[lesson.difficulty] || ''),
+                    sub: lesson.summary || lesson.chapter || '',
                     right: lesson.hasFile
                       ? <DetailBadge color={FILE_ICON_COLOR[lesson.fileMimeType]||'#3b82f6'} bg={(FILE_ICON_COLOR[lesson.fileMimeType]||'#3b82f6')+'20'}>{FILE_TYPE_LABEL[lesson.fileMimeType]||'Fichier'}</DetailBadge>
                       : null,
@@ -525,9 +515,6 @@ function CoursTab({ displayMode = 'simple', dir, setDir = () => {} }) {
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:6 }}>
-                            {DIFF_STYLE[lesson.difficulty] && (
-                              <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, ...DIFF_STYLE[lesson.difficulty] }}>{DIFF_LABEL[lesson.difficulty]}</span>
-                            )}
                             {lesson.hasFile && (
                               <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20,
                                 background:(FILE_ICON_COLOR[lesson.fileMimeType]||'#3b82f6')+'20',

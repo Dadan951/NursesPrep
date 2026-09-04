@@ -12,10 +12,23 @@ function todayString() {
 
 exports.getAll = async (req, res) => {
   try {
-    const quizzes = await Quiz.find({
-      isPublished: true,
-      programVersion: req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' },
-    }).select('-questions.options.isCorrect');
+    // Liste catalogue : on ne renvoie jamais le contenu des questions (souvent volumineux),
+    // seulement le nombre de questions, pour un chargement rapide.
+    const quizzes = await Quiz.aggregate([
+      {
+        $match: {
+          isPublished: true,
+          programVersion: req.user.programVersion === 'reforme_2026' ? 'reforme_2026' : { $ne: 'reforme_2026' },
+        },
+      },
+      {
+        $project: {
+          title: 1, description: 1, semester: 1, programVersion: 1,
+          category: 1, chapter: 1, duration: 1, isPublished: 1, createdAt: 1,
+          questionsCount: { $size: { $ifNull: ['$questions', []] } },
+        },
+      },
+    ]);
 
     // Récupère tous les attempts de l'utilisateur en une seule requête
     const attempts = await QuizAttempt.find({ user: req.user._id }).select('quiz status score currentQuestion answers completedAt');
@@ -25,12 +38,12 @@ exports.getAll = async (req, res) => {
     const result = quizzes.map(q => {
       const a = attemptMap[q._id.toString()];
       return {
-        ...q.toObject(),
+        ...q,
         attempt: a ? {
           status:          a.status,
           score:           a.score,
           currentQuestion: a.currentQuestion,
-          totalQuestions:  q.questions.length,
+          totalQuestions:  q.questionsCount,
           completedAt:     a.completedAt,
           wrongAnswers:    a.answers.filter(x => !x.isCorrect).length,
         } : null,

@@ -50,13 +50,94 @@ const TYPE_CFG = {
   },
 };
 
+/* ─── Correction automatique par mots-clés (sans API) ────────────────────────── */
+const FR_STOPWORDS = new Set([
+  'le','la','les','de','des','du','un','une','et','ou','est','sont','dans','pour','avec','sur','par',
+  'ce','cet','cette','ces','son','sa','ses','qui','que','quoi','quel','quelle','quels','quelles','au','aux',
+  'en','se','ne','pas','plus','moins','tout','tous','toute','toutes','on','il','elle','ils','elles','nous',
+  'vous','je','tu','être','avoir','fait','faire','peut','peuvent','doit','doivent','permet','permettent',
+  'entre','sans','très','ainsi','donc','car','soit','été','comme','leur','leurs','même','mêmes','aussi',
+  'alors','lorsque','lors','afin','chez','vers','sous','deux','trois','autre','autres','ceci','cela','celui',
+  'celle','ceux','dont','où','si','mais','or','ni','ont','avez','avons','sera','seront','était','étaient',
+]);
+
+/* Minuscule, sans accents, sans ponctuation */
+function normalizeWords(text) {
+  return (text || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/* Termes significatifs d'un texte (mots > 3 lettres, hors mots vides, dédupliqués) */
+function extractKeywords(text, max = 999) {
+  const seen = new Set();
+  const out = [];
+  for (const w of normalizeWords(text)) {
+    if (w.length > 3 && !FR_STOPWORDS.has(w) && !seen.has(w)) { seen.add(w); out.push(w); }
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+/* Découpe une correction "1. ... 2. ... 3. ..." en points distincts */
+function splitIntoPoints(text) {
+  const lines = (text || '').split('\n').filter(l => l.trim());
+  const points = [];
+  let current = '';
+  for (const line of lines) {
+    const m = line.trim().match(/^(\d+)[\.\)]\s+(.+)/);
+    if (m) { if (current) points.push(current); current = m[2]; }
+    else if (current) current += ' ' + line.trim();
+    else current = line.trim();
+  }
+  if (current) points.push(current);
+  return points;
+}
+
+/* Compare la réponse rédigée à la correction, par mots-clés — sans appel API.
+   Si la correction est numérotée (1. 2. 3. ...), on score chaque point séparément
+   (un point est "couvert" si sa réponse en reprend une bonne partie des termes clés),
+   ce qui reflète mieux une réponse à plusieurs parties qu'un simple sac de mots global. */
+function scoreAnswer(userText, correctionText) {
+  const userWords = new Set(normalizeWords(userText));
+  const points = splitIntoPoints(correctionText);
+
+  if (points.length > 1) {
+    let covered = 0, matched = 0, total = 0;
+    points.forEach(p => {
+      const kws = extractKeywords(p, 12);
+      if (kws.length === 0) return;
+      const hit = kws.filter(k => userWords.has(k)).length;
+      matched += hit; total += kws.length;
+      if (hit / kws.length >= 0.3) covered++;
+    });
+    return { ratio: points.length ? covered / points.length : 0, matched, total, multiPoint:true };
+  }
+
+  // Correction en un seul bloc : mots-clés proportionnels à sa longueur
+  const cap = Math.min(80, Math.max(15, Math.round(normalizeWords(correctionText).length / 3)));
+  const kws = extractKeywords(correctionText, cap);
+  if (kws.length === 0) return { ratio:0, matched:0, total:0, multiPoint:false };
+  const matched = kws.filter(k => userWords.has(k)).length;
+  return { ratio: matched / kws.length, matched, total: kws.length, multiPoint:false };
+}
+
+const AUTO_RESULT_CFG = {
+  correct:   { label:'Bonne réponse',      color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0', val:true  },
+  partial:   { label:'Réponse partielle',  color:'#d97706', bg:'#fffbeb', border:'#fde68a', val:null  },
+  incorrect: { label:'À revoir',           color:'#dc2626', bg:'#fef2f2', border:'#fecaca', val:false },
+};
+
 /* ─── Exercise Card ──────────────────────────────────────────────────────────── */
 function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected,   setSelected]   = useState(null);
   const [completed,  setCompleted]  = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
-  const [selfCheck,  setSelfCheck]  = useState(null); // 'correct' | 'partial' | 'incorrect'
+  const [autoResult, setAutoResult] = useState(null); // { key:'correct'|'partial'|'incorrect', matched, total }
   const cfg  = TYPE_CFG[ex.type] || TYPE_CFG.open;
 
   const handleComplete = async (overrideCorrect) => {
@@ -70,10 +151,22 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
     onComplete(isCorrect);
   };
 
-  const SELF_CHECK_CFG = {
-    correct:   { label:'Bien répondu',    color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0', val:true  },
-    partial:   { label:'Partiellement',   color:'#d97706', bg:'#fffbeb', border:'#fde68a', val:null  },
-    incorrect: { label:'Je n\'ai pas trouvé', color:'#dc2626', bg:'#fef2f2', border:'#fecaca', val:false },
+  /* Vérifie automatiquement la réponse écrite par mots-clés (aucun appel API) */
+  const handleVerifyOpen = () => {
+    const { ratio, matched, total, multiPoint } = scoreAnswer(userAnswer, ex.answer);
+    let key = 'incorrect';
+    if (total === 0) key = 'partial';
+    else if (multiPoint) {
+      // ratio = proportion des points de la correction couverts
+      if (ratio >= 0.66) key = 'correct';
+      else if (ratio > 0) key = 'partial';
+    } else {
+      // ratio = proportion de mots-clés retrouvés (correction en un seul bloc)
+      if (ratio >= 0.45) key = 'correct';
+      else if (ratio >= 0.2) key = 'partial';
+    }
+    setAutoResult({ key, matched, total });
+    handleComplete(AUTO_RESULT_CFG[key].val);
   };
 
   const lines = (ex.content || '').split('\n').filter(l => l.trim());
@@ -244,35 +337,30 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
             <span style={{ fontSize:10, fontWeight:700, padding:'7px 14px', borderRadius:12, background:'#fffbeb', color:'#d97706', border:'1.5px solid #fde68a', alignSelf:'flex-start' }}>
               Quota mensuel atteint — Passe à Pro
             </span>
-          ) : !showAnswer ? (
+          ) : !completed ? (
             <div style={{ paddingTop:4 }}>
-              <motion.button onClick={() => setShowAnswer(true)}
-                whileHover={{ y:-3, boxShadow:clay.btn(cfg.from, cfg.dark) }}
-                whileTap={{ scale:0.96 }}
-                style={{ padding:'9px 18px', borderRadius:14, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', gap:7,
+              <motion.button onClick={handleVerifyOpen} disabled={!userAnswer.trim()}
+                whileHover={userAnswer.trim() ? { y:-3, boxShadow:clay.btn(cfg.from, cfg.dark) } : {}}
+                whileTap={userAnswer.trim() ? { scale:0.96 } : {}}
+                style={{ padding:'9px 18px', borderRadius:14, border:'none', cursor: userAnswer.trim() ? 'pointer' : 'not-allowed',
+                  fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', gap:7, opacity: userAnswer.trim() ? 1 : 0.5,
                   background:`linear-gradient(135deg,${cfg.from},${cfg.to})`,
                   boxShadow:`0 4px 0 ${cfg.dark}, 0 8px 20px ${cfg.from}40` }}>
                 Vérifier ma réponse
               </motion.button>
             </div>
-          ) : !completed ? (
-            <div style={{ paddingTop:4 }}>
-              <p style={{ fontSize:11, fontWeight:700, color:C.sub, marginBottom:8 }}>Comment avez-vous répondu ?</p>
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                {Object.entries(SELF_CHECK_CFG).map(([key, sc]) => (
-                  <motion.button key={key} onClick={() => { setSelfCheck(key); handleComplete(sc.val); }}
-                    whileHover={{ y:-2, boxShadow:clay.sm }} whileTap={{ scale:0.96 }}
-                    style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${sc.border}`, background:sc.bg, fontSize:12, fontWeight:700, color:sc.color, cursor:'pointer' }}>
-                    {sc.label}
-                  </motion.button>
-                ))}
-              </div>
-            </div>
           ) : (
-            <span style={{ fontSize:12, fontWeight:700, color: selfCheck ? SELF_CHECK_CFG[selfCheck].color : '#16a34a', display:'flex', alignItems:'center', gap:6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Exercice complété{selfCheck ? ` — ${SELF_CHECK_CFG[selfCheck].label}` : ''}
-            </span>
+            <div>
+              <span style={{ fontSize:12, fontWeight:700, color: autoResult ? AUTO_RESULT_CFG[autoResult.key].color : '#16a34a', display:'flex', alignItems:'center', gap:6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                {autoResult ? AUTO_RESULT_CFG[autoResult.key].label : 'Exercice complété'}
+              </span>
+              {autoResult && autoResult.total > 0 && (
+                <p style={{ fontSize:11, color:C.sub, marginTop:6 }}>
+                  {autoResult.matched}/{autoResult.total} éléments clés de la correction retrouvés dans ta réponse
+                </p>
+              )}
+            </div>
           )
         ) : (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:4 }}>

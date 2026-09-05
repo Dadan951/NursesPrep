@@ -140,15 +140,18 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [autoResult, setAutoResult] = useState(null); // { key:'correct'|'partial'|'incorrect', matched, total }
   const cfg  = TYPE_CFG[ex.type] || TYPE_CFG.open;
 
-  const handleComplete = async (overrideCorrect) => {
+  const handleComplete = (overrideCorrect) => {
     if (completed || quotaExceeded) return;
     setCompleted(true);
     setShowAnswer(true);
     let isCorrect = null;
     if (ex.type === 'qcm' && selected !== null) isCorrect = !!ex.options[selected]?.isCorrect;
     else if (typeof overrideCorrect === 'boolean') isCorrect = overrideCorrect;
-    try { await axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }); } catch {}
+    // Mise à jour de l'affichage immédiate ; la sauvegarde se fait en arrière-plan
+    // (ne pas attendre la réponse réseau évite un délai perceptible avant que
+    // le bouton "Exercice suivant" n'apparaisse).
     onComplete(isCorrect);
+    axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }).catch(() => {});
   };
 
   /* Vérifie automatiquement la réponse écrite par mots-clés (aucun appel API) */

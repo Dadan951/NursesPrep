@@ -66,7 +66,8 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
     let isCorrect = null;
     if (ex.type === 'qcm' && selected !== null) isCorrect = !!ex.options[selected]?.isCorrect;
     else if (typeof overrideCorrect === 'boolean') isCorrect = overrideCorrect;
-    try { await axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }); onComplete(); } catch {}
+    try { await axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }); } catch {}
+    onComplete(isCorrect);
   };
 
   const SELF_CHECK_CFG = {
@@ -312,6 +313,174 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   );
 }
 
+/* ─── Exercise Session (mode jeu) ─────────────────────────────────────────────── */
+function ExerciseSession({ exercises, title, subtitle, quotaExceeded, onExit, onExerciseComplete, navigate }) {
+  const total = exercises.length;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [results,      setResults]      = useState(() => new Array(total).fill(undefined));
+  const [answered,     setAnswered]     = useState(false);
+  const [done,         setDone]         = useState(false);
+  // Figé au lancement : un quota qui se remplit PENDANT la session ne doit pas
+  // interrompre l'affichage des résultats une fois le dernier exercice répondu.
+  const [blockedAtStart] = useState(quotaExceeded);
+
+  const ex = exercises[currentIndex];
+  const progress = total ? (currentIndex / total) * 100 : 0;
+
+  const handleAnswered = (isCorrect) => {
+    setResults(r => { const copy = [...r]; copy[currentIndex] = isCorrect; return copy; });
+    setAnswered(true);
+    onExerciseComplete(isCorrect);
+  };
+
+  const handleNext = () => {
+    if (currentIndex + 1 >= total) { setDone(true); return; }
+    setCurrentIndex(i => i + 1);
+    setAnswered(false);
+  };
+
+  const handleRestart = () => {
+    setCurrentIndex(0); setResults(new Array(total).fill(undefined)); setAnswered(false); setDone(false);
+  };
+
+  /* ── Quota atteint avant même de démarrer ── */
+  if (blockedAtStart) {
+    return (
+      <main style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:16, background:C.bg }}>
+        <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
+          style={{ background:C.card, borderRadius:28, padding:'32px 26px', maxWidth:380, width:'100%', textAlign:'center', boxShadow:clay.card, border:`1.5px solid ${C.border}` }}>
+          <div style={{ width:52, height:52, borderRadius:18, background:'#fef3c7', margin:'0 auto 16px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize:16, fontWeight:800, color:C.text, marginBottom:8 }}>Quota mensuel atteint</h3>
+          <p style={{ fontSize:13, color:C.sub, marginBottom:20 }}>Passe à l'abonnement Étudiant pour continuer à t'entraîner sans limite.</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <motion.button onClick={() => navigate('/dashboard/subscription')} whileTap={{ scale:0.96 }}
+              style={{ padding:'12px 0', borderRadius:14, border:'none', background:'linear-gradient(135deg,#d97706,#ea580c)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              Voir les offres
+            </motion.button>
+            <button onClick={onExit} style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.sub }}>← Retour</button>
+          </div>
+        </motion.div>
+      </main>
+    );
+  }
+
+  /* ── Écran résultats ── */
+  if (done || total === 0) {
+    const correct   = results.filter(r => r === true).length;
+    const incorrect = results.filter(r => r === false).length;
+    const pct = total ? Math.round((correct / total) * 100) : 0;
+    const ringColor = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#DC2626';
+    return (
+      <main style={{ flex:1, overflowY:'auto', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <motion.div initial={{ opacity:0, y:20, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }}
+          transition={{ type:'spring', stiffness:260, damping:22 }}
+          style={{ background:C.card, borderRadius:32, padding:'28px 24px', width:'100%', maxWidth:420,
+            boxShadow:clay.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
+
+          {total > 0 && (
+            <div style={{ position:'relative', width:120, height:120, margin:'0 auto 18px' }}>
+              <svg width="120" height="120" style={{ transform:'rotate(-90deg)' }}>
+                <circle cx="60" cy="60" r="50" fill="none" stroke={C.border} strokeWidth="9"/>
+                <motion.circle cx="60" cy="60" r="50" fill="none" stroke={ringColor} strokeWidth="9" strokeLinecap="round"
+                  strokeDasharray={`${2*Math.PI*50}`}
+                  initial={{ strokeDashoffset: 2*Math.PI*50 }}
+                  animate={{ strokeDashoffset: 2*Math.PI*50*(1-pct/100) }}
+                  transition={{ duration:1.3, delay:0.2, ease:[0.16,1,0.3,1] }}/>
+              </svg>
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontSize:26, fontWeight:900, color:ringColor }}>{pct}%</span>
+                <span style={{ fontSize:10, color:C.sub }}>{pct >= 50 ? 'Réussi' : 'À revoir'}</span>
+              </div>
+            </div>
+          )}
+
+          <h2 style={{ fontSize:20, fontWeight:900, color:C.text, marginBottom:4 }}>
+            {total === 0 ? 'Aucun exercice disponible' : pct >= 80 ? 'Excellent !' : pct >= 50 ? 'Bien joué !' : 'Continue à t\'entraîner !'}
+          </h2>
+          <p style={{ fontSize:13, color:C.sub, marginBottom:20 }}>{title}</p>
+
+          {total > 0 && (
+            <div style={{ display:'flex', borderTop:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, padding:'16px 0', marginBottom:24 }}>
+              {[{ n:correct, l:'Réussi', c:'#16a34a' }, { n:incorrect, l:'Raté', c:'#dc2626' }, { n:total, l:'Total', c:C.text }].map((s, i) => (
+                <div key={i} style={{ flex:1, textAlign:'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
+                  <p style={{ fontSize:28, fontWeight:900, color:s.c, lineHeight:1 }}>{s.n}</p>
+                  <p style={{ fontSize:11, color:C.sub, marginTop:4 }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display:'grid', gridTemplateColumns: total > 0 ? '1fr 1fr' : '1fr', gap:10 }}>
+            <motion.button onClick={onExit} whileTap={{ scale:0.96 }}
+              style={{ padding:'13px 0', borderRadius:14, border:`1.5px solid ${C.border}`, background:C.bg, color:C.sub, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              ← Retour
+            </motion.button>
+            {total > 0 && (
+              <motion.button onClick={handleRestart} whileTap={{ scale:0.96 }}
+                style={{ padding:'13px 0', borderRadius:14, border:'none', background:'linear-gradient(135deg,#1e293b,#334155)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                Recommencer
+              </motion.button>
+            )}
+          </div>
+        </motion.div>
+      </main>
+    );
+  }
+
+  /* ── Jeu en cours ── */
+  return (
+    <main style={{ flex:1, overflowY:'auto', background:C.bg }}>
+      {/* Header sticky */}
+      <div style={{ position:'sticky', top:0, zIndex:10, background:C.card, borderBottom:`1px solid ${C.border}`, padding:'12px 20px 10px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+          <div style={{ minWidth:0 }}>
+            <p style={{ fontSize:11, color:C.sub, marginBottom:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{subtitle}</p>
+            <p style={{ fontSize:13, fontWeight:700, color:C.text }}>Exercice {currentIndex + 1} / {total}</p>
+          </div>
+          <button onClick={onExit}
+            style={{ width:36, height:36, borderRadius:12, background:C.bg, border:`1px solid ${C.border}`, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:C.sub, flexShrink:0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div style={{ height:6, borderRadius:99, background:C.border, overflow:'hidden' }}>
+          <motion.div style={{ height:'100%', borderRadius:99, background:'linear-gradient(90deg,var(--theme-primary),var(--theme-secondary))' }}
+            animate={{ width:`${progress}%` }} transition={{ duration:0.4 }}/>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:760, margin:'0 auto', padding:'24px 16px 40px' }}>
+        <AnimatePresence mode="wait">
+          <motion.div key={ex._id}
+            initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }}
+            transition={{ duration:0.3, ease:[0.16,1,0.3,1] }}>
+            <ExerciseCard ex={ex} index={0} quotaExceeded={false} onComplete={handleAnswered}/>
+          </motion.div>
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {answered && (
+            <motion.div initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+              style={{ marginTop:18, display:'flex', justifyContent:'center' }}>
+              <motion.button onClick={handleNext} whileHover={{ y:-3 }} whileTap={{ scale:0.96 }}
+                style={{ padding:'13px 32px', borderRadius:16, border:'none', cursor:'pointer', fontSize:14, fontWeight:800, color:'#fff',
+                  background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))',
+                  boxShadow:'inset 0 1px 0 rgba(255,255,255,0.28), 0 8px 0 var(--theme-dark), 0 14px 28px rgba(var(--theme-primary-rgb),0.35)',
+                  display:'flex', alignItems:'center', gap:8 }}>
+                {currentIndex + 1 >= total ? 'Voir les résultats' : 'Exercice suivant'}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </main>
+  );
+}
+
 /* ─── Breadcrumb ─────────────────────────────────────────────────────────────── */
 function ExBreadcrumb({ items }) {
   return (
@@ -341,33 +510,6 @@ function ExBreadcrumb({ items }) {
         </span>
       ))}
     </nav>
-  );
-}
-
-/* ─── Quota Banner ───────────────────────────────────────────────────────────── */
-function QuotaBanner({ used, limit, navigate }) {
-  if (used < limit) return null;
-  return (
-    <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}
-      style={{ marginBottom:20, borderRadius:16, border:'1.5px solid #fde68a', background:'#fffbeb', padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:14, boxShadow:clay.sm }}>
-      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        <div style={{ width:38, height:38, borderRadius:14, background:'#fef3c7', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          </svg>
-        </div>
-        <div>
-          <p style={{ fontSize:13, fontWeight:700, color:'#92400e' }}>Quota mensuel atteint ({used}/{limit} exercice{limit > 1?'s':''})</p>
-          <p style={{ fontSize:11, color:'#b45309', marginTop:2 }}>Passe à l'abonnement Étudiant pour un accès illimité.</p>
-        </div>
-      </div>
-      <motion.button onClick={() => navigate('/dashboard/subscription')}
-        whileHover={{ y:-2, boxShadow:clay.btn('#d97706','#92400e') }} whileTap={{ scale:0.97 }}
-        style={{ padding:'9px 16px', borderRadius:12, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', whiteSpace:'nowrap',
-          background:'linear-gradient(135deg,#d97706,#ea580c)', boxShadow:clay.btn('#d97706','#92400e') }}>
-        Voir les offres
-      </motion.button>
-    </motion.div>
   );
 }
 
@@ -435,6 +577,27 @@ export default function Exercises() {
   const openCount = exercises.filter(e => e.type === 'open').length;
   const caseCount = exercises.filter(e => e.type === 'case_study').length;
   const quotaExceeded = isFree && quota?.exceeded;
+
+  /* ── Mode jeu : une session plein écran, un exercice à la fois ── */
+  if (!loading && view === 'exercises' && selectedSemester && selectedCaseType && selectedUE) {
+    return (
+      <DashboardLayout>
+        <ExerciseSession
+          key={`${selectedSemester}-${selectedCaseType}-${selectedUE}`}
+          exercises={currentExs}
+          title={selectedUE}
+          subtitle={`${selectedCaseType} · ${selectedSemester}`}
+          quotaExceeded={quotaExceeded}
+          navigate={navigate}
+          onExit={() => setView('ues')}
+          onExerciseComplete={() => {
+            setCompletedCount(c => c + 1);
+            if (isFree && quota) setQuota(q => ({ ...q, used:(q.used||0)+1, exceeded:(q.used||0)+1 >= q.limit }));
+          }}
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -717,42 +880,6 @@ export default function Exercises() {
                         </motion.button>
                       );
                     })}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ── EXERCICES ── */}
-              {view === 'exercises' && selectedSemester && selectedCaseType && selectedUE && (
-                <motion.div key="exs"
-                  initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }}
-                  transition={{ duration:0.35, ease:[0.16,1,0.3,1] }}>
-                  <ExBreadcrumb items={[
-                    { label:'Exercices',     onClick:reset },
-                    { label:selectedSemester, onClick:() => { setSelectedCaseType(null); setSelectedUE(null); setView('casetypes'); } },
-                    { label:selectedCaseType, onClick:() => { setSelectedUE(null); setView('ues'); } },
-                    { label:selectedUE },
-                  ]}/>
-
-                  <div style={{ marginBottom:20 }}>
-                    <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedUE}</h2>
-                    <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{currentExs.length} exercice{currentExs.length > 1?'s':''}</p>
-                  </div>
-
-                  {isFree && quota && <QuotaBanner used={quota.used} limit={quota.limit} navigate={navigate}/>}
-
-                  <div style={{ display:'flex', flexDirection:'column', gap:16, maxWidth:860 }}>
-                    {currentExs.map((ex, i) => (
-                      <ExerciseCard
-                        key={ex._id}
-                        ex={ex}
-                        index={i}
-                        quotaExceeded={quotaExceeded}
-                        onComplete={() => {
-                          setCompletedCount(c => c + 1);
-                          if (isFree && quota) setQuota(q => ({ ...q, used:(q.used||0)+1, exceeded:(q.used||0)+1 >= q.limit }));
-                        }}
-                      />
-                    ))}
                   </div>
                 </motion.div>
               )}

@@ -55,14 +55,24 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selected,   setSelected]   = useState(null);
   const [completed,  setCompleted]  = useState(false);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [selfCheck,  setSelfCheck]  = useState(null); // 'correct' | 'partial' | 'incorrect'
   const cfg  = TYPE_CFG[ex.type] || TYPE_CFG.open;
 
-  const handleComplete = async () => {
+  const handleComplete = async (overrideCorrect) => {
     if (completed || quotaExceeded) return;
     setCompleted(true);
     setShowAnswer(true);
-    const isCorrect = ex.type === 'qcm' && selected !== null ? !!ex.options[selected]?.isCorrect : null;
+    let isCorrect = null;
+    if (ex.type === 'qcm' && selected !== null) isCorrect = !!ex.options[selected]?.isCorrect;
+    else if (typeof overrideCorrect === 'boolean') isCorrect = overrideCorrect;
     try { await axios.post(`${API_URL}/exercises/complete`, { exerciseId: ex._id, isCorrect }); onComplete(); } catch {}
+  };
+
+  const SELF_CHECK_CFG = {
+    correct:   { label:'Bien répondu',    color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0', val:true  },
+    partial:   { label:'Partiellement',   color:'#d97706', bg:'#fffbeb', border:'#fde68a', val:null  },
+    incorrect: { label:'Je n\'ai pas trouvé', color:'#dc2626', bg:'#fef2f2', border:'#fecaca', val:false },
   };
 
   const lines = (ex.content || '').split('\n').filter(l => l.trim());
@@ -110,30 +120,48 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
       <div style={{ padding:'18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
 
         {/* Énoncé / situation */}
-        <div style={{ borderRadius:14, border:`1.5px solid ${cfg.border}`, padding:'14px 16px', background:cfg.light }}>
-          <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:cfg.textColor, marginBottom:8 }}>
+        <div style={{ borderRadius:16, border:`1.5px solid ${cfg.border}`, padding:'22px 24px', background:cfg.light }}>
+          <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:cfg.textColor, marginBottom:12 }}>
             {cfg.headerText}
           </p>
           {isNumbered ? (
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {lines.map((line, i) => {
                 const match = line.trim().match(/^(\d+)[\.\)]\s+(.+)/);
                 if (match) return (
-                  <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-                    <span style={{ width:20, height:20, borderRadius:'50%', flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900, color:'#fff',
+                  <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+                    <span style={{ width:26, height:26, borderRadius:'50%', flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'#fff',
                       background:`linear-gradient(135deg,${cfg.from},${cfg.to})` }}>
                       {match[1]}
                     </span>
-                    <p style={{ fontSize:12, color:'#334155', lineHeight:1.6 }}>{match[2]}</p>
+                    <p style={{ fontSize:16, color:'#334155', lineHeight:1.85 }}>{match[2]}</p>
                   </div>
                 );
-                return <p key={i} style={{ fontSize:12, color:'#334155', lineHeight:1.6 }}>{line}</p>;
+                return <p key={i} style={{ fontSize:16, color:'#334155', lineHeight:1.85 }}>{line}</p>;
               })}
             </div>
           ) : (
-            <p style={{ fontSize:13, fontWeight:500, color:'#1e293b', lineHeight:1.65, whiteSpace:'pre-line' }}>{ex.content}</p>
+            <p style={{ fontSize:16, fontWeight:500, color:'#1e293b', lineHeight:1.85, whiteSpace:'pre-line' }}>{ex.content}</p>
           )}
         </div>
+
+        {/* Zone de réponse libre (question ouverte) */}
+        {ex.type === 'open' && (
+          <div>
+            <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:C.sub, marginBottom:8 }}>
+              Votre réponse
+            </p>
+            <textarea
+              value={userAnswer}
+              onChange={e => setUserAnswer(e.target.value)}
+              disabled={completed}
+              placeholder="Rédigez votre réponse ici…"
+              rows={6}
+              style={{ width:'100%', borderRadius:14, border:`1.5px solid ${C.border}`, padding:'14px 16px', fontSize:15, lineHeight:1.7,
+                fontFamily:'inherit', color:C.text, background: completed ? C.bg : '#fff', resize:'vertical', boxShadow:clay.sm }}
+            />
+          </div>
+        )}
 
         {/* QCM Options */}
         {ex.type === 'qcm' && ex.options?.length > 0 && (
@@ -189,59 +217,96 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
             <motion.div
               initial={{ opacity:0, y:8, height:0 }} animate={{ opacity:1, y:0, height:'auto' }} exit={{ opacity:0 }}
               style={{ background:'#f0fdf4', border:'1.5px solid #bbf7d0', borderRadius:14, padding:'14px 16px', overflow:'hidden' }}>
-              <p style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#16a34a', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <p style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#16a34a', marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 Correction
               </p>
               {ex.answer.split('\n').filter(l => l.trim()).map((line, i) => {
                 const match = line.trim().match(/^(\d+)[\.\)]\s+(.+)/);
                 if (match) return (
-                  <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:8, marginBottom:6 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0, marginTop:3 }}><polyline points="20 6 9 17 4 12"/></svg>
-                    <p style={{ fontSize:12, color:'#166534', lineHeight:1.6 }}>
+                  <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:10 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0, marginTop:4 }}><polyline points="20 6 9 17 4 12"/></svg>
+                    <p style={{ fontSize:15, color:'#166534', lineHeight:1.8 }}>
                       <strong style={{ color:'#15803d' }}>{match[1]}.</strong> {match[2]}
                     </p>
                   </div>
                 );
-                return <p key={i} style={{ fontSize:12, color:'#166534', lineHeight:1.6, marginBottom:4 }}>{line}</p>;
+                return <p key={i} style={{ fontSize:15, color:'#166534', lineHeight:1.8, marginBottom:8 }}>{line}</p>;
               })}
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Actions */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:4 }}>
-          <div>
-            {!showAnswer && (
-              <motion.button onClick={() => setShowAnswer(true)}
-                whileHover={{ y:-2, boxShadow:clay.sm }} whileTap={{ scale:0.97 }}
-                style={{ padding:'8px 16px', borderRadius:12, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:11, fontWeight:600, color:C.sub, cursor:'pointer', boxShadow:clay.sm }}>
-                Voir la correction
-              </motion.button>
-            )}
-          </div>
-
-          {quotaExceeded && !completed ? (
-            <span style={{ fontSize:10, fontWeight:700, padding:'7px 14px', borderRadius:12, background:'#fffbeb', color:'#d97706', border:'1.5px solid #fde68a' }}>
+        {ex.type === 'open' ? (
+          quotaExceeded && !completed ? (
+            <span style={{ fontSize:10, fontWeight:700, padding:'7px 14px', borderRadius:12, background:'#fffbeb', color:'#d97706', border:'1.5px solid #fde68a', alignSelf:'flex-start' }}>
               Quota mensuel atteint — Passe à Pro
             </span>
+          ) : !showAnswer ? (
+            <div style={{ paddingTop:4 }}>
+              <motion.button onClick={() => setShowAnswer(true)}
+                whileHover={{ y:-3, boxShadow:clay.btn(cfg.from, cfg.dark) }}
+                whileTap={{ scale:0.96 }}
+                style={{ padding:'9px 18px', borderRadius:14, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', gap:7,
+                  background:`linear-gradient(135deg,${cfg.from},${cfg.to})`,
+                  boxShadow:`0 4px 0 ${cfg.dark}, 0 8px 20px ${cfg.from}40` }}>
+                Vérifier ma réponse
+              </motion.button>
+            </div>
           ) : !completed ? (
-            <motion.button onClick={handleComplete}
-              whileHover={{ y:-3, boxShadow:clay.btn(cfg.from, cfg.dark) }}
-              whileTap={{ scale:0.96 }}
-              style={{ padding:'9px 18px', borderRadius:14, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', gap:7,
-                background:`linear-gradient(135deg,${cfg.from},${cfg.to})`,
-                boxShadow:`0 4px 0 ${cfg.dark}, 0 8px 20px ${cfg.from}40` }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-              Marquer complété
-            </motion.button>
+            <div style={{ paddingTop:4 }}>
+              <p style={{ fontSize:11, fontWeight:700, color:C.sub, marginBottom:8 }}>Comment avez-vous répondu ?</p>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {Object.entries(SELF_CHECK_CFG).map(([key, sc]) => (
+                  <motion.button key={key} onClick={() => { setSelfCheck(key); handleComplete(sc.val); }}
+                    whileHover={{ y:-2, boxShadow:clay.sm }} whileTap={{ scale:0.96 }}
+                    style={{ padding:'8px 14px', borderRadius:12, border:`1.5px solid ${sc.border}`, background:sc.bg, fontSize:12, fontWeight:700, color:sc.color, cursor:'pointer' }}>
+                    {sc.label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           ) : (
-            <span style={{ fontSize:12, fontWeight:700, color:'#16a34a', display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:12, fontWeight:700, color: selfCheck ? SELF_CHECK_CFG[selfCheck].color : '#16a34a', display:'flex', alignItems:'center', gap:6 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Exercice complété
+              Exercice complété{selfCheck ? ` — ${SELF_CHECK_CFG[selfCheck].label}` : ''}
             </span>
-          )}
-        </div>
+          )
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:4 }}>
+            <div>
+              {!showAnswer && (
+                <motion.button onClick={() => setShowAnswer(true)}
+                  whileHover={{ y:-2, boxShadow:clay.sm }} whileTap={{ scale:0.97 }}
+                  style={{ padding:'8px 16px', borderRadius:12, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:11, fontWeight:600, color:C.sub, cursor:'pointer', boxShadow:clay.sm }}>
+                  Voir la correction
+                </motion.button>
+              )}
+            </div>
+
+            {quotaExceeded && !completed ? (
+              <span style={{ fontSize:10, fontWeight:700, padding:'7px 14px', borderRadius:12, background:'#fffbeb', color:'#d97706', border:'1.5px solid #fde68a' }}>
+                Quota mensuel atteint — Passe à Pro
+              </span>
+            ) : !completed ? (
+              <motion.button onClick={() => handleComplete()}
+                whileHover={{ y:-3, boxShadow:clay.btn(cfg.from, cfg.dark) }}
+                whileTap={{ scale:0.96 }}
+                style={{ padding:'9px 18px', borderRadius:14, border:'none', cursor:'pointer', fontSize:12, fontWeight:700, color:'#fff', display:'flex', alignItems:'center', gap:7,
+                  background:`linear-gradient(135deg,${cfg.from},${cfg.to})`,
+                  boxShadow:`0 4px 0 ${cfg.dark}, 0 8px 20px ${cfg.from}40` }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                Marquer complété
+              </motion.button>
+            ) : (
+              <span style={{ fontSize:12, fontWeight:700, color:'#16a34a', display:'flex', alignItems:'center', gap:6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Exercice complété
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );

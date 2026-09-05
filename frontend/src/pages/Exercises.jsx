@@ -541,13 +541,11 @@ function ExerciseSession({ exercises, title, subtitle, quotaExceeded, onExit, on
       </div>
 
       <div style={{ maxWidth:760, margin:'0 auto', padding:'24px 16px 40px' }}>
-        <AnimatePresence mode="wait">
-          <motion.div key={ex._id}
-            initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }}
-            transition={{ duration:0.3, ease:[0.16,1,0.3,1] }}>
-            <ExerciseCard ex={ex} index={0} quotaExceeded={false} onComplete={handleAnswered}/>
-          </motion.div>
-        </AnimatePresence>
+        <motion.div key={ex._id}
+          initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }}
+          transition={{ duration:0.3, ease:[0.16,1,0.3,1] }}>
+          <ExerciseCard ex={ex} index={0} quotaExceeded={false} onComplete={handleAnswered}/>
+        </motion.div>
 
         <AnimatePresence>
           {answered && (
@@ -619,6 +617,7 @@ export default function Exercises() {
   const isFree    = user?.subscription === 'free';
 
   const [exercises,      setExercises]      = useState([]);
+  const [attempts,       setAttempts]       = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [completedCount, setCompletedCount] = useState(0);
   const [quota,          setQuota]          = useState(null);
@@ -628,6 +627,11 @@ export default function Exercises() {
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [selectedCaseType, setSelectedCaseType] = useState(null);
   const [selectedUE,       setSelectedUE]       = useState(null);
+  const [resumeModal,      setResumeModal]      = useState(false);
+  const [doneModal,        setDoneModal]        = useState(false);
+  const [skipDone,         setSkipDone]         = useState(false);
+
+  const refreshAttempts = () => axios.get(`${API_URL}/exercises/history`).then(r => setAttempts(r.data)).catch(() => {});
 
   useEffect(() => {
     const cached = getCache('exercises_list');
@@ -636,10 +640,15 @@ export default function Exercises() {
       .then(r => { setExercises(r.data); setCache('exercises_list', r.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+    refreshAttempts();
     if (isFree) {
       axios.get(`${API_URL}/exercises/quota`).then(r => setQuota(r.data)).catch(() => {});
     }
   }, [isFree]);
+
+  /* Suivi : quels exercices ont déjà été faits (persisté en base, un par un) */
+  const attemptedIds = new Set(attempts.map(a => a.exerciseId));
+  const countDone = (exs) => exs.filter(ex => attemptedIds.has(ex._id)).length;
 
   /* Build structure : Semestre → UE → Chapitre → exercices */
   const structure = {};
@@ -659,30 +668,137 @@ export default function Exercises() {
   const currentExs = (selectedSemester && selectedUE && selectedCaseType)
     ? (structure[selectedSemester]?.[selectedUE]?.[selectedCaseType] || []) : [];
 
-  const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedCaseType(null); setSelectedUE(null); };
+  const reset = () => {
+    setView('semesters'); setSelectedSemester(null); setSelectedCaseType(null); setSelectedUE(null);
+    setResumeModal(false); setDoneModal(false); setSkipDone(false);
+  };
+  const backToChapters = () => { setResumeModal(false); setDoneModal(false); setSelectedCaseType(null); setView('casetypes'); };
 
   const qcmCount  = exercises.filter(e => e.type === 'qcm').length;
   const openCount = exercises.filter(e => e.type === 'open').length;
   const caseCount = exercises.filter(e => e.type === 'case_study').length;
   const quotaExceeded = isFree && quota?.exceeded;
 
+  const chapterDone  = currentExs.length ? countDone(currentExs) : 0;
+  const chapterTotal = currentExs.length;
+
+  /* Clic sur un chapitre : démarre directement, ou propose de reprendre / recommencer */
+  const handleChapterClick = (ct) => {
+    setSelectedCaseType(ct);
+    const exs = structure[selectedSemester]?.[selectedUE]?.[ct] || [];
+    const done = countDone(exs);
+    setSkipDone(false);
+    if (done === 0) { setView('exercises'); }
+    else if (done >= exs.length) { setDoneModal(true); }
+    else { setResumeModal(true); }
+  };
+
+  const handleResume = () => { setSkipDone(true); setResumeModal(false); setView('exercises'); };
+  const handleRestartChapter = () => { setSkipDone(false); setResumeModal(false); setDoneModal(false); setView('exercises'); };
+
+  const sessionExercises = skipDone ? currentExs.filter(ex => !attemptedIds.has(ex._id)) : currentExs;
+
   /* ── Mode jeu : une session plein écran, un exercice à la fois ── */
   if (!loading && view === 'exercises' && selectedSemester && selectedUE && selectedCaseType) {
     return (
       <DashboardLayout>
         <ExerciseSession
-          key={`${selectedSemester}-${selectedUE}-${selectedCaseType}`}
-          exercises={currentExs}
+          key={`${selectedSemester}-${selectedUE}-${selectedCaseType}-${skipDone}`}
+          exercises={sessionExercises}
           title={selectedCaseType}
           subtitle={`${selectedUE} · ${selectedSemester}`}
           quotaExceeded={quotaExceeded}
           navigate={navigate}
-          onExit={() => setView('casetypes')}
+          onExit={() => { refreshAttempts(); setView('casetypes'); }}
           onExerciseComplete={() => {
             setCompletedCount(c => c + 1);
             if (isFree && quota) setQuota(q => ({ ...q, used:(q.used||0)+1, exceeded:(q.used||0)+1 >= q.limit }));
+            refreshAttempts();
           }}
         />
+      </DashboardLayout>
+    );
+  }
+
+  /* ── Modal : chapitre déjà commencé ── */
+  if (resumeModal) {
+    const pct = chapterTotal ? Math.round((chapterDone / chapterTotal) * 100) : 0;
+    return (
+      <DashboardLayout>
+        <main style={{ flex:1, overflowY:'auto', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <motion.div initial={{ opacity:0, scale:0.9, y:20 }} animate={{ opacity:1, scale:1, y:0 }}
+            transition={{ type:'spring', stiffness:280, damping:24 }}
+            style={{ background:C.card, borderRadius:28, padding:'28px 24px', width:'100%', maxWidth:380, boxShadow:clay.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
+            <div style={{ width:52, height:52, borderRadius:18, background:'#fef9c3', margin:'0 auto 16px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <h2 style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:2 }}>Chapitre en cours</h2>
+            <p style={{ fontSize:12, color:C.sub, marginBottom:6 }}>{selectedCaseType}</p>
+            <p style={{ fontSize:13, color:C.sub, marginBottom:20 }}>
+              Tu as déjà fait <strong style={{ color:C.text }}>{chapterDone}/{chapterTotal}</strong> exercices
+            </p>
+            <div style={{ height:8, borderRadius:99, background:C.border, overflow:'hidden', marginBottom:24 }}>
+              <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#f59e0b,#f97316)', borderRadius:99, transition:'width 0.8s ease' }}/>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <motion.button onClick={handleResume} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
+                style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Reprendre où je me suis arrêté
+              </motion.button>
+              <motion.button onClick={handleRestartChapter} whileTap={{ scale:0.96 }}
+                style={{ width:'100%', padding:'13px 0', borderRadius:16, border:`1.5px solid ${C.border}`, background:C.bg, color:C.text, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                Recommencer depuis le début
+              </motion.button>
+              <button onClick={backToChapters} style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.sub, marginTop:4 }}>
+                ← Retour aux chapitres
+              </button>
+            </div>
+          </motion.div>
+        </main>
+      </DashboardLayout>
+    );
+  }
+
+  /* ── Modal : chapitre déjà terminé ── */
+  if (doneModal) {
+    const correct = currentExs.filter(ex => attempts.find(a => a.exerciseId === ex._id)?.pct === 100).length;
+    const pct = chapterTotal ? Math.round((correct / chapterTotal) * 100) : 0;
+    const ringColor = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#DC2626';
+    return (
+      <DashboardLayout>
+        <main style={{ flex:1, overflowY:'auto', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <motion.div initial={{ opacity:0, scale:0.9, y:20 }} animate={{ opacity:1, scale:1, y:0 }}
+            transition={{ type:'spring', stiffness:280, damping:24 }}
+            style={{ background:C.card, borderRadius:28, padding:'28px 24px', width:'100%', maxWidth:400, boxShadow:clay.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
+            <div style={{ position:'relative', width:96, height:96, margin:'0 auto 16px' }}>
+              <svg width="96" height="96" style={{ transform:'rotate(-90deg)' }}>
+                <circle cx="48" cy="48" r="40" fill="none" stroke={C.border} strokeWidth="7"/>
+                <motion.circle cx="48" cy="48" r="40" fill="none" stroke={ringColor} strokeWidth="7" strokeLinecap="round"
+                  strokeDasharray={`${2*Math.PI*40}`}
+                  initial={{ strokeDashoffset: 2*Math.PI*40 }}
+                  animate={{ strokeDashoffset: 2*Math.PI*40*(1-pct/100) }}
+                  transition={{ duration:1.2, delay:0.1, ease:[0.16,1,0.3,1] }}/>
+              </svg>
+              <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontSize:20, fontWeight:900, color:ringColor }}>{pct}%</span>
+              </div>
+            </div>
+            <h2 style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:2 }}>Chapitre terminé</h2>
+            <p style={{ fontSize:12, color:C.sub, marginBottom:20 }}>{selectedCaseType} — {chapterTotal}/{chapterTotal} exercices faits</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <motion.button onClick={handleRestartChapter} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
+                style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer' }}>
+                Recommencer ce chapitre
+              </motion.button>
+              <button onClick={backToChapters} style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:C.sub, marginTop:4 }}>
+                ← Retour aux chapitres
+              </button>
+            </div>
+          </motion.div>
+        </main>
       </DashboardLayout>
     );
   }
@@ -767,8 +883,10 @@ export default function Exercises() {
                       </div>
                       <DetailList
                         items={semesters.map(sem => {
-                          const total = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat().length;
-                          return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} UE · ${total} exercice${total>1?'s':''}` };
+                          const all   = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat();
+                          const total = all.length;
+                          const done  = countDone(all);
+                          return { key: sem, label: sem, done: total>0 && done>=total, sub: `${Object.keys(structure[sem]).length} UE · ${done}/${total} exercice${total>1?'s':''} fait${done>1?'s':''}` };
                         })}
                         onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
                       />
@@ -788,8 +906,10 @@ export default function Exercises() {
                     </div>
                     <DetailList
                       items={ues.map(ue => {
-                        const total = Object.values(structure[selectedSemester][ue]).flat().length;
-                        return { key: ue, label: ue, sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${total} exercice${total>1?'s':''}` };
+                        const all   = Object.values(structure[selectedSemester][ue]).flat();
+                        const total = all.length;
+                        const done  = countDone(all);
+                        return { key: ue, label: ue, done: total>0 && done>=total, sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${done}/${total} fait${done>1?'s':''}` };
                       })}
                       onPick={ue => { setDir(1); setSelectedUE(ue); setView('casetypes'); }}
                     />
@@ -808,11 +928,15 @@ export default function Exercises() {
                       <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} chapitre{caseTypes.length>1?'s':''}</p>
                     </div>
                     <DetailList
-                      items={caseTypes.map(ct => ({
-                        key: ct, label: ct,
-                        sub: `${structure[selectedSemester][selectedUE][ct].length} exercice${structure[selectedSemester][selectedUE][ct].length>1?'s':''}`,
-                      }))}
-                      onPick={ct => { setDir(1); setSelectedCaseType(ct); setView('exercises'); }}
+                      items={caseTypes.map(ct => {
+                        const exs = structure[selectedSemester][selectedUE][ct];
+                        const done = countDone(exs);
+                        return {
+                          key: ct, label: ct, done: done >= exs.length,
+                          sub: `${done}/${exs.length} exercice${exs.length>1?'s':''} fait${done>1?'s':''}`,
+                        };
+                      })}
+                      onPick={ct => { setDir(1); handleChapterClick(ct); }}
                     />
                   </>
                 )}
@@ -837,7 +961,9 @@ export default function Exercises() {
                       {semesters.map((sem, idx) => {
                         const pal = EX_PALETTE[idx % EX_PALETTE.length];
                         const ctCount = Object.keys(structure[sem]).length;
-                        const total   = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat().length;
+                        const all     = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat();
+                        const total   = all.length;
+                        const done    = countDone(all);
                         return (
                           <motion.button key={sem}
                             onClick={() => { setSelectedSemester(sem); setView('ues'); }}
@@ -851,6 +977,9 @@ export default function Exercises() {
                             {/* Shine */}
                             <div style={{ position:'absolute', top:-24, right:-24, width:80, height:80, borderRadius:'50%', background:'rgba(255,255,255,0.15)', filter:'blur(12px)', pointerEvents:'none' }}/>
                             <div style={{ position:'absolute', bottom:-12, left:-12, width:60, height:60, borderRadius:'50%', background:'rgba(0,0,0,0.1)', filter:'blur(10px)', pointerEvents:'none' }}/>
+                            {total > 0 && done >= total && (
+                              <span style={{ position:'absolute', top:14, right:14, fontSize:9, fontWeight:700, padding:'3px 9px', borderRadius:99, background:'rgba(255,255,255,0.25)', color:'#fff' }}>✓ Terminé</span>
+                            )}
 
                             <div style={{ width:40, height:40, borderRadius:14, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, position:'relative' }}>
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
@@ -860,7 +989,7 @@ export default function Exercises() {
 
                             <h3 style={{ fontSize:15, fontWeight:900, color:'#fff', marginBottom:4, lineHeight:1.2, position:'relative' }}>{sem}</h3>
                             <p style={{ fontSize:11, color:'rgba(255,255,255,0.65)', marginBottom:18, position:'relative' }}>
-                              {ctCount} UE · {total} exercice{total > 1?'s':''}
+                              {ctCount} UE · {done}/{total} fait{done>1?'s':''}
                             </p>
 
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', position:'relative' }}>
@@ -895,7 +1024,9 @@ export default function Exercises() {
                     {ues.map((ue, idx) => {
                       const pal = EX_PALETTE[idx % EX_PALETTE.length];
                       const chapCount = Object.keys(structure[selectedSemester][ue]).length;
-                      const total     = Object.values(structure[selectedSemester][ue]).flat().length;
+                      const all       = Object.values(structure[selectedSemester][ue]).flat();
+                      const total     = all.length;
+                      const done      = countDone(all);
                       return (
                         <motion.button key={ue}
                           onClick={() => { setSelectedUE(ue); setView('casetypes'); }}
@@ -907,9 +1038,12 @@ export default function Exercises() {
                             background:`linear-gradient(135deg,${pal.from},${pal.to})`,
                             boxShadow:`0 4px 0 ${pal.dark}, 0 8px 28px ${pal.from}45` }}>
                           <div style={{ position:'absolute', top:-16, right:-16, width:64, height:64, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(10px)', pointerEvents:'none' }}/>
+                          {total > 0 && done >= total && (
+                            <span style={{ position:'absolute', top:12, right:12, fontSize:9, fontWeight:700, padding:'3px 9px', borderRadius:99, background:'rgba(255,255,255,0.25)', color:'#fff' }}>✓</span>
+                          )}
                           <h3 style={{ fontSize:13, fontWeight:900, color:'#fff', marginBottom:4, position:'relative' }}>{ue}</h3>
                           <p style={{ fontSize:10, color:'rgba(255,255,255,0.65)', marginBottom:12, position:'relative' }}>
-                            {chapCount} chapitre{chapCount > 1?'s':''} · {total} exercice{total > 1?'s':''}
+                            {chapCount} chapitre{chapCount > 1?'s':''} · {done}/{total} fait{done>1?'s':''}
                           </p>
                           <div style={{ display:'flex', justifyContent:'flex-end', position:'relative' }}>
                             <div style={{ width:28, height:28, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -940,27 +1074,36 @@ export default function Exercises() {
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:12 }}>
                     {caseTypes.map((ct, idx) => {
                       const pal = EX_PALETTE[idx % EX_PALETTE.length];
-                      const count = structure[selectedSemester][selectedUE][ct].length;
+                      const exs   = structure[selectedSemester][selectedUE][ct];
+                      const count = exs.length;
+                      const done  = countDone(exs);
+                      const isDone = count > 0 && done >= count;
                       return (
                         <motion.button key={ct}
-                          onClick={() => { setSelectedCaseType(ct); setView('exercises'); }}
+                          onClick={() => handleChapterClick(ct)}
                           initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
                           transition={{ delay:idx*0.05 }}
                           whileHover={{ y:-4, boxShadow:clay.card }}
                           whileTap={{ scale:0.97 }}
                           style={{ borderRadius:18, padding:'16px', textAlign:'left', cursor:'pointer', background:C.card,
-                            border:`1.5px solid ${C.border}`, boxShadow:clay.sm, display:'flex', alignItems:'center', gap:14 }}>
+                            border:`1.5px solid ${isDone ? '#86efac' : C.border}`, boxShadow:clay.sm, display:'flex', alignItems:'center', gap:14 }}>
                           <div style={{ width:44, height:44, borderRadius:14, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                            background:`linear-gradient(135deg,${pal.from},${pal.to})`,
-                            boxShadow:`0 3px 0 ${pal.dark}, 0 6px 16px ${pal.from}40` }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                              <polyline points="14 2 14 8 20 8"/>
-                            </svg>
+                            background: isDone ? 'linear-gradient(135deg,#22c55e,#16a34a)' : `linear-gradient(135deg,${pal.from},${pal.to})`,
+                            boxShadow: isDone ? '0 3px 0 #15803d, 0 6px 16px rgba(34,197,94,0.4)' : `0 3px 0 ${pal.dark}, 0 6px 16px ${pal.from}40` }}>
+                            {isDone ? (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            ) : (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                              </svg>
+                            )}
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
                             <h3 style={{ fontSize:13, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ct}</h3>
-                            <p style={{ fontSize:11, color:C.sub, marginTop:3 }}>{count} exercice{count > 1?'s':''}</p>
+                            <p style={{ fontSize:11, color: isDone ? '#16a34a' : done > 0 ? '#d97706' : C.sub, marginTop:3, fontWeight: done > 0 ? 700 : 400 }}>
+                              {done}/{count} exercice{count > 1?'s':''} fait{done>1?'s':''}
+                            </p>
                           </div>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.border} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0 }}>
                             <polyline points="9 18 15 12 9 6"/>

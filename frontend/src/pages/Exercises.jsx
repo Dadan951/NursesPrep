@@ -131,6 +131,20 @@ const AUTO_RESULT_CFG = {
   incorrect: { label:'À revoir',           color:'#dc2626', bg:'#fef2f2', border:'#fecaca', val:false },
 };
 
+/* ─── Marqueur de "reprise" (recommencer un chapitre déjà terminé) ────────────
+   Un chapitre entièrement fait une première fois reste "Terminé" pour toujours
+   dans l'historique (chaque exercice n'a qu'une seule tentative en base, écrasée
+   à chaque nouvelle réponse). Pour savoir où on en est quand on RE-fait un
+   chapitre déjà terminé, on retient localement la date à laquelle le "Recommencer"
+   a été lancé, et on compare ensuite les dates de complétion à ce repère. */
+function restartMarkerKey(sem, ue, ct) { return `np-exo-restart-${sem}|${ue}|${ct}`; }
+function getRestartMarker(sem, ue, ct) {
+  try { return localStorage.getItem(restartMarkerKey(sem, ue, ct)); } catch { return null; }
+}
+function setRestartMarker(sem, ue, ct) {
+  try { localStorage.setItem(restartMarkerKey(sem, ue, ct), new Date().toISOString()); } catch { /* */ }
+}
+
 /* ─── Exercise Card ──────────────────────────────────────────────────────────── */
 function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [showAnswer, setShowAnswer] = useState(false);
@@ -637,6 +651,10 @@ export default function Exercises() {
   // disparaîtrait de la liste en cours de route et décalerait tous les suivants).
   const [activeExercises,  setActiveExercises]  = useState([]);
   const [sessionKey,       setSessionKey]       = useState(0);
+  // null = mode "jamais entièrement terminé" (on filtre sur l'historique complet) ;
+  // sinon date ISO du dernier "Recommencer" pour ce chapitre (on filtre sur ce qui a
+  // été refait depuis cette date).
+  const [resumeSinceTs,    setResumeSinceTs]    = useState(null);
 
   const refreshAttempts = () => axios.get(`${API_URL}/exercises/history`).then(r => setAttempts(r.data)).catch(() => {});
 
@@ -655,7 +673,18 @@ export default function Exercises() {
 
   /* Suivi : quels exercices ont déjà été faits (persisté en base, un par un) */
   const attemptedIds = new Set(attempts.map(a => a.exerciseId));
+  const attemptByExId = {};
+  attempts.forEach(a => { attemptByExId[a.exerciseId] = a; });
   const countDone = (exs) => exs.filter(ex => attemptedIds.has(ex._id)).length;
+  /* "Fait", en tenant compte d'une éventuelle reprise : sans repère de reprise (sinceIso
+     null), on se base sur l'historique complet ; avec un repère, seuls les exercices
+     répondus depuis cette date comptent comme faits pour CE passage. */
+  const isDoneSince = (ex, sinceIso) => {
+    if (!attemptedIds.has(ex._id)) return false;
+    if (!sinceIso) return true;
+    const a = attemptByExId[ex._id];
+    return !!a && new Date(a.completedAt).getTime() >= new Date(sinceIso).getTime();
+  };
 
   /* Build structure : Semestre → UE → Chapitre → exercices */
   const structure = {};
@@ -677,36 +706,65 @@ export default function Exercises() {
 
   const reset = () => {
     setView('semesters'); setSelectedSemester(null); setSelectedCaseType(null); setSelectedUE(null);
-    setResumeModal(false); setDoneModal(false);
+    setResumeModal(false); setDoneModal(false); setResumeSinceTs(null);
   };
-  const backToChapters = () => { setResumeModal(false); setDoneModal(false); setSelectedCaseType(null); setView('casetypes'); };
+  const backToChapters = () => { setResumeModal(false); setDoneModal(false); setResumeSinceTs(null); setSelectedCaseType(null); setView('casetypes'); };
 
   const qcmCount  = exercises.filter(e => e.type === 'qcm').length;
   const openCount = exercises.filter(e => e.type === 'open').length;
   const caseCount = exercises.filter(e => e.type === 'case_study').length;
   const quotaExceeded = isFree && quota?.exceeded;
 
-  const chapterDone  = currentExs.length ? countDone(currentExs) : 0;
   const chapterTotal = currentExs.length;
+  // Nombre de "faits" affiché dans la modale de reprise : tient compte du cycle en
+  // cours si le chapitre a déjà été entièrement terminé puis relancé.
+  const chapterDone  = currentExs.length ? currentExs.filter(ex => isDoneSince(ex, resumeSinceTs)).length : 0;
 
-  /* Clic sur un chapitre : démarre directement, ou propose de reprendre / recommencer */
+  /* Clic sur un chapitre : démarre directement, ou propose de reprendre / recommencer.
+     Si le chapitre a déjà été entièrement terminé au moins une fois, on regarde s'il y a
+     eu un "Recommencer" depuis : dans ce cas on compare aux réponses données depuis ce
+     repère plutôt qu'à l'historique complet (sinon un chapitre déjà terminé apparaît
+     toujours comme "terminé", même en pleine reprise). */
   const handleChapterClick = (ct) => {
     setSelectedCaseType(ct);
     const exs = structure[selectedSemester]?.[selectedUE]?.[ct] || [];
-    const done = countDone(exs);
-    if (done === 0) {
+    const lifetimeDone = countDone(exs);
+
+    if (lifetimeDone === 0) {
+      setResumeSinceTs(null);
       setActiveExercises(exs); setSessionKey(k => k + 1); setView('exercises');
+      return;
     }
-    else if (done >= exs.length) { setDoneModal(true); }
-    else { setResumeModal(true); }
+    if (lifetimeDone < exs.length) {
+      // Jamais entièrement terminé : reprise classique sur l'historique complet.
+      setResumeSinceTs(null);
+      setResumeModal(true);
+      return;
+    }
+    // Entièrement terminé au moins une fois : regarder si une reprise est en cours.
+    const marker = getRestartMarker(selectedSemester, selectedUE, ct);
+    const cycleDone = marker ? exs.filter(ex => isDoneSince(ex, marker)).length : exs.length;
+    if (!marker || cycleDone >= exs.length) {
+      setResumeSinceTs(null);
+      setDoneModal(true);
+    } else if (cycleDone === 0) {
+      // Recommencé mais rien de refait depuis : on entre directement, comme un départ frais.
+      setResumeSinceTs(marker);
+      setActiveExercises(exs); setSessionKey(k => k + 1); setView('exercises');
+    } else {
+      setResumeSinceTs(marker);
+      setResumeModal(true);
+    }
   };
 
   const handleResume = () => {
-    setActiveExercises(currentExs.filter(ex => !attemptedIds.has(ex._id)));
+    setActiveExercises(currentExs.filter(ex => !isDoneSince(ex, resumeSinceTs)));
     setSessionKey(k => k + 1);
     setResumeModal(false); setView('exercises');
   };
   const handleRestartChapter = () => {
+    setRestartMarker(selectedSemester, selectedUE, selectedCaseType);
+    setResumeSinceTs(null);
     setActiveExercises(currentExs);
     setSessionKey(k => k + 1);
     setResumeModal(false); setDoneModal(false); setView('exercises');

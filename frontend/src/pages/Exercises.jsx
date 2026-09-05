@@ -632,7 +632,11 @@ export default function Exercises() {
   const [selectedUE,       setSelectedUE]       = useState(null);
   const [resumeModal,      setResumeModal]      = useState(false);
   const [doneModal,        setDoneModal]        = useState(false);
-  const [skipDone,         setSkipDone]         = useState(false);
+  // Liste des exercices de la session en cours, figée au lancement : ne doit surtout pas
+  // être recalculée pendant la session (sinon un exercice qui vient d'être répondu
+  // disparaîtrait de la liste en cours de route et décalerait tous les suivants).
+  const [activeExercises,  setActiveExercises]  = useState([]);
+  const [sessionKey,       setSessionKey]       = useState(0);
 
   const refreshAttempts = () => axios.get(`${API_URL}/exercises/history`).then(r => setAttempts(r.data)).catch(() => {});
 
@@ -673,7 +677,7 @@ export default function Exercises() {
 
   const reset = () => {
     setView('semesters'); setSelectedSemester(null); setSelectedCaseType(null); setSelectedUE(null);
-    setResumeModal(false); setDoneModal(false); setSkipDone(false);
+    setResumeModal(false); setDoneModal(false);
   };
   const backToChapters = () => { setResumeModal(false); setDoneModal(false); setSelectedCaseType(null); setView('casetypes'); };
 
@@ -690,24 +694,31 @@ export default function Exercises() {
     setSelectedCaseType(ct);
     const exs = structure[selectedSemester]?.[selectedUE]?.[ct] || [];
     const done = countDone(exs);
-    setSkipDone(false);
-    if (done === 0) { setView('exercises'); }
+    if (done === 0) {
+      setActiveExercises(exs); setSessionKey(k => k + 1); setView('exercises');
+    }
     else if (done >= exs.length) { setDoneModal(true); }
     else { setResumeModal(true); }
   };
 
-  const handleResume = () => { setSkipDone(true); setResumeModal(false); setView('exercises'); };
-  const handleRestartChapter = () => { setSkipDone(false); setResumeModal(false); setDoneModal(false); setView('exercises'); };
-
-  const sessionExercises = skipDone ? currentExs.filter(ex => !attemptedIds.has(ex._id)) : currentExs;
+  const handleResume = () => {
+    setActiveExercises(currentExs.filter(ex => !attemptedIds.has(ex._id)));
+    setSessionKey(k => k + 1);
+    setResumeModal(false); setView('exercises');
+  };
+  const handleRestartChapter = () => {
+    setActiveExercises(currentExs);
+    setSessionKey(k => k + 1);
+    setResumeModal(false); setDoneModal(false); setView('exercises');
+  };
 
   /* ── Mode jeu : une session plein écran, un exercice à la fois ── */
   if (!loading && view === 'exercises' && selectedSemester && selectedUE && selectedCaseType) {
     return (
       <DashboardLayout>
         <ExerciseSession
-          key={`${selectedSemester}-${selectedUE}-${selectedCaseType}-${skipDone}`}
-          exercises={sessionExercises}
+          key={sessionKey}
+          exercises={activeExercises}
           title={selectedCaseType}
           subtitle={`${selectedUE} · ${selectedSemester}`}
           quotaExceeded={quotaExceeded}

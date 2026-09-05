@@ -641,23 +641,23 @@ export default function Exercises() {
     }
   }, [isFree]);
 
-  /* Build structure */
+  /* Build structure : Semestre → UE → Chapitre → exercices */
   const structure = {};
   exercises.forEach(ex => {
     const sem = (ex.semester  || 'Non classé').trim();
-    const ct  = (ex.caseType  || 'Général').trim();
     const ue  = (ex.category  || 'Autre').trim();
+    const ct  = (ex.caseType  || 'Général').trim();
     if (!structure[sem])           structure[sem] = {};
-    if (!structure[sem][ct])       structure[sem][ct] = {};
-    if (!structure[sem][ct][ue])   structure[sem][ct][ue] = [];
-    structure[sem][ct][ue].push(ex);
+    if (!structure[sem][ue])       structure[sem][ue] = {};
+    if (!structure[sem][ue][ct])   structure[sem][ue][ct] = [];
+    structure[sem][ue][ct].push(ex);
   });
 
   const semesters = Object.keys(structure).sort();
-  const caseTypes = selectedSemester ? Object.keys(structure[selectedSemester] || {}).sort() : [];
-  const ues       = (selectedSemester && selectedCaseType) ? Object.keys(structure[selectedSemester]?.[selectedCaseType] || {}).sort() : [];
-  const currentExs = (selectedSemester && selectedCaseType && selectedUE)
-    ? (structure[selectedSemester]?.[selectedCaseType]?.[selectedUE] || []) : [];
+  const ues       = selectedSemester ? Object.keys(structure[selectedSemester] || {}).sort() : [];
+  const caseTypes = (selectedSemester && selectedUE) ? Object.keys(structure[selectedSemester]?.[selectedUE] || {}).sort() : [];
+  const currentExs = (selectedSemester && selectedUE && selectedCaseType)
+    ? (structure[selectedSemester]?.[selectedUE]?.[selectedCaseType] || []) : [];
 
   const reset = () => { setView('semesters'); setSelectedSemester(null); setSelectedCaseType(null); setSelectedUE(null); };
 
@@ -667,17 +667,17 @@ export default function Exercises() {
   const quotaExceeded = isFree && quota?.exceeded;
 
   /* ── Mode jeu : une session plein écran, un exercice à la fois ── */
-  if (!loading && view === 'exercises' && selectedSemester && selectedCaseType && selectedUE) {
+  if (!loading && view === 'exercises' && selectedSemester && selectedUE && selectedCaseType) {
     return (
       <DashboardLayout>
         <ExerciseSession
-          key={`${selectedSemester}-${selectedCaseType}-${selectedUE}`}
+          key={`${selectedSemester}-${selectedUE}-${selectedCaseType}`}
           exercises={currentExs}
-          title={selectedUE}
-          subtitle={`${selectedCaseType} · ${selectedSemester}`}
+          title={selectedCaseType}
+          subtitle={`${selectedUE} · ${selectedSemester}`}
           quotaExceeded={quotaExceeded}
           navigate={navigate}
-          onExit={() => setView('ues')}
+          onExit={() => setView('casetypes')}
           onExerciseComplete={() => {
             setCompletedCount(c => c + 1);
             if (isFree && quota) setQuota(q => ({ ...q, used:(q.used||0)+1, exceeded:(q.used||0)+1 >= q.limit }));
@@ -768,15 +768,15 @@ export default function Exercises() {
                       <DetailList
                         items={semesters.map(sem => {
                           const total = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat().length;
-                          return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} type${Object.keys(structure[sem]).length>1?'s':''} · ${total} exercice${total>1?'s':''}` };
+                          return { key: sem, label: sem, sub: `${Object.keys(structure[sem]).length} UE · ${total} exercice${total>1?'s':''}` };
                         })}
-                        onPick={sem => { setDir(1); setSelectedSemester(sem); setView('casetypes'); }}
+                        onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
                       />
                     </>
                   )
                 )}
 
-                {view === 'casetypes' && selectedSemester && (
+                {view === 'ues' && selectedSemester && (
                   <>
                     <ExBreadcrumb items={[
                       { label:'Exercices', onClick:() => { setDir(-1); reset(); } },
@@ -784,35 +784,35 @@ export default function Exercises() {
                     ]}/>
                     <div style={{ marginBottom:20 }}>
                       <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
-                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} type{caseTypes.length>1?'s':''} de cas</p>
+                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
                     </div>
                     <DetailList
-                      items={caseTypes.map(ct => {
-                        const total = Object.values(structure[selectedSemester][ct]).flat().length;
-                        return { key: ct, label: ct, sub: `${Object.keys(structure[selectedSemester][ct]).length} UE · ${total} exercice${total>1?'s':''}` };
+                      items={ues.map(ue => {
+                        const total = Object.values(structure[selectedSemester][ue]).flat().length;
+                        return { key: ue, label: ue, sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${total} exercice${total>1?'s':''}` };
                       })}
-                      onPick={ct => { setDir(1); setSelectedCaseType(ct); setView('ues'); }}
+                      onPick={ue => { setDir(1); setSelectedUE(ue); setView('casetypes'); }}
                     />
                   </>
                 )}
 
-                {view === 'ues' && selectedSemester && selectedCaseType && (
+                {view === 'casetypes' && selectedSemester && selectedUE && (
                   <>
                     <ExBreadcrumb items={[
                       { label:'Exercices', onClick:() => { setDir(-1); reset(); } },
-                      { label:selectedSemester, onClick:() => { setDir(-1); setSelectedCaseType(null); setView('casetypes'); } },
-                      { label:selectedCaseType },
+                      { label:selectedSemester, onClick:() => { setDir(-1); setSelectedUE(null); setView('ues'); } },
+                      { label:selectedUE },
                     ]}/>
                     <div style={{ marginBottom:20 }}>
-                      <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedCaseType}</h2>
-                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{ues.length} unité{ues.length>1?'s':''} d'enseignement</p>
+                      <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedUE}</h2>
+                      <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} chapitre{caseTypes.length>1?'s':''}</p>
                     </div>
                     <DetailList
-                      items={ues.map(ue => ({
-                        key: ue, label: ue,
-                        sub: `${structure[selectedSemester][selectedCaseType][ue].length} exercice${structure[selectedSemester][selectedCaseType][ue].length>1?'s':''}`,
+                      items={caseTypes.map(ct => ({
+                        key: ct, label: ct,
+                        sub: `${structure[selectedSemester][selectedUE][ct].length} exercice${structure[selectedSemester][selectedUE][ct].length>1?'s':''}`,
                       }))}
-                      onPick={ue => { setDir(1); setSelectedUE(ue); setView('exercises'); }}
+                      onPick={ct => { setDir(1); setSelectedCaseType(ct); setView('exercises'); }}
                     />
                   </>
                 )}
@@ -840,7 +840,7 @@ export default function Exercises() {
                         const total   = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat().length;
                         return (
                           <motion.button key={sem}
-                            onClick={() => { setSelectedSemester(sem); setView('casetypes'); }}
+                            onClick={() => { setSelectedSemester(sem); setView('ues'); }}
                             initial={{ opacity:0, y:20, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }}
                             transition={{ delay:idx*0.07, duration:0.45, ease:[0.16,1,0.3,1] }}
                             whileHover={{ y:-6, boxShadow:`0 8px 0 ${pal.dark}, 0 16px 40px ${pal.from}60` }}
@@ -860,7 +860,7 @@ export default function Exercises() {
 
                             <h3 style={{ fontSize:15, fontWeight:900, color:'#fff', marginBottom:4, lineHeight:1.2, position:'relative' }}>{sem}</h3>
                             <p style={{ fontSize:11, color:'rgba(255,255,255,0.65)', marginBottom:18, position:'relative' }}>
-                              {ctCount} type{ctCount > 1?'s':''} · {total} exercice{total > 1?'s':''}
+                              {ctCount} UE · {total} exercice{total > 1?'s':''}
                             </p>
 
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', position:'relative' }}>
@@ -881,24 +881,24 @@ export default function Exercises() {
                 </motion.div>
               )}
 
-              {/* ── TYPES DE CAS ── */}
-              {view === 'casetypes' && selectedSemester && (
-                <motion.div key="cts"
+              {/* ── UEs ── */}
+              {view === 'ues' && selectedSemester && (
+                <motion.div key="ues"
                   initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }}
                   transition={{ duration:0.35, ease:[0.16,1,0.3,1] }}>
                   <ExBreadcrumb items={[{ label:'Exercices', onClick:reset }, { label:selectedSemester }]}/>
                   <div style={{ marginBottom:20 }}>
                     <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedSemester}</h2>
-                    <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} type{caseTypes.length > 1?'s':''} de cas</p>
+                    <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{ues.length} unité{ues.length > 1?'s':''} d'enseignement</p>
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:14 }}>
-                    {caseTypes.map((ct, idx) => {
+                    {ues.map((ue, idx) => {
                       const pal = EX_PALETTE[idx % EX_PALETTE.length];
-                      const ueCount = Object.keys(structure[selectedSemester][ct]).length;
-                      const total   = Object.values(structure[selectedSemester][ct]).flat().length;
+                      const chapCount = Object.keys(structure[selectedSemester][ue]).length;
+                      const total     = Object.values(structure[selectedSemester][ue]).flat().length;
                       return (
-                        <motion.button key={ct}
-                          onClick={() => { setSelectedCaseType(ct); setView('ues'); }}
+                        <motion.button key={ue}
+                          onClick={() => { setSelectedUE(ue); setView('casetypes'); }}
                           initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
                           transition={{ delay:idx*0.06 }}
                           whileHover={{ y:-5, boxShadow:`0 6px 0 ${pal.dark}, 0 14px 32px ${pal.from}55` }}
@@ -907,9 +907,9 @@ export default function Exercises() {
                             background:`linear-gradient(135deg,${pal.from},${pal.to})`,
                             boxShadow:`0 4px 0 ${pal.dark}, 0 8px 28px ${pal.from}45` }}>
                           <div style={{ position:'absolute', top:-16, right:-16, width:64, height:64, borderRadius:'50%', background:'rgba(255,255,255,0.12)', filter:'blur(10px)', pointerEvents:'none' }}/>
-                          <h3 style={{ fontSize:13, fontWeight:900, color:'#fff', marginBottom:4, position:'relative' }}>{ct}</h3>
+                          <h3 style={{ fontSize:13, fontWeight:900, color:'#fff', marginBottom:4, position:'relative' }}>{ue}</h3>
                           <p style={{ fontSize:10, color:'rgba(255,255,255,0.65)', marginBottom:12, position:'relative' }}>
-                            {ueCount} UE · {total} exercice{total > 1?'s':''}
+                            {chapCount} chapitre{chapCount > 1?'s':''} · {total} exercice{total > 1?'s':''}
                           </p>
                           <div style={{ display:'flex', justifyContent:'flex-end', position:'relative' }}>
                             <div style={{ width:28, height:28, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -923,27 +923,27 @@ export default function Exercises() {
                 </motion.div>
               )}
 
-              {/* ── UEs ── */}
-              {view === 'ues' && selectedSemester && selectedCaseType && (
-                <motion.div key="ues"
+              {/* ── CHAPITRES ── */}
+              {view === 'casetypes' && selectedSemester && selectedUE && (
+                <motion.div key="chapters"
                   initial={{ opacity:0, x:24 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-24 }}
                   transition={{ duration:0.35, ease:[0.16,1,0.3,1] }}>
                   <ExBreadcrumb items={[
                     { label:'Exercices', onClick:reset },
-                    { label:selectedSemester, onClick:() => { setSelectedCaseType(null); setView('casetypes'); } },
-                    { label:selectedCaseType },
+                    { label:selectedSemester, onClick:() => { setSelectedUE(null); setView('ues'); } },
+                    { label:selectedUE },
                   ]}/>
                   <div style={{ marginBottom:20 }}>
-                    <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedCaseType}</h2>
-                    <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{ues.length} unité{ues.length > 1?'s':''} d'enseignement</p>
+                    <h2 style={{ fontSize:22, fontWeight:900, color:C.text }}>{selectedUE}</h2>
+                    <p style={{ fontSize:12, color:C.sub, marginTop:4 }}>{caseTypes.length} chapitre{caseTypes.length > 1?'s':''}</p>
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:12 }}>
-                    {ues.map((ue, idx) => {
+                    {caseTypes.map((ct, idx) => {
                       const pal = EX_PALETTE[idx % EX_PALETTE.length];
-                      const count = structure[selectedSemester][selectedCaseType][ue].length;
+                      const count = structure[selectedSemester][selectedUE][ct].length;
                       return (
-                        <motion.button key={ue}
-                          onClick={() => { setSelectedUE(ue); setView('exercises'); }}
+                        <motion.button key={ct}
+                          onClick={() => { setSelectedCaseType(ct); setView('exercises'); }}
                           initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
                           transition={{ delay:idx*0.05 }}
                           whileHover={{ y:-4, boxShadow:clay.card }}
@@ -959,7 +959,7 @@ export default function Exercises() {
                             </svg>
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <h3 style={{ fontSize:13, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ue}</h3>
+                            <h3 style={{ fontSize:13, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ct}</h3>
                             <p style={{ fontSize:11, color:C.sub, marginTop:3 }}>{count} exercice{count > 1?'s':''}</p>
                           </div>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.border} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0 }}>

@@ -243,7 +243,14 @@ export default function Sidebar({ isAdmin = false, onClose, onSearch }) {
   const sections = isAdmin ? ADMIN_SECTIONS : STUDENT_SECTIONS;
   const border   = isDark ? '#1e2d50' : '#e0e7ff';
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  // navigate('/') est appelé après le rendu déclenché par logout() (plutôt que
+  // dans le même tick) : sinon ProtectedRoute, en réagissant à user devenu null
+  // avant que ce navigate ne s'applique, redirige lui-même vers /login — et cette
+  // redirection, survenant après, écrase notre navigate('/') au lieu de l'inverse.
+  const handleLogout = () => {
+    logout();
+    setTimeout(() => navigate('/', { replace: true }), 0);
+  };
 
   let delay = 0;
 

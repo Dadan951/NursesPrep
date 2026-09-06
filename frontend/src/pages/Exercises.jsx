@@ -148,18 +148,36 @@ function setRestartMarker(sem, ue, ct) {
 /* ─── Exercise Card ──────────────────────────────────────────────────────────── */
 function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [selected,   setSelected]   = useState(null);
+  // Ensemble des index cochés — un QCU (1 seule bonne réponse) se comporte comme
+  // avant (clic = remplace la sélection) ; un vrai QCM (plusieurs bonnes réponses)
+  // permet de cocher/décocher plusieurs options avant validation.
+  const [selected,   setSelected]   = useState(() => new Set());
   const [completed,  setCompleted]  = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
   const [autoResult, setAutoResult] = useState(null); // { key:'correct'|'partial'|'incorrect', matched, total }
   const cfg  = TYPE_CFG[ex.type] || TYPE_CFG.open;
+  const correctIndices = ex.type === 'qcm' && ex.options ? ex.options.reduce((acc, o, i) => { if (o.isCorrect) acc.push(i); return acc; }, []) : [];
+  const isMultiChoice = correctIndices.length > 1;
+
+  const toggleOption = (i) => {
+    if (showAnswer) return;
+    setSelected(prev => {
+      if (!isMultiChoice) return new Set([i]);
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
 
   const handleComplete = (overrideCorrect) => {
     if (completed || quotaExceeded) return;
     setCompleted(true);
     setShowAnswer(true);
     let isCorrect = null;
-    if (ex.type === 'qcm' && selected !== null) isCorrect = !!ex.options[selected]?.isCorrect;
+    if (ex.type === 'qcm' && selected.size > 0) {
+      const correctSet = new Set(correctIndices);
+      isCorrect = selected.size === correctSet.size && [...selected].every(i => correctSet.has(i));
+    }
     else if (typeof overrideCorrect === 'boolean') isCorrect = overrideCorrect;
     // Mise à jour de l'affichage immédiate ; la sauvegarde se fait en arrière-plan
     // (ne pas attendre la réponse réseau évite un délai perceptible avant que
@@ -207,7 +225,7 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
         <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', position:'relative' }}>
           <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20,
             background:'rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.9)', border:'1px solid rgba(255,255,255,0.25)' }}>
-            {cfg.label}
+            {ex.type === 'qcm' ? (isMultiChoice ? 'QCM' : 'QCU') : cfg.label}
           </span>
           {completed && (
             <span style={{ fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:20, display:'flex', alignItems:'center', gap:4,
@@ -274,12 +292,19 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
           </div>
         )}
 
-        {/* QCM Options */}
+        {/* QCM / QCU Options */}
         {ex.type === 'qcm' && ex.options?.length > 0 && (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {!showAnswer && (
+              <p style={{ fontSize:11, fontWeight:600, color:cfg.textColor, marginTop:-4, marginBottom:2 }}>
+                {isMultiChoice ? 'Plusieurs réponses possibles' : 'Une seule réponse possible'}
+              </p>
+            )}
             {ex.options.map((opt, i) => {
-              let st = { background:'#fff', border:`1.5px solid ${C.border}`, color:C.text, cursor:'pointer', boxShadow:clay.sm };
-              let dotSt = { background:C.border, color:C.sub };
+              const isSel = selected.has(i);
+              let st = isSel && !showAnswer
+                ? { background:cfg.light, border:`2px solid ${cfg.from}`, color:C.text, cursor:'pointer', boxShadow:clay.sm }
+                : { background:'#fff', border:`1.5px solid ${C.border}`, color:C.text, cursor:'pointer', boxShadow:clay.sm };
               let icon = null;
 
               if (showAnswer) {
@@ -288,14 +313,13 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
                   icon = <span style={{ width:16, height:16, borderRadius:'50%', background:'#22c55e', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>;
-                } else if (selected === i) {
+                } else if (isSel) {
                   st = { background:'#fef2f2', border:'2px solid #f87171', color:'#991b1b', textDecoration:'line-through', opacity:0.8, cursor:'default', boxShadow:'none' };
                   icon = <span style={{ width:16, height:16, borderRadius:'50%', background:'#f87171', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </span>;
                 } else {
                   st = { background:C.bg, border:`1px solid ${C.border}`, color:C.sub, opacity:0.6, cursor:'default', boxShadow:'none' };
-                  dotSt = { background:C.border, color:C.sub };
                   icon = <span style={{ width:16, height:16, borderRadius:'50%', background:C.border, color:C.sub, fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     {String.fromCharCode(65+i)}
                   </span>;
@@ -305,14 +329,22 @@ function ExerciseCard({ ex, onComplete, quotaExceeded, index }) {
               return (
                 <motion.button key={i}
                   disabled={showAnswer}
-                  onClick={() => !showAnswer && setSelected(i)}
+                  onClick={() => toggleOption(i)}
                   whileHover={!showAnswer ? { y:-2, boxShadow:clay.card } : {}}
                   whileTap={!showAnswer ? { scale:0.98 } : {}}
                   style={{ width:'100%', textAlign:'left', padding:'10px 14px', borderRadius:14, fontSize:12, fontWeight:500, display:'flex', alignItems:'center', gap:10, transition:'all 0.15s', ...st }}>
                   {!showAnswer && (
-                    <span style={{ width:18, height:18, borderRadius:'50%', border:`2px solid ${C.border}`, fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:C.sub }}>
-                      {String.fromCharCode(65+i)}
-                    </span>
+                    isMultiChoice ? (
+                      <span style={{ width:18, height:18, borderRadius:5, border:`2px solid ${isSel ? cfg.from : C.border}`, background: isSel ? cfg.from : 'transparent',
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        {isSel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </span>
+                    ) : (
+                      <span style={{ width:18, height:18, borderRadius:'50%', border:`2px solid ${isSel ? cfg.from : C.border}`, fontSize:9, fontWeight:700,
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:C.sub, background: isSel ? cfg.from : 'transparent' }}>
+                        {isSel && <span style={{ width:8, height:8, borderRadius:'50%', background:'#fff' }}/>}
+                      </span>
+                    )
                   )}
                   {showAnswer && icon}
                   <span>{opt.text}</span>

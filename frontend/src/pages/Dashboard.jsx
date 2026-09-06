@@ -356,6 +356,10 @@ export default function Dashboard() {
   function handleResume(item) {
     if (item.type === 'quiz') {
       navigate(`/dashboard/quiz/${item.quizId}`);
+    } else if (item.type === 'exercise') {
+      navigate('/dashboard/exercises', {
+        state: { resume: { semester: item.semester, ue: item.ue, chapter: item.chapter } },
+      });
     } else {
       navigate('/dashboard/flashcards', {
         state: { resume: { semester: item.semester, ue: item.ue, chapter: item.chapter, part: item.part } },
@@ -478,16 +482,19 @@ export default function Dashboard() {
               </h2>
               <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {inProgress.map((item, i) => {
-                  const isQuiz = item.type === 'quiz';
-                  const color  = isQuiz ? C.indigo : C.violet;
-                  const bg     = isQuiz ? '#eef2ff' : '#f5f3ff';
+                  const cfg = {
+                    quiz:      { color: C.indigo, bg: '#eef2ff', icon: Icon.quiz },
+                    exercise:  { color: C.teal,   bg: '#ecfeff', icon: Icon.exo  },
+                    flashcard: { color: C.violet, bg: '#f5f3ff', icon: Icon.flash },
+                  }[item.type] || { color: C.violet, bg: '#f5f3ff', icon: Icon.flash };
+                  const { color, bg, icon } = cfg;
                   const card = (
                     <Card
                       style={{ padding:'14px 16px', cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}
                       onClick={() => handleResume(item)}
                     >
                       <div style={{ width:40, height:40, borderRadius:12, background:bg, color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        {isQuiz ? Icon.quiz : Icon.flash}
+                        {icon}
                       </div>
                       <div style={{ minWidth:0, flex:1 }}>
                         <p style={{ fontSize:13, fontWeight:700, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.title}</p>

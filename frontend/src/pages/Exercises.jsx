@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { getCache, setCache } from '../utils/cache';
@@ -677,6 +677,7 @@ function Skel({ h = 100, count = 3 }) {
 export default function Exercises() {
   const { user }  = useAuth();
   const navigate  = useNavigate();
+  const location  = useLocation();
   const isFree    = user?.subscription === 'free';
 
   const [exercises,      setExercises]      = useState([]);
@@ -701,8 +702,10 @@ export default function Exercises() {
   // sinon date ISO du dernier "Recommencer" pour ce chapitre (on filtre sur ce qui a
   // été refait depuis cette date).
   const [resumeSinceTs,    setResumeSinceTs]    = useState(null);
+  const [attemptsFetched,  setAttemptsFetched]  = useState(false);
 
-  const refreshAttempts = () => axios.get(`${API_URL}/exercises/history`).then(r => setAttempts(r.data)).catch(() => {});
+  const refreshAttempts = () => axios.get(`${API_URL}/exercises/history`)
+    .then(r => setAttempts(r.data)).catch(() => {}).finally(() => setAttemptsFetched(true));
 
   useEffect(() => {
     const cached = getCache('exercises_list');
@@ -818,6 +821,44 @@ export default function Exercises() {
     setSessionKey(k => k + 1);
     setResumeModal(false); setDoneModal(false); setView('exercises');
   };
+
+  /* ── Reprise directe depuis le Dashboard (state.resume) ── */
+  const appliedResume = useRef(false);
+  useEffect(() => {
+    if (appliedResume.current || loading || !attemptsFetched) return;
+    const resume = location.state?.resume;
+    if (!resume) return;
+    appliedResume.current = true;
+    const { semester, ue, chapter } = resume;
+    const exs = structure[semester]?.[ue]?.[chapter] || [];
+    setSelectedSemester(semester);
+    setSelectedUE(ue);
+    setSelectedCaseType(chapter);
+
+    const lifetimeDone = countDone(exs);
+    if (exs.length === 0 || lifetimeDone === 0) {
+      setResumeSinceTs(null);
+      setActiveExercises(exs); setSessionKey(k => k + 1); setView('exercises');
+      return;
+    }
+    if (lifetimeDone < exs.length) {
+      setResumeSinceTs(null);
+      setResumeModal(true);
+      return;
+    }
+    const marker = getRestartMarker(semester, ue, chapter);
+    const cycleDone = marker ? exs.filter(ex => isDoneSince(ex, marker)).length : exs.length;
+    if (!marker || cycleDone >= exs.length) {
+      setResumeSinceTs(null);
+      setDoneModal(true);
+    } else if (cycleDone === 0) {
+      setResumeSinceTs(marker);
+      setActiveExercises(exs); setSessionKey(k => k + 1); setView('exercises');
+    } else {
+      setResumeSinceTs(marker);
+      setResumeModal(true);
+    }
+  }, [loading, attemptsFetched]); // eslint-disable-line
 
   /* ── Mode jeu : une session plein écran, un exercice à la fois ── */
   if (!loading && view === 'exercises' && selectedSemester && selectedUE && selectedCaseType) {
@@ -1061,13 +1102,16 @@ export default function Exercises() {
                         const exs = structure[selectedSemester][selectedUE][ct];
                         const done = countDone(exs);
                         const correct = countCorrect(exs);
+                        const isChapterDone = exs.length > 0 && done >= exs.length;
                         const pct = done > 0 ? Math.round((correct / done) * 100) : 0;
                         return {
-                          key: ct, label: ct, done: done >= exs.length,
+                          key: ct, label: ct, done: isChapterDone,
                           sub: `${done}/${exs.length} ${chapterWord(exs, exs.length)} fait${done>1?'s':''}`,
-                          right: done > 0
+                          right: isChapterDone
                             ? <DetailBadge color={pct>=60?'#15803d':'#991b1b'} bg={pct>=60?'#dcfce7':'#fee2e2'}>{pct>=60?'✓':'✗'} {correct}/{done}</DetailBadge>
-                            : null,
+                            : done > 0
+                              ? <DetailBadge color="#854d0e" bg="#fef9c3">● En cours</DetailBadge>
+                              : null,
                         };
                       })}
                       onPick={ct => { setDir(1); handleChapterClick(ct); }}

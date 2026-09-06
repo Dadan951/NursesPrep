@@ -50,6 +50,20 @@ const TYPE_CFG = {
   },
 };
 
+/* Mot utilisé pour désigner le contenu d'un chapitre dans les listes de navigation
+   ("X/15 quiz faits" plutôt que "X/15 exercices faits") — annonce le format avant
+   même d'ouvrir le chapitre, quand il est homogène (uniquement des QCM/QCU, ou
+   uniquement des cas cliniques) ; reste générique ("exercice") sinon. */
+function chapterWord(exs, count) {
+  const types = new Set((exs || []).map(ex => ex.type));
+  if (types.size === 1) {
+    const [t] = types;
+    if (t === 'qcm') return 'quiz';
+    if (t === 'case_study') return count > 1 ? 'cas cliniques' : 'cas clinique';
+  }
+  return count > 1 ? 'exercices' : 'exercice';
+}
+
 /* ─── Correction automatique par mots-clés (sans API) ────────────────────────── */
 const FR_STOPWORDS = new Set([
   'le','la','les','de','des','du','un','une','et','ou','est','sont','dans','pour','avec','sur','par',
@@ -841,7 +855,7 @@ export default function Exercises() {
             <h2 style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:2 }}>Chapitre en cours</h2>
             <p style={{ fontSize:12, color:C.sub, marginBottom:6 }}>{selectedCaseType}</p>
             <p style={{ fontSize:13, color:C.sub, marginBottom:20 }}>
-              Tu as déjà fait <strong style={{ color:C.text }}>{chapterDone}/{chapterTotal}</strong> exercices
+              Tu as déjà fait <strong style={{ color:C.text }}>{chapterDone}/{chapterTotal}</strong> {chapterWord(currentExs, chapterTotal)}
             </p>
             <div style={{ height:8, borderRadius:99, background:C.border, overflow:'hidden', marginBottom:24 }}>
               <div style={{ height:'100%', width:`${pct}%`, background:'linear-gradient(90deg,#f59e0b,#f97316)', borderRadius:99, transition:'width 0.8s ease' }}/>
@@ -891,7 +905,7 @@ export default function Exercises() {
               </div>
             </div>
             <h2 style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:2 }}>Chapitre terminé</h2>
-            <p style={{ fontSize:12, color:C.sub, marginBottom:20 }}>{selectedCaseType} — {chapterTotal}/{chapterTotal} exercices faits</p>
+            <p style={{ fontSize:12, color:C.sub, marginBottom:20 }}>{selectedCaseType} — {chapterTotal}/{chapterTotal} {chapterWord(currentExs, chapterTotal)} faits</p>
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               <motion.button onClick={handleRestartChapter} whileHover={{ scale:1.02 }} whileTap={{ scale:0.96 }}
                 style={{ width:'100%', padding:'14px 0', borderRadius:16, border:'none', background:'linear-gradient(135deg,var(--theme-primary),var(--theme-secondary))', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer' }}>
@@ -1037,7 +1051,7 @@ export default function Exercises() {
                         const done = countDone(exs);
                         return {
                           key: ct, label: ct, done: done >= exs.length,
-                          sub: `${done}/${exs.length} exercice${exs.length>1?'s':''} fait${done>1?'s':''}`,
+                          sub: `${done}/${exs.length} ${chapterWord(exs, exs.length)} fait${done>1?'s':''}`,
                         };
                       })}
                       onPick={ct => { setDir(1); handleChapterClick(ct); }}
@@ -1206,7 +1220,7 @@ export default function Exercises() {
                           <div style={{ flex:1, minWidth:0 }}>
                             <h3 style={{ fontSize:13, fontWeight:700, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ct}</h3>
                             <p style={{ fontSize:11, color: isDone ? '#16a34a' : done > 0 ? '#d97706' : C.sub, marginTop:3, fontWeight: done > 0 ? 700 : 400 }}>
-                              {done}/{count} exercice{count > 1?'s':''} fait{done>1?'s':''}
+                              {done}/{count} {chapterWord(exs, count)} fait{done>1?'s':''}
                             </p>
                           </div>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.border} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0 }}>

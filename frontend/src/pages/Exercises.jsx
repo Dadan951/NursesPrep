@@ -5,7 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../components/DashboardLayout';
 import { getCache, setCache } from '../utils/cache';
 import { API_URL, useAuth } from '../context/AuthContext';
-import { useDisplayMode, SlideLevel, DetailList } from '../components/DetailBrowse';
+import { useDisplayMode, SlideLevel, DetailList, DetailBadge } from '../components/DetailBrowse';
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -722,6 +722,9 @@ export default function Exercises() {
   const attemptByExId = {};
   attempts.forEach(a => { attemptByExId[a.exerciseId] = a; });
   const countDone = (exs) => exs.filter(ex => attemptedIds.has(ex._id)).length;
+  /* Nombre d'exercices déjà faits et marqués corrects (pct=100), pour le badge
+     de réussite au niveau chapitre — comme le score affiché sur un quiz. */
+  const countCorrect = (exs) => exs.filter(ex => attemptByExId[ex._id]?.pct === 100).length;
   /* "Fait", en tenant compte d'une éventuelle reprise : sans repère de reprise (sinceIso
      null), on se base sur l'historique complet ; avec un repère, seuls les exercices
      répondus depuis cette date comptent comme faits pour CE passage. */
@@ -1004,7 +1007,11 @@ export default function Exercises() {
                           const all   = Object.values(structure[sem]).flatMap(ct => Object.values(ct)).flat();
                           const total = all.length;
                           const done  = countDone(all);
-                          return { key: sem, label: sem, done: total>0 && done>=total, sub: `${Object.keys(structure[sem]).length} UE · ${done}/${total} exercice${total>1?'s':''} fait${done>1?'s':''}` };
+                          return {
+                            key: sem, label: sem, done: total>0 && done>=total,
+                            sub: `${Object.keys(structure[sem]).length} UE · ${done}/${total} exercice${total>1?'s':''} fait${done>1?'s':''}`,
+                            right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{total}</DetailBadge> : null,
+                          };
                         })}
                         onPick={sem => { setDir(1); setSelectedSemester(sem); setView('ues'); }}
                       />
@@ -1027,7 +1034,11 @@ export default function Exercises() {
                         const all   = Object.values(structure[selectedSemester][ue]).flat();
                         const total = all.length;
                         const done  = countDone(all);
-                        return { key: ue, label: ue, done: total>0 && done>=total, sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${done}/${total} fait${done>1?'s':''}` };
+                        return {
+                          key: ue, label: ue, done: total>0 && done>=total,
+                          sub: `${Object.keys(structure[selectedSemester][ue]).length} chapitre${Object.keys(structure[selectedSemester][ue]).length>1?'s':''} · ${done}/${total} fait${done>1?'s':''}`,
+                          right: done > 0 ? <DetailBadge color="#15803d" bg="#dcfce7">✓ {done}/{total}</DetailBadge> : null,
+                        };
                       })}
                       onPick={ue => { setDir(1); setSelectedUE(ue); setView('casetypes'); }}
                     />
@@ -1049,9 +1060,14 @@ export default function Exercises() {
                       items={caseTypes.map(ct => {
                         const exs = structure[selectedSemester][selectedUE][ct];
                         const done = countDone(exs);
+                        const correct = countCorrect(exs);
+                        const pct = done > 0 ? Math.round((correct / done) * 100) : 0;
                         return {
                           key: ct, label: ct, done: done >= exs.length,
                           sub: `${done}/${exs.length} ${chapterWord(exs, exs.length)} fait${done>1?'s':''}`,
+                          right: done > 0
+                            ? <DetailBadge color={pct>=60?'#15803d':'#991b1b'} bg={pct>=60?'#dcfce7':'#fee2e2'}>{pct>=60?'✓':'✗'} {correct}/{done}</DetailBadge>
+                            : null,
                         };
                       })}
                       onPick={ct => { setDir(1); handleChapterClick(ct); }}
